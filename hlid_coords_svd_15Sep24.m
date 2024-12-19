@@ -15,8 +15,6 @@ function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,res
 % s_full: full S in resps_use=U*S*V', including any values beyond maxdim_use
 % coords_all: all coords written
 %
-% 19Dec24: fix display bug: s needs to be squared to compute variance
-%
 %   See also:  HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO.
 %
 dim_text='dim'; %leadin for fields of d
@@ -26,7 +24,7 @@ s_diag_all=diag(s(1:maxdim_use,1:maxdim_use));
 s_full=s;
 u_full=u;
 v_full=v;
-var_total=sum(s_diag_all.^2); %^2 added 19Dec24
+var_total=sum(s_diag_all);
 s=s(1:maxdim_use,1:maxdim_use);
 u=u(:,1:maxdim_use);
 v=v(:,1:maxdim_use);
@@ -42,7 +40,7 @@ end
 %
 s_diag=diag(s);
 disp('fraction of variance explained with each component')
-disp(sprintf('%6.4f ',s_diag.^2/var_total)) %^2 added 19Dec24
+disp(sprintf('%6.4f ',s_diag/var_total))
 coords_all=u*s;
 for idim=1:maxdim
     f.(cat(2,dim_text,sprintf('%1.0f',idim)))=coords_all(:,1:idim);
