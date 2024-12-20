@@ -13,6 +13,7 @@
 % ROIs with NaNs in any other columns are removed (these are missing ROIs)
 % 
 % For PCA, number of ROIs without NaNs must be at least as large as number of stimuli.
+%   need to fix: PCA yields NaN's if stimuli are missing
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_RASTIM_TRIAL_PLOT.
 %
@@ -284,7 +285,7 @@ for ifile=1:nfiles
         pcas{ifile,isub,3}.resp=resp_resid_reshape;
         pcas{ifile,isub,4}.resp=resp_orths_reshape;
         for ipca=1:npcas
-            npcs=size(pcas{ifile,isub,ipca}.resp,1);
+            npcs=min(size(pcas{ifile,isub,ipca}.resp));
             pcas{ifile,isub,ipca}.npcs=npcs;
             [u,s,v]=svd(pcas{ifile,isub,ipca}.resp); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
             pcas{ifile,isub,ipca}.s=diag(s(1:npcs,1:npcs));
