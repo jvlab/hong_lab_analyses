@@ -15,6 +15,7 @@
 % For PCA, number of ROIs without NaNs must be at least as large as number of stimuli.
 %
 % 21Dec24: fixed pca analysis when stimuli are missing
+% 22Dec24: add option for signed comparison of stim with resid and orth, and fix labeling
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_RASTIM_TRIAL_PLOT.
 %
@@ -225,6 +226,8 @@ for ifile=1:nfiles
 end
 clear das
 %
+if_signed_resid_orth=getinp('1 for signed comparisons of resids with resids, and orths with orths','d',[0 1],0);
+%
 %process distances
 %analyze with and without mean-subtraction in each ROI (top row, bot row)
 %compute standard distance matrix of mean responses (Euclidean or 1-correlation)
@@ -238,7 +241,10 @@ proc_labels={... %processing methods
     'resids vs [+/-]resids',...
     'stims vs resids',...
     'orths vs [+/-]orths',...
-    'stims vs orths'};
+    'stims vs [+/-]orths'};
+if (if_signed_resid_orth==1)
+    proc_labels=strrep(proc_labels,'[+/-]','');
+end
 nprocs=length(proc_labels);
 pca_labels={'stims','trials','resids','orths'};
 npcas=length(pca_labels);
@@ -267,17 +273,29 @@ for ifile=1:nfiles
                 case 'Euclidean'
                     dists{ifile,idist,isub,1}=sqrt(cootodsq(resp_stim,resp_stim));
                     dists{ifile,idist,isub,2}=sqrt(cootodsq(resp_trial_reshape,resp_trial_reshape));
-                    dists{ifile,idist,isub,3}=sqrt(min(cootodsq(resp_resid_reshape,resp_resid_reshape),cootodsq(resp_resid_reshape,-resp_resid_reshape)));
                     dists{ifile,idist,isub,4}=sqrt(cootodsq(resp_stim,resp_resid_reshape));
-                    dists{ifile,idist,isub,5}=sqrt(min(cootodsq(resp_orths_reshape,resp_orths_reshape),cootodsq(resp_orths_reshape,-resp_orths_reshape)));
-                    dists{ifile,idist,isub,6}=sqrt(min(cootodsq(resp_stim,resp_orths_reshape),cootodsq(resp_stim,-resp_orths_reshape)));
+                    if if_signed_resid_orth==1
+                        dists{ifile,idist,isub,3}=sqrt(cootodsq(resp_resid_reshape,resp_resid_reshape));
+                        dists{ifile,idist,isub,5}=sqrt(cootodsq(resp_orths_reshape,resp_orths_reshape));
+                        dists{ifile,idist,isub,6}=sqrt(cootodsq(resp_stim,resp_orths_reshape));
+                    else
+                        dists{ifile,idist,isub,3}=sqrt(min(cootodsq(resp_resid_reshape,resp_resid_reshape),cootodsq(resp_resid_reshape,-resp_resid_reshape)));
+                        dists{ifile,idist,isub,5}=sqrt(min(cootodsq(resp_orths_reshape,resp_orths_reshape),cootodsq(resp_orths_reshape,-resp_orths_reshape)));
+                        dists{ifile,idist,isub,6}=sqrt(min(cootodsq(resp_stim,resp_orths_reshape),cootodsq(resp_stim,-resp_orths_reshape)));
+                    end
                 case '1-correl'
                     dists{ifile,idist,isub,1}=1-corr(resp_stim',resp_stim');
                     dists{ifile,idist,isub,2}=1-corr(resp_trial_reshape',resp_trial_reshape');
-                    dists{ifile,idist,isub,3}=1-abs(corr(resp_resid_reshape',resp_resid_reshape'));
                     dists{ifile,idist,isub,4}=1-corr(resp_stim',resp_resid_reshape');
-                    dists{ifile,idist,isub,5}=1-abs(corr(resp_orths_reshape',resp_orths_reshape'));
-                    dists{ifile,idist,isub,6}=1-abs(corr(resp_stim',resp_orths_reshape'));
+                    if if_signed_resid_orth==1
+                        dists{ifile,idist,isub,3}=1-corr(resp_resid_reshape',resp_resid_reshape');
+                        dists{ifile,idist,isub,5}=1-corr(resp_orths_reshape',resp_orths_reshape');
+                        dists{ifile,idist,isub,6}=1-corr(resp_stim',resp_orths_reshape');
+                    else
+                        dists{ifile,idist,isub,3}=1-abs(corr(resp_resid_reshape',resp_resid_reshape'));
+                        dists{ifile,idist,isub,5}=1-abs(corr(resp_orths_reshape',resp_orths_reshape'));
+                        dists{ifile,idist,isub,6}=1-abs(corr(resp_stim',resp_orths_reshape'));
+                    end
             end
         end %idist
         %pca calculations
@@ -400,6 +418,7 @@ end %isub
 %save results
 %
 results=struct;
+results.if_signed_resid_orth=if_signed_resid_orth;
 results.nrepts=nrepts;
 results.nstims=nstims;
 results.nfiles=nfiles;
