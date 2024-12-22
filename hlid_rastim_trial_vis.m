@@ -1,5 +1,8 @@
 %hlid_rastim_trial_pca: visualize single-trial level data in representational space
 %
+% uses raw resonses (mean not subtracted), and normalized mean responses 
+% (setting Euclidean distance to 1, so that distances are monotonically related to 1-correlation)
+%
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_PCA.
 %
@@ -26,10 +29,10 @@ hlid_rastim_trial_read;
 % rois=cell(nfiles,1):  original rois
 % nrois_avail(ifile): number of rois available
 %
-if ~exist('dlist_def') dlist_def=[1:7];end
+if ~exist('dmax_def') dmax_def=10;end
 if ~exist('dlist_vis_def') dlist_vis_def=[2 3]; end
-dlist=getinp('dimensions of representational space to create','d',[1 nstims],dlist_def);
-dlist_vis=getinp('dimensions of representational spaces to visualize','d',[min(dlist),max(dlist)],dlist_vis_def);
+dmax=getinp('max dimension of representational space to create','d',[1 nstims],dmax_def);
+dlist_vis=getinp('dimensions of representational spaces to visualize','d',[1 dmax],dlist_vis_def);
 %create response space based on mean responses, and then project the
 %single-trial responses into them
 %
@@ -40,13 +43,15 @@ for ifile=1:nfiles
         switch preproc_labels{ipreproc}
             case 'raw'
             case 'normalized'
-                rm=rm./repmat(sqrt(sum(rm.^2,2)),[1 nrois_avail(ifile)]);
-                rt=rt./repmat(sqrt(sum(rt.^2,3)),[1 1 nrois_avail(ifile)]);
+                rm_norm=sqrt(sum(rm.^2,2));
+                rm_norm(rm_norm==0)=1;
+                rm=rm./repmat(rm_norm,[1 nrois_avail(ifile)]);
+                rt_norm=sqrt(sum(rt.^2,3));
+                rt_norm(rt_norm==0)=1;
+                rt=rt./repmat(rt_norm,[1 1 nrois_avail(ifile)]);
         end
     end
 end %each file
-% also want to do pca with normalized resonses
-% (monotonically related to 1-correlation
 %
 %get dimensionality
 
