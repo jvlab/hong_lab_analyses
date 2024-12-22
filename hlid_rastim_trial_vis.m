@@ -6,8 +6,8 @@
 hlid_setup;  %invoke hlid_localopts; set up read_opts and plot_opts
 %
 if ~exist('sub_labels') sub_labels={'',' (mean sub)'}; end %can replace  by a subset to shorten analysis
-if ~exist('dist_labels') dist_labels={'Euclidean','1-correl'}; end %can replace by a subset to shorten analysis
-ndists=length(dist_labels);
+if ~exist('preproc_labels') preproc_labels={'raw','normalized'}; end 
+npreproc=length(preproc_labels);
 %
 nsubs=length(sub_labels);
 %
@@ -17,18 +17,38 @@ hlid_rastim_trial_read;
 %
 % metadata=cell(nfiles,1);
 % dsids=cell(nfiles,1);
-% resps_mean=cell(nfiles,1); %mean responses across stimuli
-% trial_ptrs=cell(nfiles,1); %array of (nstims,nrepts)
-% resps_trial=cell(nfiles,1); %trial-by-trial responses, stimuli unscrambled, (nstims,nrepts,nrois_avail)
-% trial_sequence=cell(nfiles,1); %stimulus sequence, stimuli as strings
-% stims_avail=cell(nfiles,1); %list of available stimuli in each file, beginning at 1
-% rois_avail=cell(nfiles,1); %list of roi numbers kept for analysis, beginning at 1
-% rois=cell(nfiles,1): % original rois
-
-% ma also want to do MDS on the cosine distances
+% resps_mean=cell(nfiles,1); mean responses within stimuli(nstims,nrois_avail)
+% trial_ptrs=cell(nfiles,1); array of (nstims,nrepts)
+% resps_trial=cell(nfiles,1); trial-by-trial responses, stimuli unscrambled, (nstims,nrepts,nrois_avail)
+% trial_sequence=cell(nfiles,1); stimulus sequence, stimuli as strings
+% stims_avail=cell(nfiles,1); list of available stimuli in each file, beginning at 1
+% rois_avail=cell(nfiles,1); list of roi numbers kept for analysis, beginning at 1
+% rois=cell(nfiles,1):  original rois
+% nrois_avail(ifile): number of rois available
+%
+if ~exist('dlist_def') dlist_def=[1:7];end
+if ~exist('dlist_vis_def') dlist_vis_def=[2 3]; end
+dlist=getinp('dimensions of representational space to create','d',[1 nstims],dlist_def);
+dlist_vis=getinp('dimensions of representational spaces to visualize','d',[min(dlist),max(dlist)],dlist_vis_def);
+%create response space based on mean responses, and then project the
+%single-trial responses into them
+%
+for ifile=1:nfiles
+    for ipreproc=1:npreproc
+        rm=resps_mean{ifile};
+        rt=resps_trial{ifile};
+        switch preproc_labels{ipreproc}
+            case 'raw'
+            case 'normalized'
+                rm=rm./repmat(sqrt(sum(rm.^2,2)),[1 nrois_avail(ifile)]);
+                rt=rt./repmat(sqrt(sum(rt.^2,3)),[1 1 nrois_avail(ifile)]);
+        end
+    end
+end %each file
+% also want to do pca with normalized resonses
+% (monotonically related to 1-correlation
 %
 %get dimensionality
-%get display order
 
 % opts = 
 %   struct with fields:

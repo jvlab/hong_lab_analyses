@@ -83,15 +83,17 @@ ticks_trial=[1:nstims]*nrepts-(nrepts-1)/2;
 %plot_pos_stim: position to plot each stimulus
 %plot_pos_trial: position to plot each trial
 %
+%
 % metadata=cell(nfiles,1);
 % dsids=cell(nfiles,1);
-% resps_mean=cell(nfiles,1); %mean responses across stimuli
-% trial_ptrs=cell(nfiles,1); %array of (nstims,nrepts)
-% resps_trial=cell(nfiles,1); %trial-by-trial responses, stimuli unscrambled, (nstims,nrepts,nrois_avail)
-% trial_sequence=cell(nfiles,1); %stimulus sequence, stimuli as strings
-% stims_avail=cell(nfiles,1); %list of available stimuli in each file, beginning at 1
-% rois_avail=cell(nfiles,1); %list of roi numbers kept for analysis, beginning at 1
-% rois=cell(nfiles,1): % original rois
+% resps_mean=cell(nfiles,1); mean responses within stimuli(nstims,nrois_avail)
+% trial_ptrs=cell(nfiles,1); array of (nstims,nrepts)
+% resps_trial=cell(nfiles,1); trial-by-trial responses, stimuli unscrambled, (nstims,nrepts,nrois_avail)
+% trial_sequence=cell(nfiles,1); stimulus sequence, stimuli as strings
+% stims_avail=cell(nfiles,1); list of available stimuli in each file, beginning at 1
+% rois_avail=cell(nfiles,1); list of roi numbers kept for analysis, beginning at 1
+% rois=cell(nfiles,1):  original rois
+% nrois_avail(ifile): number of rois available
 %
 if_signed_resid_orth=getinp('1 for signed comparisons of resids with resids, and orths with orths','d',[0 1],0);
 %
