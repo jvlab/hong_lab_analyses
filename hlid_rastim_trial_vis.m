@@ -46,7 +46,7 @@ opts_plot.if_legend=0; %we add our own legend
 opts_plot=filldefault(opts_plot,'color_norays_connect_mode',2); %color based on second subscript in connect_list
 opts_plot=filldefault(opts_plot,'connect_list',[ones(nrepts,1),1+[1:nrepts]']);
 opts_plot=filldefault(opts_plot,'color_norays','k');
-opts_plot=filldefault(opts_plot,'color_connect_sets_norays',{'r','m','c'});
+opts_plot=filldefault(opts_plot,'color_connect_sets_norays',{'k','r','m','c'});
 opts_plot=filldefault(opts_plot,'label_list','typenames');
 %
 for k=1:nstims
@@ -79,8 +79,8 @@ for ifile=1:nfiles
         coords_mean=u*diag(s);
         %project rt into trial space, where coords are u*s
         coords_trial_nonan=zeros(size(rm,1),npcs,nrepts);
-        for itrial=1:nrepts
-            coords_trial_nonan(:,:,itrial)=reshape(rt(nonans,itrial,:),length(nonans),size(rm,2))*v;
+        for irept=1:nrepts
+            coords_trial_nonan(:,:,irept)=reshape(rt(nonans,irept,:),length(nonans),size(rm,2))*v;
         end
         coords_trial=nan(size(rm,1),npcs,nrepts);
         coords_trial(nonans,:,:)=coords_trial_nonan;
@@ -94,9 +94,17 @@ for ifile=1:nfiles
         %show 3 dimensions
         %
         %need to project each rt into the u-space
-        dl=[1:3]
+        dl=[1:3];
         opts_plot_used=psg_plotcoords(cat(3,coords_mean(:,dl),coords_trial(:,dl,:)),dl,sa,struct(),opts_plot);
-        plot3d(0,0,0,'p'); %plot origin
+        plot3(0,0,0,'kp'); %plot origin
+        opts_plot_trial=opts_plot;
+        opts_plot_trial=rmfield(opts_plot_trial,'connect_list');
+        opts_plot_trial=rmfield(opts_plot_trial,'label_list');
+        opts_plot_trial.axis_handle=opts_plot_used.axis_handle;
+        for irept=1:nrepts
+            opts_plot_trial.color_norays=opts_plot.color_connect_sets_norays{1+irept};
+            opts_plot_trial_used=psg_plotcoords(coords_trial(:,dl,irept),dl,sa,struct(),opts_plot_trial);
+        end
         %use opts_plot_used.axis_handle to replot with opts.color_norays to
         %match the color_connect_sets_norays',{'r','m','c'}) for each
         %trial
