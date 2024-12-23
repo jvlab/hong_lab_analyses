@@ -21,7 +21,7 @@
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  HLID_RASTIM2COORDS_POOL, HLID_RASTIM_TRIAL_PLOT, HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_VIS.
 %
-hlid_setup;  %invoke hlid_localopts; set up read_opts and plot_opts
+hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
 if ~exist('dist_labels') dist_labels={'Euclidean','1-correl'}; end %can replace by a subset to shorten analysis
 ndists=length(dist_labels);
