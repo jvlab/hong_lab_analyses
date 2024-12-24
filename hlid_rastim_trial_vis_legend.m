@@ -22,9 +22,9 @@ handles=[];
 strings=cell(0);
 for k=1:length(s1p1)
     %change ' set  1 connect   * point   1' to 'trial *'
-    strings{k}=strrep(strrep(strrep(strrep(strrep(tags{s1p1(k)},'includeTag',' '),'point   1',''),'set  1',''),' ',''),'connect','trial ');
-    handles(1,k)=hc(s1p1(k));
+    strings{k,1}=strrep(strrep(strrep(strrep(strrep(tags{s1p1(k)},'includeTag',' '),'point   1',''),'set  1',''),' ',''),'connect','trial ');
+    handles(k,1)=hc(s1p1(k));
 end
-legend(handles,strings);
+legend(flipud(handles),flipud(strings));
 return
 end

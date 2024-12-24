@@ -123,7 +123,9 @@ for ifile=1:nfiles
     for isub=1:nsubs
         resp_stim=resps_mean{ifile};
         resp_trial=resps_trial{ifile};
-        if (isub==2)
+        switch sub_labels{isub}
+            case ''
+            case ' (mean sub)'
             resp_xstim=mean(resp_stim,1,'omitnan'); %global mean-
             resp_stim=resp_stim-repmat(resp_xstim,[nstims 1]);
             resp_trial=resp_trial-repmat(reshape(resp_xstim,[1 1 nrois_avail(ifile)]),[nstims nrepts 1]);

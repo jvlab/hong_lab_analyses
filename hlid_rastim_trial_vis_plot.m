@@ -1,6 +1,6 @@
-function [opts_used,opts_trial_used]=hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,labels,opts)
-% [opts_used,opts_trial_used]=hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,labels,opts)
-% plots mean responses and signle-trial responses on same axeslsit
+function [opts_used,opts_trial_used,opts_edges_used]=hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,labels,opts)
+% [opts_used,opts_trial_used,opts_edges_used]=hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,labels,opts)
+% plots mean responses and single-trial responses as colored spokes, separate color for each trial number
 %
 % coords_mean: mean responses (nstims,dims)
 % coords_trial: signle-trial responses (nstims,dims,nrepts)
@@ -9,11 +9,12 @@ function [opts_used,opts_trial_used]=hlid_rastim_trial_vis_plot(coords_mean,coor
 % labels: stimulus labels, as cell array of length nstims
 % opts: options, can be empty
 %    axis_handle, if specified, is axis to plot into
-%    see fields filled by filldefault for other customizations
+%    if_edges: defaults to 0, 1 to aadd edges
 %
-% opt_used: options used from composite plot
+% opts_used: options used from composite plot
 %   opts_used.axis_handle: axis handle
-% opts_trial_used: cell array of optoins used for each trial's plot
+% opts_trial_used: cell array of options used for each trial's plot
+% opts_edges_used: optoins used for edge plot
 %
 %  See also: HLID_RASTIM_TRIAL_VIS, PSG_PLOTCOORDS, HLID_RASTM_TRIAL_VIS_LEGEND.
 %
@@ -33,6 +34,7 @@ opts=filldefault(opts,'LineWidth',1);
 opts=filldefault(opts,'marker_origin','p');
 opts=filldefault(opts,'color_origin','k');
 opts=filldefault(opts,'axis_label_prefix','d');
+opts=filldefault(opts,'if_edges',0);
 %
 sa=struct;
 sa.typenames=labels;
@@ -46,6 +48,17 @@ end
 opts.color_connect_sets_norays=color_connect;
 opts.tag_text='includeTag';
 opts_used=psg_plotcoords(cat(3,coords_mean(:,:),coords_trial(:,:,:)),dimlist,sa,struct(),opts);
+%add edges
+if opts.if_edges
+    opts_edges=opts;
+    opts_edges.axis_handle=opts_used.axis_handle;
+    opts_edges.tag_text='excludeTag';  %these don't go into the legends
+    opts_edges.connect_list=nchoosek(1+[1:nrepts],2); %connect all combinations of vertices that don't include the mean
+    opts_edges.color_norays_connect_mode=3; %split each line
+    opts_edges_used=psg_plotcoords(cat(3,coords_mean(:,:),coords_trial(:,:,:)),dimlist,sa,struct(),opts_edges);
+else
+    opts_edges_used=struct;
+end
 %
 %replot single trials to color the points
 opts_trial=opts;
