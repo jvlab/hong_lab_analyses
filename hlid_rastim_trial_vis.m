@@ -35,9 +35,7 @@ hlid_rastim_trial_read;
 % nrois_avail(ifile): number of rois available
 %
 if ~exist('dmax_def') dmax_def=10;end
-if ~exist('dlist_vis_def') dlist_vis_def=[2 3]; end
 dmax=getinp('max dimension of representational space to create','d',[1 nstims],dmax_def);
-dlist_vis=getinp('dimensions of representational spaces to visualize','d',[1 dmax],dlist_vis_def);
 %
 %create response space based on mean responses, and then project the
 %single-trial responses into them
@@ -52,8 +50,12 @@ end
 if ~exist('colors') %colors for each trial
     colors={'r','m','c'};
 end
-
 %
+if ~exist('coord_lists') %combinations of dimensions to show
+    coord_lists{1}=[1 2 3];
+    coord_lists{2}=[[1 2 3];[1 2 4];[1 3 4];[2 3 4]];
+    coord_lists{3}=[2 3 4];
+end
 for ifile=1:nfiles
     for ipreproc=1:npreproc
         rm=resps_mean{ifile};
@@ -85,21 +87,30 @@ for ifile=1:nfiles
         coords_trial(nonans,:,:)=coords_trial_nonan;
         %
         tstring=sprintf('file %s: %s',dsids{1},preproc_labels{ipreproc});
-        figure;
-        set(gcf,'Position',[100 100 1200 800]);
-        set(gcf,'NumberTitle','off');
-        set(gcf,'Name',tstring);
-        %
-        %show 3 dimensions
-        %
-        %need to project each rt into the u-space
-        dimlist=[1:3];
-        [opts_plot_used,opts_plot_trial_used]=...
-            hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,stimulus_names_display,opts_plot);
-        hlid_rastim_trial_vis_legend;
-        %
-        axes('Position',[0.01,0.02,0.01,0.01]); %for text
-        text(0,0,tstring,'Interpreter','none');
-        axis off;
+        for icl=1:length(coord_lists)
+            coord_list=coord_lists{icl};
+            if max(coord_list(:))<=npcs
+                figure;
+                set(gcf,'Position',[100 100 1200 800]);
+                set(gcf,'NumberTitle','off');
+                set(gcf,'Name',cat(2,tstring,sprintf(', dmax: %2.0f',max(coord_list(:)))));
+                [nr,nc]=nicesubp(size(coord_list,1),0.7);
+                for ic=1:size(coord_list,1)
+                    dimlist=coord_list(ic,:);
+                    opt_plot.axis_handle=subplot(nr,nc,ic);
+                    [opts_plot_used,opts_plot_trial_used]=...
+                        hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,stimulus_names_display,opts_plot);
+                    if size(coord_list,1)==1 %add a dashed line to origin on large plots
+                        for istim=1:nstims
+                            plot3([0,coords_mean(istim,dimlist(1))],[0,coords_mean(istim,dimlist(2))],[0,coords_mean(istim,dimlist(3))],'k:');
+                        end
+                    end
+                    hlid_rastim_trial_vis_legend;
+                end
+                axes('Position',[0.01,0.02,0.01,0.01]); %for text
+                text(0,0,tstring,'Interpreter','none');
+                axis off;
+            end %max dim ok
+        end %icl
     end %each preprocess
 end %each file
