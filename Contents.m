@@ -17,6 +17,8 @@
 % hlid_rastim_trial_plot: utility plotting for hlid_rastim_trial_pca
 % hlid_rastim_trial_read: script for reading single-trial raw data
 % hlid_rastim_trial_vis: single-trial visualization of raw data
+% hlid_rastim_trial_vis_legend: plotting utility plotting for hlid_rastim_trial_vis
+% hlid_rastim_trial_vis_plot: plotting utility plotting for hlid_rastim_trial_vis
 % hlid_rastim2coords_demo: demo conversion of response amplitudes to coordinates
 % hlid_rastim2coords_pool: pool and convert response amplitudes to coordinates
 % hlid_read_coorddata_demo: demo reading of a coordinate file

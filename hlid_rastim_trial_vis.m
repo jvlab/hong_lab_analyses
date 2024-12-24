@@ -6,7 +6,8 @@
 % psg_plotcoords used to enable lower-level control
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
-%  HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_PCA, PSG_PLOTCOORDS, PSG_VISUALIZE.
+%  HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_PCA, PSG_PLOTCOORDS,
+%  PSG_VISUALIZE, HLID_RASTIM_TRIAL_VIS_PLOT, HLID_RASTIM_TRIAL_VIS_LEGEND.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
@@ -37,23 +38,21 @@ if ~exist('dmax_def') dmax_def=10;end
 if ~exist('dlist_vis_def') dlist_vis_def=[2 3]; end
 dmax=getinp('max dimension of representational space to create','d',[1 nstims],dmax_def);
 dlist_vis=getinp('dimensions of representational spaces to visualize','d',[1 dmax],dlist_vis_def);
+%
 %create response space based on mean responses, and then project the
 %single-trial responses into them
-%
-opts_plot.if_use_rays=0;
-opts_plot.label_sets=1;
-opts_plot.if_legend=0; %we add our own legend
-opts_plot=filldefault(opts_plot,'color_norays_connect_mode',2); %color based on second subscript in connect_list
-opts_plot=filldefault(opts_plot,'connect_list',[ones(nrepts,1),1+[1:nrepts]']);
-opts_plot=filldefault(opts_plot,'color_norays','k');
-opts_plot=filldefault(opts_plot,'color_connect_sets_norays',{'k','r','m','c'});
-opts_plot=filldefault(opts_plot,'label_list','typenames');
 %
 for k=1:nstims
     stimulus_names_display{k}=stimulus_names(k,1:-1+min(find(stimulus_names(k,:)==' ')));
 end
-sa=struct;
-sa.typenames=stimulus_names_display;
+%
+if ~exist('opts_plot')
+    opts_plot=struct;
+end
+if ~exist('colors') %colors for each trial
+    colors={'r','m','c'};
+end
+
 %
 for ifile=1:nfiles
     for ipreproc=1:npreproc
@@ -94,20 +93,10 @@ for ifile=1:nfiles
         %show 3 dimensions
         %
         %need to project each rt into the u-space
-        dl=[1:3];
-        opts_plot_used=psg_plotcoords(cat(3,coords_mean(:,dl),coords_trial(:,dl,:)),dl,sa,struct(),opts_plot);
-        plot3(0,0,0,'kp'); %plot origin
-        opts_plot_trial=opts_plot;
-        opts_plot_trial=rmfield(opts_plot_trial,'connect_list');
-        opts_plot_trial=rmfield(opts_plot_trial,'label_list');
-        opts_plot_trial.axis_handle=opts_plot_used.axis_handle;
-        for irept=1:nrepts
-            opts_plot_trial.color_norays=opts_plot.color_connect_sets_norays{1+irept};
-            opts_plot_trial_used=psg_plotcoords(coords_trial(:,dl,irept),dl,sa,struct(),opts_plot_trial);
-        end
-        %use opts_plot_used.axis_handle to replot with opts.color_norays to
-        %match the color_connect_sets_norays',{'r','m','c'}) for each
-        %trial
+        dimlist=[1:3];
+        [opts_plot_used,opts_plot_trial_used]=...
+            hlid_rastim_trial_vis_plot(coords_mean,coords_trial,dimlist,colors,stimulus_names_display,opts_plot);
+        hlid_rastim_trial_vis_legend;
         %
         axes('Position',[0.01,0.02,0.01,0.01]); %for text
         text(0,0,tstring,'Interpreter','none');
