@@ -1,9 +1,13 @@
-%hlid_rastim_trial_pca: read calcium imaging data from Hong Lab, and analyze at
-% single-trial level, expecting three trials per stimulus per file
+%hlid_rastim_trial_pca: read calcium imaging data from Hong Lab, and analyze at single-trial level
 % 
-% Produces a results structure, but does not mesh with psg routines.
+% Produces heatmaps of distances and PCA scree plots and component heatmaps
+%   from analyses at stimlus-mean and single-trial level
+%   'resid' response is the single-trial response minus the stimulus mean
+%   'orth' response is the single-trial response minus the best projection onto the stimulus mean
+% Produces results structure.
+% Does not mesh with psg routines.
 % 
-% Analsis is based on z-scored response amplitudes from single trials
+% Analysis is based on z-scored response amplitudes from single trials
 %
 % Datasets analyzed together must have same sequence of stimuli in
 % response_amplitude_stim.stim and response_amplitude_stim.mean_peak,
@@ -19,7 +23,7 @@
 % 22Dec24: modularize reading files
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
-%  HLID_RASTIM2COORDS_POOL, HLID_RASTIM_TRIAL_PLOT, HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_VIS.
+%  HLID_RASTIM_TRIAL_PLOT, HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_VIS.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
