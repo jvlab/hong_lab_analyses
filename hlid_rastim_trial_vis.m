@@ -28,7 +28,7 @@ npreprocs=length(preproc_labels);
 if ~exist('st_labels') st_labels={'stims','trials'}; end %can replace by a subset to shorten analysis
 nsts=length(st_labels);
 if ~exist('plot_select_list')
-    plot_select_list=[1 1 1;1 1 2;2 1 1;1 2 1]; %combinations of sub, preproc, and st choices to plot
+    plot_select_list=[1 1 1;1 1 2;2 1 1;1 2 1;2 2 1]; %combinations of sub, preproc, and st choices to plot
 end
 %
 if ~exist('opts_plot') opts_plot=struct; end
@@ -76,6 +76,7 @@ coords_stim=cell(nfiles,nsubs,npreprocs,nsts);
 coords_trial=cell(nfiles,nsubs,npreprocs,nsts);
 %
 for ifile=1:nfiles
+    disp(sprintf('file %s',dsids{ifile}));
     for isub=1:nsubs
         rs=resps_mean{ifile};
         rt=resps_trial{ifile};
@@ -130,11 +131,12 @@ for ifile=1:nfiles
                 if_plot=any(all(repmat(plot_select,[size(plot_select_list,1),1])==plot_select_list,2));
                 coords_stim{ifile,isub,ipreproc,ist}=c_stim;
                 coords_trial{ifile,isub,ipreproc,ist}=c_trial;
-                disp(sprintf(' found coordinates (plot=%1.0f) for %s',if_plot,tstring));
                 if if_plot
+                    nplots=0;
                     for icl=1:length(coord_lists)
                         coord_list=coord_lists{icl};
                         if max(coord_list(:))<=npcs
+                            nplots=nplots+1;
                             figure;
                             set(gcf,'Position',[100 100 1200 800]);
                             set(gcf,'NumberTitle','off');
@@ -165,7 +167,11 @@ for ifile=1:nfiles
                             axis off;
                         end %max dim ok
                     end %icl
-                end
+                    plot_string=sprintf('%2.0f plots',nplots);
+                else
+                    plot_string='no plots';
+                end %if_plot
+                disp(sprintf(' computed coordinates (%s) for %s',plot_string,tstring));
             end %ist
         end %ipreproc
     end %isub
@@ -194,4 +200,7 @@ results.dsids=dsids;
 results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
 results.rois_avail=rois_avail;
 results.rois=rois;
+%
+disp('results structure created.');
+
 
