@@ -77,6 +77,7 @@ end
 dmax=getinp('max dimension of representational space to create','d',[dmax nstims],dmax);
 coords_stim=cell(nfiles,nsubs,npreprocs,nsts);
 coords_trial=cell(nfiles,nsubs,npreprocs,nsts);
+if_onlycons=getinp('1 to only plot consensus spaces','d',[0 1]);
 %
 for ifile=1:nfiles
     disp(sprintf('file %s',dsids{ifile}));
@@ -132,9 +133,9 @@ for ifile=1:nfiles
                 tstring=sprintf('file %s: %s %s, pca on %s',dsids{ifile},sub_labels{isub},preproc_labels{ipreproc},st_labels{ist});
                 plot_select=[isub ipreproc ist];
                 if_plot=any(all(repmat(plot_select,[size(plot_select_list,1),1])==plot_select_list,2));
-                coords_stim{ifile,isub,ipreproc,ist}=c_stim;
-                coords_trial{ifile,isub,ipreproc,ist}=c_trial;
-                if if_plot
+                coords_stim{ifile,isub,ipreproc,ist}=c_stim; %save
+                coords_trial{ifile,isub,ipreproc,ist}=c_trial; %save
+                if (if_plot) & (if_onlycons==0)
                     nplots=0;
                     for icl=1:length(coord_lists)
                         coord_list=coord_lists{icl};
@@ -180,8 +181,10 @@ for ifile=1:nfiles
     end %isub
 end %each file
 %
-%now tran sform into consensus across files, working with each set of coordinates
+%now transform into consensus across files, working with each set of coordinates
 %
+coords_consensus=cell(1,nsubs,npreprocs,nsts);
+xforms_consensus=cell(nfiles,nsubs,npreprocs,nsts);
 for isub=1:nsubs
     for ipreproc=1:npreprocs
         for ist=1:nsts
@@ -214,6 +217,12 @@ for isub=1:nsubs
                 disp(sprintf(' creating Procrustes consensus for dim %2.0f, iterations: %4.0f, final total rms dev per coordinate: %8.5f',...
                     idim,length(details.rms_change),sqrt(sum(details.rms_dev(:,end).^2))));               
             end %idim
+            coords_consensus{1,isub,ipreproc,ist}=consensus;
+            for ifile=1:nfiles
+                for idim=1:dmax_use
+                    xforms_consensus{ifile,isub,ipreproc,ist}{idim}=ts{idim}{ifile};
+                end
+            end
             if_plot=any(all(repmat(plot_select,[size(plot_select_list,1),1])==plot_select_list,2));
             if if_plot
                 nplots=0;
@@ -279,6 +288,9 @@ results.dsids=dsids;
 results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
 results.rois_avail=rois_avail;
 results.rois=rois;
+%
+results.coords_consensus=coords_consensus;
+results.xforms_consensus=xforms_consensus;
 %
 disp('results structure created.');
 
