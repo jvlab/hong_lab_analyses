@@ -219,7 +219,7 @@ for isub=1:nsubs
                 nplots=0;
                 for icl=1:length(coord_lists)
                     coord_list=coord_lists{icl};
-                    dplot=max(coord_list(:));
+                    dplot=max(coord_list(:)); %this is the dimension of the coordinate set to use
                     if dplot<=dmax_use & size(coord_list,1)==1
                         dimlist=coord_list(1,:);
                         nplots=nplots+1;
@@ -227,7 +227,7 @@ for isub=1:nsubs
                         %compute deviation of single-trial response from its mean, after transformatoin to consensus space
                         devs_xform_off=nan(nstims,dplot,nrepts,nfiles);
                         for ifile=1:nfiles
-                            xform=procrustes_compat(ts{dplot}{ifile});
+                            xform=procrustes_compat(ts{dplot}{ifile}); %transformation to consensus for dimension dplot, file ifle
                             c_stim=coords_stim{ifile,isub,ipreproc,ist}(:,1:dplot);
                             c_stim_xform=psg_geomodels_apply('procrustes',c_stim,xform); %stimulus-mean  response in consensus space
                             for irept=1:nrepts
@@ -244,11 +244,12 @@ for isub=1:nsubs
                         [opts_plot_consensus_used,opts_plot_consensus_trial_used]=...
                             hlid_rastim_trial_vis_plot(cons_stim,devs_xform_off,dimlist,repmat(colors,1,nfiles),...
                             stimulus_names_display,opts_plot_consensus);
+                        hlid_rastim_trial_vis_legend(nrepts);
                         axes('Position',[0.01,0.02,0.01,0.01]); %for text
                         text(0,0,tstring_cons,'Interpreter','none');
                         axis off;
-                   end
-                end
+                    end %coord list ok?
+                end %next coord set?
             end %if_plot
         end %ist
     end %ipreproc
