@@ -14,6 +14,7 @@
 % hlid_orn_merge: merge ORN datasets keeping track of responses in each glomeruli
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
 % hlid_rastim_trial_pca: single-trial analysis of raw data
+% hlid_rastim_trial_pca2: further plots for single-trial analysis of raw data
 % hlid_rastim_trial_plot: utility plotting for hlid_rastim_trial_pca
 % hlid_rastim_trial_read: script for reading single-trial raw data
 % hlid_rastim_trial_vis: single-trial visualization of raw data

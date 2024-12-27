@@ -23,7 +23,7 @@
 % 22Dec24: modularize reading files
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
-%  HLID_RASTIM_TRIAL_PLOT, HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_VIS.
+%  HLID_RASTIM_TRIAL_PLOT, HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PCA2.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
@@ -314,5 +314,13 @@ results.dsids=dsids;
 results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
 results.rois_avail=rois_avail;
 results.rois=rois;
+%
+results.display_order=display_order;
+results.plot_pos_stim=plot_pos_stim;
+results.ptr_stim=ptr_stim;
+results.ticks_stim=ticks_stim;
+results.plot_pos_trial=plot_pos_trial;
+results.ptr_trial=ptr_trial;
+results.ticks_trial=ticks_trial;
 %
 disp('results structure created.');
