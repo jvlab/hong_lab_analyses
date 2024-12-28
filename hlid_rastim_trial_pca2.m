@@ -3,7 +3,9 @@
 % Run this after hlid_rastim_trial_pca, or after loading results structure.
 % See hlid_rastim_trial_pca for documentation and details.
 %
-% Computes averages of distance heatmaps within resids, trials, orth.
+% Computes and plots averages of distance heatmaps within trials, resids, orth.,
+%  and plots scattergrams between stimulus-mean distances and trial-by-trial
+%  distances, resids, orth.
 % Only plots averages across files. 
 %
 %  See also:  HLID_RASTIM_TRIAL_PCA, HLID_RASTIM_TRIAL_PLOT.
@@ -41,18 +43,20 @@ ptr_trial=results.ptr_trial;
 ticks_trial=results.ticks_trial;
 %
 [nrows_dists,ncols_dists]=nicesubp(nprocs,0.7);
+
 for isub=1:nsubs
     for idist=1:ndists
         for ifile=nfiles+1:nfiles+1 %only show averages across files
             if ifile<=nfiles
                 tstring=sprintf('file %s, dist: %s %s',dsids{ifile},dist_labels{idist},sub_labels{isub});
             else
-                tstring=sprintf('average across files %s to %s, dist: %s %s',dsids{1},dsids{nfiles},dist_labels{idist},sub_labels{isub});
+                tstring=sprintf('average across %2.0f files, %s to %s, dist: %s %s',nfiles,dsids{1},dsids{nfiles},dist_labels{idist},sub_labels{isub});
             end
             figure;
             set(gcf,'Position',[100 100 1400 800]);
             set(gcf,'NumberTitle','off');
             set(gcf,'Name',tstring);
+            dr_keep=cell(1,nprocs);
             for iproc=1:nprocs
                 subplot(nrows_dists,ncols_dists,iproc);
                 if (ifile<=nfiles)
@@ -63,6 +67,7 @@ for isub=1:nsubs
                         dra(:,:,k)=dists{k,idist,isub,iproc};
                     end
                     dr=mean(dra,3,'omitnan');
+                    %average across trials if needed
                     if size(dr,1)==nstims*nrepts
                         dr=reshape(mean(reshape(dr,[nrepts nstims size(dr,2)]),1),[nstims size(dr,2)]);
                     end
@@ -72,11 +77,36 @@ for isub=1:nsubs
                 end
                 hlid_rastim_trial_plot;
                 title(cat(2,proc_labels{iproc},sub_labels{isub}));
+                dr_keep{iproc}=dr;
             end
             axes('Position',[0.01,0.02,0.01,0.01]); %for text
             text(0,0,tstring,'Interpreter','none');
             axis off;
             disp(sprintf('plotted %s',tstring));
+            %
+            %now plot scattergrams
+            %
+            figure;
+            set(gcf,'Position',[100 100 1400 800]);
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Name',cat(2,'scattergrams ',tstring));
+            for iproc=1:nprocs
+                subplot(nrows_dists,ncols_dists,iproc);
+                hg=plot(dr_keep{1}(:),dr_keep{iproc}(:),'k.');
+                hold on;
+                hd=plot(diag(dr_keep{1}),diag(dr_keep{iproc}),'r.');
+                max_xy=max([get(gca,'XLim') get(gca,'Ylim')]);
+                plot([0 max_xy],[0 max_xy],'k--');
+                xlabel(proc_labels{1});               
+                ylabel(proc_labels{iproc});
+                set(gca,'XLim',[0 max(get(gca,'XLim'))]);
+                set(gca,'YLim',[0 max(get(gca,'YLim'))]);
+                title(cat(2,'dists ',sub_labels{isub}));               
+                legend([hg;hd],{'off-diag','diag'},'Location','Best');
+            end
+            axes('Position',[0.01,0.02,0.01,0.01]); %for text
+            text(0,0,tstring,'Interpreter','none');
+            axis off;
         end %ifile
     end %idist
 end %isub

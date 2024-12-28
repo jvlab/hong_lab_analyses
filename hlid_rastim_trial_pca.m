@@ -201,7 +201,7 @@ for isub=1:nsubs
             if ifile<=nfiles
                 tstring=sprintf('file %s, dist: %s %s',dsids{ifile},dist_labels{idist},sub_labels{isub});
             else
-                tstring=sprintf('average across files %s to %s, dist: %s %s',dsids{1},dsids{nfiles},dist_labels{idist},sub_labels{isub});
+                tstring=sprintf('average across %1.0f files, %s to %s, dist: %s %s',nfiles,dsids{1},dsids{nfiles},dist_labels{idist},sub_labels{isub});
             end
             figure;
             set(gcf,'Position',[100 100 1400 800]);
