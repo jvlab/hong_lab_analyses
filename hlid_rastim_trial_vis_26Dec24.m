@@ -15,8 +15,6 @@
 % ROIs with NaNs in any other columns are removed (these are missing ROIs)
 % 
 % psg_plotcoords used for plots to enable lower-level control
-%
-% 30Dec24: reorganize so that all transformations to consensus are pre-calculated and saved in results
 % 
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PSG_PLOTCOORDS, HLID_RASTIM_TRIAL_VIS_PLOT, HLID_RASTIM_TRIAL_VIS_LEGEND,
@@ -187,7 +185,6 @@ end %each file
 %
 coords_consensus=cell(1,nsubs,npreprocs,nsts);
 xforms_consensus=cell(nfiles,nsubs,npreprocs,nsts);
-coords_devs_xform=cell(1,nsubs,npreprocs,nsts); % deviations of single-trials from trial-average, after transformation of trial-averaged responses to consensus
 for isub=1:nsubs
     for ipreproc=1:npreprocs
         for ist=1:nsts
@@ -214,28 +211,18 @@ for isub=1:nsubs
             dmax_use=size(z,2);
             consensus=cell(1,dmax_use);
             ts=cell(1,dmax_use); %a separate consensus for each max dimension
-            coords_devs_xform{1,isub,ipreproc,ist}=cell(1,dmax_use);
             for idim=1:dmax_use
-                coords_devs_xform{1,isub,ipreproc,ist}{idim}=zeros(nstims,idim,nrepts,nfiles);
                 [consensus{idim},znew,ts{idim},details,opts_pcon_used]=procrustes_consensus(z(:,1:idim,:),opts_pcon_use);
                 %summary borrowed from psg_align_stats_demo
                 disp(sprintf(' creating Procrustes consensus for dim %2.0f, iterations: %4.0f, final total rms dev per coordinate: %8.5f',...
-                    idim,length(details.rms_change),sqrt(sum(details.rms_dev(:,end).^2))));
-               % deviations of single-trials from trial-average, after transformation of trial-averaged responses to consensus
-               for ifile=1:nfiles
-                    xform=procrustes_compat(ts{idim}{ifile}); %transformation to consensus for dimension idim, file ifile
-                    c_stim=coords_stim{ifile,isub,ipreproc,ist}(:,1:idim);
-                    c_stim_xform=psg_geomodels_apply('procrustes',c_stim,xform); %stimulus-mean  response in consensus space
-                    for irept=1:nrepts
-                        c_trial=coords_trial{ifile,isub,ipreproc,ist}(:,1:idim,irept);
-                        c_trial_xform=psg_geomodels_apply('procrustes',c_trial,xform); %trial response in consensus space
-                        coords_devs_xform{1,isub,ipreproc,ist}{idim}(:,:,irept,ifile)=c_trial_xform-c_stim_xform;
-                    end %irept
-                    xforms_consensus{ifile,isub,ipreproc,ist}{idim}=ts{idim}{ifile};
-               end %ifile              
+                    idim,length(details.rms_change),sqrt(sum(details.rms_dev(:,end).^2))));               
             end %idim
             coords_consensus{1,isub,ipreproc,ist}=consensus;
-            %
+            for ifile=1:nfiles
+                for idim=1:dmax_use
+                    xforms_consensus{ifile,isub,ipreproc,ist}{idim}=ts{idim}{ifile};
+                end
+            end
             if_plot=any(all(repmat(plot_select,[size(plot_select_list,1),1])==plot_select_list,2));
             if if_plot
                 nplots=0;
@@ -249,17 +236,22 @@ for isub=1:nsubs
                         %compute deviation of single-trial response from its mean, after transformatoin to consensus space
                         devs_xform_off=nan(nstims,dplot,nrepts,nfiles);
                         for ifile=1:nfiles
+                            xform=procrustes_compat(ts{dplot}{ifile}); %transformation to consensus for dimension dplot, file ifle
+                            c_stim=coords_stim{ifile,isub,ipreproc,ist}(:,1:dplot);
+                            c_stim_xform=psg_geomodels_apply('procrustes',c_stim,xform); %stimulus-mean  response in consensus space
                             for irept=1:nrepts
-                                devs_xform_off(:,:,irept,ifile)=coords_devs_xform{1,isub,ipreproc,ist}{dplot}(:,:,irept,ifile)+cons_stim; %difference, but plotted from consensus response
+                                c_trial=coords_trial{ifile,isub,ipreproc,ist}(:,1:dplot,irept);
+                                c_trial_xform=psg_geomodels_apply('procrustes',c_trial,xform); %trial response in consensus space
+                                devs_xform_off(:,:,irept,ifile)=c_trial_xform-c_stim_xform+cons_stim; %difference, but plotted from consensus response
                             end %irept
                         end %ifile
-                        devs_xform_off_toplot=reshape(devs_xform_off,[nstims,dplot,nrepts*nfiles]);
+                        devs_xform_off=reshape(devs_xform_off,[nstims,dplot,nrepts*nfiles]);
                         figure;
                         set(gcf,'Position',[100 100 1200 800]);
                         set(gcf,'NumberTitle','off');
                         set(gcf,'Name',tstring_cons);
                         [opts_plot_consensus_used,opts_plot_consensus_trial_used]=...
-                            hlid_rastim_trial_vis_plot(cons_stim,devs_xform_off_toplot,dimlist,repmat(colors,1,nfiles),...
+                            hlid_rastim_trial_vis_plot(cons_stim,devs_xform_off,dimlist,repmat(colors,1,nfiles),...
                             stimulus_names_display,opts_plot_consensus);
                         hlid_rastim_trial_vis_legend(nrepts);
                         axes('Position',[0.01,0.02,0.01,0.01]); %for text
@@ -271,6 +263,7 @@ for isub=1:nsubs
         end %ist
     end %ipreproc
 end %isub
+
 %
 %save results
 %
@@ -280,7 +273,7 @@ results.nstims=nstims;
 results.nfiles=nfiles;
 results.nsubs=nsubs;
 results.sub_labels=sub_labels;
-results.npreprocs=npreprocs;
+results.npeprocs=npreprocs;
 results.preproc_labels=preproc_labels;
 results.nsts=nsts;
 results.st_labels=st_labels;
@@ -298,8 +291,6 @@ results.rois=rois;
 %
 results.coords_consensus=coords_consensus;
 results.xforms_consensus=xforms_consensus;
-results.coords_devs_xform=coords_devs_xform;
-results.coords_devs_xform_dims={'{d1: 1(consensus), d2: sub type, d3: preproc type, d4: stim or trial}{model dim}(stim,coord,rep,file)'};
 %
 disp('results structure created.');
 
