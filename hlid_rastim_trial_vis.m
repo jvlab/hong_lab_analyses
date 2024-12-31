@@ -17,7 +17,8 @@
 % psg_plotcoords used for plots to enable lower-level control
 %
 % 30Dec24: reorganize so that all transformations to consensus are pre-calculated and saved in results
-% 
+% 31Dec24: options for choosing dimension for transformation back to consensus (dcons_choice, -1: prevoius behavior)
+%
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PSG_PLOTCOORDS, HLID_RASTIM_TRIAL_VIS_PLOT, HLID_RASTIM_TRIAL_VIS_LEGEND,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT.
@@ -80,6 +81,8 @@ dmax=getinp('max dimension of representational space to create','d',[dmax nstims
 coords_stim=cell(nfiles,nsubs,npreprocs,nsts);
 coords_trial=cell(nfiles,nsubs,npreprocs,nsts);
 if_onlycons=getinp('1 to only plot consensus spaces','d',[0 1]);
+%
+dcons_choice=getinp('dimension to use for transformation to consensus: -1: max in plot; 0-> none, >0: fixed','d',[-1 dmax],-1);
 %
 for ifile=1:nfiles
     disp(sprintf('file %s',dsids{ifile}));
@@ -221,7 +224,9 @@ for isub=1:nsubs
                 %summary borrowed from psg_align_stats_demo
                 disp(sprintf(' creating Procrustes consensus for dim %2.0f, iterations: %4.0f, final total rms dev per coordinate: %8.5f',...
                     idim,length(details.rms_change),sqrt(sum(details.rms_dev(:,end).^2))));
-               % deviations of single-trials from trial-average, after transformation of trial-averaged responses to consensus
+               %compute deviations of single-trials from trial-average, after transformation of trial-averaged responses to consensus
+               % note that trial-average response (c_stim) and single-trial
+               % response (c_trial) are transformed separately, since the transformation may have an offset component
                for ifile=1:nfiles
                     xform=procrustes_compat(ts{idim}{ifile}); %transformation to consensus for dimension idim, file ifile
                     c_stim=coords_stim{ifile,isub,ipreproc,ist}(:,1:idim);
@@ -229,7 +234,7 @@ for isub=1:nsubs
                     for irept=1:nrepts
                         c_trial=coords_trial{ifile,isub,ipreproc,ist}(:,1:idim,irept);
                         c_trial_xform=psg_geomodels_apply('procrustes',c_trial,xform); %trial response in consensus space
-                        coords_devs_xform{1,isub,ipreproc,ist}{idim}(:,:,irept,ifile)=c_trial_xform-c_stim_xform;
+                        coords_devs_xform{1,isub,ipreproc,ist}{idim}(:,:,irept,ifile)=c_trial_xform-c_stim_xform; %note subtraction after transform, in case there is offset
                     end %irept
                     xforms_consensus{ifile,isub,ipreproc,ist}{idim}=ts{idim}{ifile};
                end %ifile              
@@ -246,11 +251,29 @@ for isub=1:nsubs
                         dimlist=coord_list(1,:);
                         nplots=nplots+1;
                         cons_stim=consensus{dplot}; %response consensus
-                        %compute deviation of single-trial response from its mean, after transformatoin to consensus space
+                        %compute deviation of single-trial response from its mean, after transformation to consensus space
                         devs_xform_off=nan(nstims,dplot,nrepts,nfiles);
+                        switch dcons_choice
+                            case -1
+                                dcons_use=dplot;
+                                tstring_xform=sprintf('resids transformed to Procrustes consensus in %2.0f dims (max)',dcons_use);
+                            case 0
+                                dcons_use=0;
+                                tstring_xform='resids not transformed to Procrustes consensus';
+                            otherwise
+                                dcons_use=dcons_choice;
+                                tstring_xform=sprintf('resids transformed to Procrustes consensus in %2.0f dims (fixed)',dcons_use);
+                        end
                         for ifile=1:nfiles
                             for irept=1:nrepts
-                                devs_xform_off(:,:,irept,ifile)=coords_devs_xform{1,isub,ipreproc,ist}{dplot}(:,:,irept,ifile)+cons_stim; %difference, but plotted from consensus response
+                                if dcons_use>0
+                                    devs_xform_off(:,:,irept,ifile)=coords_devs_xform{1,isub,ipreproc,ist}{dcons_use}(:,1:dplot,irept,ifile)+cons_stim; %difference, but plotted from consensus response
+                                else %untransformed resids                                  
+                                    devs_xform_off(:,:,irept,ifile)=...
+                                        coords_trial{ifile,isub,ipreproc,ist}(:,1:dplot,irept)-...
+                                        coords_stim{ifile,isub,ipreproc,ist}(:,1:dplot)+...
+                                        cons_stim; %difference, but plotted from consensus response
+                                end
                             end %irept
                         end %ifile
                         devs_xform_off_toplot=reshape(devs_xform_off,[nstims,dplot,nrepts*nfiles]);
@@ -262,6 +285,10 @@ for isub=1:nsubs
                             hlid_rastim_trial_vis_plot(cons_stim,devs_xform_off_toplot,dimlist,repmat(colors,1,nfiles),...
                             stimulus_names_display,opts_plot_consensus);
                         hlid_rastim_trial_vis_legend(nrepts);
+                        %
+                        axes('Position',[0.01,0.05,0.01,0.01]); %for text
+                        text(0,0,tstring_xform,'Interpreter','none');
+                        axis off;
                         axes('Position',[0.01,0.02,0.01,0.01]); %for text
                         text(0,0,tstring_cons,'Interpreter','none');
                         axis off;
