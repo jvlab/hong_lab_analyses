@@ -3,6 +3,10 @@
 % Run this after hlid_rastim_trial_vis, or after loading results structure.
 % See hlid_rastim_trial_vis for documentation and details.
 %
+% To do: add a second surrogate type in which there is a random rotation
+% around the response direction; may be able to use routines in psg_
+% related to piecewise affine to generate random rotations with one (or more) axes fixed
+%
 %  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU.
 %
 nrepts=results.nrepts;
@@ -33,22 +37,15 @@ nrepts_dof=(nrepts-1)*nfiles;
 disp(sprintf('analyzing covariances from %3.0f responses per stimulus (%2.0f d.o.f., %2.0f datasets, %2.0f repeats per dataset)',nrepts_tot,nrepts_dof,nfiles,nrepts))
 coveigs=cell(nsubs,npreprocs,nsts);
 coveigs_surr=cell(nsubs,npreprocs,nsts);
+%
 if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each time, <0 for a specific seed','d',[-10000 1],1);
-if (if_frozen~=0) 
-    rng('default');
-    if (if_frozen<0)
-        rand(1,abs(if_frozen));
-    end
-else
-    rng('shuffle');
-end
 if ~exist('ndraws') ndraws=100; end
 ndraws=getinp('ndraws','d',[1 10000],ndraws);
 dmax_use=getinp('max dim to calculate','d',[1 dmax]);
-ntypes=1; %number of surrogate types
 surrtypes={'random direction'};
 disp(' surrogate types:');
 disp(surrtypes');
+ntypes=length(surrtypes); %number of surrogate types
 %
 for isub=1:nsubs
     for ipreproc=1:npreprocs
@@ -58,6 +55,14 @@ for isub=1:nsubs
                 coveigs{isub,ipreproc,ist}=cell(1,dmax_use);
                 coveigs_surr{isub,ipreproc,ist}=cell(1,dmax_use);
                 for  idim=1:dmax_use
+                     if (if_frozen~=0) 
+                        rng('default');
+                        if (if_frozen<0)
+                            rand(1,abs(if_frozen));
+                        end
+                    else
+                        rng('shuffle');
+                    end
                     coveigs{isub,ipreproc,ist}{idim}=zeros(nstims,idim);
                     coveigs_surr{isub,ipreproc,ist}{idim}=zeros(nstims,idim,ndraws,ntypes);
                     coords_use=reshape(coords_devs_xform{1,isub,ipreproc,ist}{idim},[nstims,idim,nrepts_tot]);
