@@ -4,8 +4,8 @@
 % See hlid_rastim_trial_vis for documentation and details.
 %
 % To do: add a second surrogate type in which there is a random rotation
-% around the response direction; may be able to use routines in psg_
-% related to piecewise affine to generate random rotations with one (or more) axes fixed
+% around the response direction; use extorthb to extend a vector to an orthogonal 
+% basis, and then generate random rotations with one (or more) axes fixed
 %
 %  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU.
 %
