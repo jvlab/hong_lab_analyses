@@ -18,6 +18,7 @@
 % hlid_rastim_trial_plot: utility plotting for hlid_rastim_trial_pca
 % hlid_rastim_trial_read: script for reading single-trial raw data
 % hlid_rastim_trial_vis: single-trial visualization of raw data
+% hlid_rastim_trial_vis2: further analysis (stats of covariances) for hlid_rastim_trial_vis
 % hlid_rastim_trial_vis_legend: plotting utility plotting for hlid_rastim_trial_vis
 % hlid_rastim_trial_vis_plot: plotting utility plotting for hlid_rastim_trial_vis
 % hlid_rastim2coords_demo: demo conversion of response amplitudes to coordinates
@@ -26,4 +27,4 @@
 % hlid_remove_stims: script to remove stimuli from a coordinate file (mostly for debugging)
 % hlid_setup: set up options for Hong Lab imaging data, to run psg_visualize_demo, psg_consensus_demo, _psg_coord_pipe_proc
 %
-%   Copyright (c) 2024 by J. Victor
+%   Copyright (c) 2024, 2025 by J. Victor
