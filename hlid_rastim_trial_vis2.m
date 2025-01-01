@@ -10,7 +10,7 @@
 % around the response direction; use extorthb to extend a vector to an orthogonal 
 % basis, and then generate random rotations with one (or more) axes fixed
 %
-%  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU.
+%  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU, RANDORTHU_GEN.
 %
 nrepts=results.nrepts;
 nstims=results.nstims;
@@ -44,14 +44,15 @@ if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each tim
 if ~exist('ndraws') ndraws=100; end
 ndraws=getinp('ndraws','d',[1 10000],ndraws);
 dmax_use=getinp('max dim to calculate','d',[1 dmax]);
-surrtypes={'random direction'};
+surrtypes={'random direction','keep first eiv, then random'};
 ntypes=length(surrtypes); %number of surrogate types
+if ~exist('quantiles_show') quantiles_show=[.01 .05 .5 .95 .99]; end
 %
 for isub=1:nsubs
     for ipreproc=1:npreprocs
         for ist=1:nsts
                 disp(' ')
-                tstring=sprintf('average across %2.0f files, %s to %s, %s %s, pc on %s',nfiles,dsids{1},dsids{nfiles},sub_labels{isub},preproc_labels{ipreproc},st_labels{ist});               
+                tstring=sprintf('merging across %2.0f files, %s to %s, %s %s, pc on %s',nfiles,dsids{1},dsids{nfiles},sub_labels{isub},preproc_labels{ipreproc},st_labels{ist});               
                 disp(tstring);
                 coveigs{isub,ipreproc,ist}=cell(1,dmax_use);
                 coveigs_surr{isub,ipreproc,ist}=cell(1,dmax_use);
@@ -75,8 +76,10 @@ for isub=1:nsubs
                         cov_dof=size(coords_cov,2)*(nrepts-1)/nrepts; %lose one degree of freedom for each file in which data (nrepts) are present
                         cov_est=coords_cov*coords_cov'/cov_dof; %denominator is degrees of freedom 
                         %now look at eigenvalue of cov_est, and accumulate across stimuli
-                        eivals=eig(cov_est); 
-                        coveigs{isub,ipreproc,ist}{idim}(istim,:)=sort(eivals(:),'descend')';
+                        [eivecs,eivals]=eig(cov_est);
+                        eivals=diag(eivals)';
+                        [coveigs{isub,ipreproc,ist}{idim}(istim,:),idx]=sort(eivals(:),'descend');
+                        eivecs=eivecs(:,idx);
                         %
                         %surrogate type 1: random direction
                         itype=1;
@@ -89,9 +92,21 @@ for isub=1:nsubs
                             cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
                             eivals_surr=eig(cov_est_surr); 
                             coveigs_surr{isub,ipreproc,ist}{idim}(istim,:,idraw,itype)=sort(eivals_surr(:),'descend')';
+                        end                                               %
+                        %surrogate type 2: keep first direction, then random 
+                        itype=2;
+                        coords_cov_surr=zeros(size(coords_cov));
+                        for idraw=1:ndraws
+                            for irept=1:size(coords_cov,2)
+                                rotm=randorthu_gen(idim,eivecs(:,1)); %rotate each residual by a different random unitary matrix that preserves first eigenvector
+                                coords_cov_surr(:,irept)=rotm*coords_cov(:,irept);
+                            end
+                            cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
+                            eivals_surr=eig(cov_est_surr); 
+                            coveigs_surr{isub,ipreproc,ist}{idim}(istim,:,idraw,itype)=sort(eivals_surr(:),'descend')';
                         end
-                    end
-                end
+                    end %istim
+                end %idim
                 %
                 disp(sprintf('mean of eigenvalues of normalized residuals covariance matrix across %2.0f stimuli',nstims))
                 for idim=1:dmax_use
@@ -106,13 +121,12 @@ for isub=1:nsubs
                         ceig_norm_surr=ceig_surr./repmat(sum(ceig_surr,2),[1 idim 1]);
                         disp(sprintf('  means:        %s',sprintf(' %7.4f',mean(mean(ceig_norm_surr,1),3))));
                         quantiles=(sum(repmat(ceig_norm,[1 1 ndraws])<=ceig_norm_surr,3))/ndraws;
-                        disp(sprintf(' count q<0.01 : %s',sprintf(' %7.0f',sum(quantiles<0.01))));
-                        disp(sprintf(' count q<0.05 : %s',sprintf(' %7.0f',sum(quantiles<0.05))));
-                        disp(sprintf(' count q>0.95 : %s',sprintf(' %7.0f',sum(quantiles>0.95))));                     
-                        disp(sprintf(' count q<0.99 : %s',sprintf(' %7.0f',sum(quantiles>0.99)))); 
+                        for iq=1:length(quantiles_show)
+                            disp(sprintf(' count q<%5.3f: %s',quantiles_show(iq),sprintf(' %7.0f',sum(quantiles<quantiles_show(iq)))));
                        
-                    end
-                end
+                        end %iq
+                    end %itype
+                end %idim
                 % figure;
                 % set(gcf,'Position',[100 100 1400 800]);
                 % set(gcf,'NumberTitle','off');
