@@ -108,6 +108,15 @@ for isub=1:nsubs
                     end %istim
                 end %idim
                 %
+                %plot and display quantiles
+                %
+                nrows=ntypes;
+                ncols=dmax-1;
+                figure;
+                set(gcf,'Position',[100 100 1400 800]);
+                set(gcf,'NumberTitle','off');
+                set(gcf,'Name',tstring)
+                %
                 disp(sprintf('mean of eigenvalues of normalized residuals covariance matrix across %2.0f stimuli',nstims))
                 for idim=1:dmax_use
                     ceig=coveigs{isub,ipreproc,ist}{idim};
@@ -120,21 +129,27 @@ for isub=1:nsubs
                         ceig_surr=coveigs_surr{isub,ipreproc,ist}{idim}(:,:,:,itype);
                         ceig_norm_surr=ceig_surr./repmat(sum(ceig_surr,2),[1 idim 1]);
                         disp(sprintf('  means:        %s',sprintf(' %7.4f',mean(mean(ceig_norm_surr,1),3))));
-                        quantiles=(sum(repmat(ceig_norm,[1 1 ndraws])<=ceig_norm_surr,3))/ndraws;
+                        quantiles=(sum(repmat(ceig_norm,[1 1 ndraws])>=ceig_norm_surr,3))/ndraws;
                         for iq=1:length(quantiles_show)
-                            disp(sprintf(' count q<%5.3f: %s',quantiles_show(iq),sprintf(' %7.0f',sum(quantiles<quantiles_show(iq)))));
-                       
+                            disp(sprintf(' count q>%5.3f: %s',quantiles_show(iq),sprintf(' %7.0f',sum(quantiles>quantiles_show(iq)))));                     
                         end %iq
+                        %
+                        if (idim>=2)
+                            subplot(nrows,ncols,(idim-1)+(itype-1)*ncols);
+                            plot(quantiles','LineWidth',2);
+                            set(gca,'XLim',[0.5 idim+0.5]);
+                            set(gca,'XTick',[1:1:idim]);
+                            xlabel('eig');
+                            set(gca,'YLim',[0 1]);
+                            ylabel(sprintf('quantile, surr %1.0f',itype));
+                            title(sprintf('space dim %1.0f',idim));
+                        end
                     end %itype
                 end %idim
-                % figure;
-                % set(gcf,'Position',[100 100 1400 800]);
-                % set(gcf,'NumberTitle','off');
-                % set(gcf,'Name',tstring);
-                % %
-                % axes('Position',[0.01,0.02,0.01,0.01]); %for text
-                % text(0,0,tstring,'Interpreter','none');
-                % axis off;
+                %
+                axes('Position',[0.01,0.02,0.01,0.01]); %for text
+                text(0,0,tstring,'Interpreter','none');
+                axis off;
         end %ifile
     end %idist
 end %isub
