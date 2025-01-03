@@ -6,7 +6,7 @@
 % degrees of freedom assumes that stimuli are either completely missing from a file, or have
 % correct number of repeats
 % 
-% 02Jan24: add option for recentering residuals prior to covariance calculation
+% 02Jan25: add option for recentering residuals prior to covariance calculation
 %
 %  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU, RANDORTHU_GEN.
 %
