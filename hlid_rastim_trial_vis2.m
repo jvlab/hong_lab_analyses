@@ -6,9 +6,7 @@
 % degrees of freedom assumes that stimuli are either completely missing from a file, or have
 % correct number of repeats
 % 
-% To do: add a second surrogate type in which there is a random rotation
-% around the response direction; use extorthb to extend a vector to an orthogonal 
-% basis, and then generate random rotations with one (or more) axes fixed
+% 02Jan24: add option for recentering residuals prior to covariance calculation
 %
 %  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU, RANDORTHU_GEN.
 %
@@ -44,6 +42,7 @@ if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each tim
 if ~exist('ndraws') ndraws=100; end
 ndraws=getinp('ndraws','d',[1 10000],ndraws);
 dmax_use=getinp('max dim to calculate','d',[1 dmax]);
+if_recenter=getinp('1 to recenter resids prior to covariance','d',[0 1],0);
 surrtypes={'random direction','keep first eiv, then random'};
 ntypes=length(surrtypes); %number of surrogate types
 if ~exist('quantiles_show') quantiles_show=[.01 .05 .5 .95 .99]; end
@@ -52,7 +51,8 @@ for isub=1:nsubs
     for ipreproc=1:npreprocs
         for ist=1:nsts
                 disp(' ')
-                tstring=sprintf('merging across %2.0f files, %s to %s, %s %s, pc on %s',nfiles,dsids{1},dsids{nfiles},sub_labels{isub},preproc_labels{ipreproc},st_labels{ist});               
+                tstring=sprintf('merging across %2.0f files, %s to %s, %s %s, pc on %s, recenter for covariances: %1.0f',...
+                    nfiles,dsids{1},dsids{nfiles},sub_labels{isub},preproc_labels{ipreproc},st_labels{ist},if_recenter);               
                 disp(tstring);
                 coveigs{isub,ipreproc,ist}=cell(1,dmax_use);
                 coveigs_surr{isub,ipreproc,ist}=cell(1,dmax_use);
@@ -73,6 +73,9 @@ for isub=1:nsubs
                     for istim=1:nstims
                         coords_cov=reshape(coords_use(istim,:,:),[idim nrepts_tot]); %coordinates to use for covariance estimate
                         coords_cov=coords_cov(:,all(~isnan(coords_cov),1)); %remove NaNs
+                        if (if_recenter)
+                            coords_cov=coords_cov-repmat(mean(coords_cov,2),[1 size(coords_cov,2)]);
+                        end
                         cov_dof=size(coords_cov,2)*(nrepts-1)/nrepts; %lose one degree of freedom for each file in which data (nrepts) are present
                         cov_est=coords_cov*coords_cov'/cov_dof; %denominator is degrees of freedom 
                         %now look at eigenvalue of cov_est, and accumulate across stimuli
@@ -100,6 +103,9 @@ for isub=1:nsubs
                             for irept=1:size(coords_cov,2)
                                 rotm=randorthu_gen(idim,eivecs(:,1)); %rotate each residual by a different random unitary matrix that preserves first eigenvector
                                 coords_cov_surr(:,irept)=rotm*coords_cov(:,irept);
+                                if (if_recenter)
+                                    coords_cov_surr=coords_cov_surr-repmat(mean(coords_cov_surr,2),[1 size(coords_cov_surr,2)]);
+                                end                              
                             end
                             cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
                             eivals_surr=eig(cov_est_surr); 
@@ -146,6 +152,10 @@ for isub=1:nsubs
                         end
                     end %itype
                 end %idim
+                %
+                axes('Position',[0.01,0.05,0.01,0.01]); %for text
+                text(0,0,sprintf('ndraws=%4.0f,  if_frozen=%4.0f',ndraws,if_frozen),'Interpreter','none');
+                axis off;
                 %
                 axes('Position',[0.01,0.02,0.01,0.01]); %for text
                 text(0,0,tstring,'Interpreter','none');
