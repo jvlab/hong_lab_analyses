@@ -7,6 +7,8 @@
 % correct number of repeats
 % 
 % 02Jan25: add option for recentering residuals prior to covariance calculation
+% 05Jan25: add surrogage where first two eigenvalues are kept
+%
 %
 %  See also:  HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PLOT, RANDORTHU, RANDORTHU_GEN.
 %
@@ -43,8 +45,14 @@ if ~exist('ndraws') ndraws=100; end
 ndraws=getinp('ndraws','d',[1 10000],ndraws);
 dmax_use=getinp('max dim to calculate','d',[1 dmax]);
 if_recenter=getinp('1 to recenter resids prior to covariance','d',[0 1],0);
-surrtypes={'random direction','keep first eiv, then random'};
-ntypes=length(surrtypes); %number of surrogate types
+surr_types_avail={'random direction','match eiv 1, then rand','match eivs 1 and 2, then rand'};
+surr_keepdims=[0 1 2];
+for k=1:length(surr_types_avail)
+    disp(sprintf(' %1.0f->%s',k,surr_types_avail{k}));   
+end
+surr_list=getinp('choices','d',[1 length(surr_types_avail)]);
+surr_types_used=surr_types_avail(surr_list);
+ntypes=length(surr_list); %number of surrogate types
 if ~exist('quantiles_show') quantiles_show=[.01 .05 .5 .95 .99]; end
 %
 for isub=1:nsubs
@@ -83,34 +91,40 @@ for isub=1:nsubs
                         eivals=diag(eivals)';
                         [coveigs{isub,ipreproc,ist}{idim}(istim,:),idx]=sort(eivals(:),'descend');
                         eivecs=eivecs(:,idx);
-                        %
-                        %surrogate type 1: random direction
-                        itype=1;
-                        coords_cov_surr=zeros(size(coords_cov));
-                        for idraw=1:ndraws
-                            for irept=1:size(coords_cov,2)
-                                rotm=randorthu(idim); %rotate each residual by a different random unitary matrix
-                                coords_cov_surr(:,irept)=rotm*coords_cov(:,irept);
-                            end
-                            cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
-                            eivals_surr=eig(cov_est_surr); 
-                            coveigs_surr{isub,ipreproc,ist}{idim}(istim,:,idraw,itype)=sort(eivals_surr(:),'descend')';
-                        end                                               %
-                        %surrogate type 2: keep first direction, then random 
-                        itype=2;
-                        coords_cov_surr=zeros(size(coords_cov));
-                        for idraw=1:ndraws
-                            for irept=1:size(coords_cov,2)
-                                rotm=randorthu_gen(idim,eivecs(:,1)); %rotate each residual by a different random unitary matrix that preserves first eigenvector
-                                coords_cov_surr(:,irept)=rotm*coords_cov(:,irept);
-                                if (if_recenter)
-                                    coords_cov_surr=coords_cov_surr-repmat(mean(coords_cov_surr,2),[1 size(coords_cov_surr,2)]);
-                                end                              
-                            end
-                            cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
-                            eivals_surr=eig(cov_est_surr); 
-                            coveigs_surr{isub,ipreproc,ist}{idim}(istim,:,idraw,itype)=sort(eivals_surr(:),'descend')';
-                        end
+                        for itype_ptr=1:ntypes
+                            itype=surr_list(itype_ptr);
+                            switch itype
+                                %
+                                case 1  %surrogate type 1: random direction
+                                    coords_cov_surr=zeros(size(coords_cov));
+                                    for idraw=1:ndraws
+                                        for irept=1:size(coords_cov,2)
+                                            rotm=randorthu(idim); %rotate each residual by a different random unitary matrix
+                                            coords_cov_surr(:,irept)=rotm*coords_cov(:,irept);
+                                        end
+                                        cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
+                                        eivals_surr=eig(cov_est_surr); 
+                                        coveigs_surr{isub,ipreproc,ist}{idim}(istim,:,idraw,itype_ptr)=sort(eivals_surr(:),'descend')';
+                                    end
+                                    %
+                                case {2,3} %surrogate type 2: keep one or more directions, then random
+                                    coords_cov_surr=zeros(size(coords_cov));
+                                    if idim>=surr_keepdims(itype)
+                                        for idraw=1:ndraws
+                                            for irept=1:size(coords_cov,2)
+                                                rotm=randorthu_gen(idim,eivecs(:,1:surr_keepdims(itype))); %rotate each residual by a different random unitary matrix that preserves first eigenvector
+                                                coords_cov_surr(:,irept)=rotm*coords_cov(:,irept);
+                                                if (if_recenter)
+                                                    coords_cov_surr=coords_cov_surr-repmat(mean(coords_cov_surr,2),[1 size(coords_cov_surr,2)]);
+                                                end                              
+                                            end
+                                            cov_est_surr=coords_cov_surr*coords_cov_surr'/cov_dof;
+                                            eivals_surr=eig(cov_est_surr); 
+                                            coveigs_surr{isub,ipreproc,ist}{idim}(istim,:,idraw,itype_ptr)=sort(eivals_surr(:),'descend')';
+                                        end
+                                    end
+                                end %itype
+                        end %itype_ptr
                     end %istim
                 end %idim
                 %
@@ -130,9 +144,10 @@ for isub=1:nsubs
                     disp(' ');
                     disp(sprintf(' dim %2.0f:        %s',idim,sprintf(' %7.4f',mean(ceig_norm,1))));
                     %
-                    for itype=1:ntypes
-                        disp(sprintf(' surrogate %1.0f: %s',itype,surrtypes{itype}));
-                        ceig_surr=coveigs_surr{isub,ipreproc,ist}{idim}(:,:,:,itype);
+                    for itype_ptr=1:length(surr_list)
+                        itype=surr_list(itype_ptr);
+                        disp(sprintf(' surrogate %1.0f->%1.0f: %s',itype_ptr,itype,surr_types_used{itype_ptr}));
+                        ceig_surr=coveigs_surr{isub,ipreproc,ist}{idim}(:,:,:,itype_ptr);
                         ceig_norm_surr=ceig_surr./repmat(sum(ceig_surr,2),[1 idim 1]);
                         disp(sprintf('  means:        %s',sprintf(' %7.4f',mean(mean(ceig_norm_surr,1),3))));
                         quantiles=(sum(repmat(ceig_norm,[1 1 ndraws])>=ceig_norm_surr,3))/ndraws;
@@ -141,16 +156,16 @@ for isub=1:nsubs
                         end %iq
                         %
                         if (idim>=2)
-                            subplot(nrows,ncols,(idim-1)+(itype-1)*ncols);
+                            subplot(nrows,ncols,(idim-1)+(itype_ptr-1)*ncols);
                             plot(quantiles','LineWidth',2);
                             set(gca,'XLim',[0.5 idim+0.5]);
                             set(gca,'XTick',[1:1:idim]);
                             xlabel('eig');
                             set(gca,'YLim',[0 1]);
-                            ylabel(sprintf('quantile, surr %1.0f',itype));
+                            ylabel(sprintf('quant, surr %s',surr_types_used{itype_ptr}));
                             title(sprintf('space dim %1.0f',idim));
                         end
-                    end %itype
+                    end %itype_ptr
                 end %idim
                 %
                 axes('Position',[0.01,0.05,0.01,0.01]); %for text
