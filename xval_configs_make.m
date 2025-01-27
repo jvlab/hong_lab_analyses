@@ -16,7 +16,6 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 %     if_single(1) is not used
 %     if_single(2) is 1 to force all held-out trials to be from a single repeat, otherwise 0
 %     if_single(3) is 1 to force all held-out trials to be from a signle trial, otherwise 0
-% 
 % defaults: default values of options  
 %
 % configs: array of size [nstims nrepts npreps nmake], each slice
