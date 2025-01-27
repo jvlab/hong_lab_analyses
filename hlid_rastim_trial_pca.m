@@ -22,7 +22,7 @@
 % 22Dec24: add option for signed comparison of stim with resid and orth, and fix labeling
 % 22Dec24: modularize reading files
 %
-%  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
+%  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO, HLID_RASTIM_TRIAL_READ,
 %  HLID_RASTIM_TRIAL_PLOT, HLID_RASTIM_TRIAL_READ, HLID_RASTIM_TRIAL_VIS, HLID_RASTIM_TRIAL_PCA2.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
