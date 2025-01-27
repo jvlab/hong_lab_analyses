@@ -45,7 +45,7 @@ opts=filldefault(opts,'omit_per_fold',NaN);
 %
 if_ok=0;
 while (if_ok==0)
-    desc=sprintf('[%s %s %s]=[%4.0f %4.0f %4.0f]',opts.dimnames{:},shape);
+    desc=sprintf('[%s %s %s]=[%4.0f %4.0f %4.0f] ',opts.dimnames{:},shape);
     if opts.if_log
         disp(sprintf('creating cross-validation configurations for %s',desc));
     end
@@ -115,6 +115,7 @@ while (if_ok==0)
             if_ok=1;
         else %opts.if_single(2)==0 & opts.if_single(3)==0 %all repeats, all sets
             disp('Disallowed setup, all trials in same fold.')
+            opts.omit_per_fold=NaN;
         end
     else %a subset of stimuli held out from each trial number
         configs=zeros([shape nmake]);
@@ -180,7 +181,7 @@ if (opts.if_log)
     end
     disp(sprintf('created %1.0f configurations, each with %4.0f folds for cross-validation',size(configs,4),nfolds))
 end
-desc=cat(2,desc,sprintf(' folds:%4.0f, %s',nfolds,omit_string));
+desc=cat(2,desc,sprintf('folds:%4.0f, %s',nfolds,omit_string));
 opts_used=opts;
 return
 end
