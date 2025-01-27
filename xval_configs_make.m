@@ -30,8 +30,6 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 %   * error and consistency checking
 %   * choice of max_partial_omit based on dimensionality of decoding space
 %
-%%%%%%%%%%%%%to do: partial omit configs
-%
 ny_chars='NY';
 %
 if (nargin<=2)
@@ -65,9 +63,9 @@ while (if_ok==0)
             end
             opts.if_single(idim)=getinp(sprintf('1 to restrict omitted trials to a single %s',opts.dimnames{idim}),'d',[0 1],def_val);       
         end
-        if opts.if_single(idim)==0
-            max_partial_omit_per_fold=max_partial_omit_per_fold*shape(idim);
-        end
+        % if opts.if_single(idim)==0
+        %     max_partial_omit_per_fold=max_partial_omit_per_fold*shape(idim);
+        % end
         desc=cat(2,desc,sprintf('single %s:%s ',opts.dimnames{idim},ny_chars(opts.if_single(idim)+1)));
     end
     if isnan(opts.omit_per_fold)
@@ -95,7 +93,7 @@ while (if_ok==0)
         ifold=0;
         if opts.if_single(2)==1 & opts.if_single(3)==1 % one repeat, one set
             for id2=1:shape(2)
-                for id3=1:shape(3);
+                for id3=1:shape(3)
                     ifold=ifold+1;
                     configs(:,id2,id3,1)=ifold;
                 end
@@ -121,28 +119,80 @@ while (if_ok==0)
         end
     else %a subset of stimuli held out from each trial number
         configs=zeros([shape nmake]);
-        if_ok=1;
-        nfolds=NaN;       
         if opts.if_single(2)==1 & opts.if_single(3)==1 % one repeat, one set
             if opts.omit_per_fold==1
                 nfolds=prod(shape);
                 configs=reshape([1:prod(shape)],shape);
+                ifold=1;
+                if_det=1;
             else
-                %%to do
+                for imake=1:nmake
+                    ifold=0;
+                    for id2=1:shape(2)
+                        for id3=1:shape(3)
+                            seq=xval_config_util(shape(1),opts.omit_per_fold);
+                            configs(:,id2,id3,imake)=seq+ifold;
+                            ifold=ifold+max(seq(:));
+                        end %id3
+                    end %id2
+                end %imake
             end
         elseif opts.if_single(2)==1 & opts.if_single(3)==0 %one repeat, all sets
+            for imake=1:nmake
+                ifold=0;
+                for id2=1:shape(2)
+                    for id3=1:shape(3)
+                        seq=xval_config_util(shape(1),opts.omit_per_fold);
+                        configs(:,id2,id3,imake)=seq+ifold;
+                    end %id3
+                    ifold=ifold+max(seq(:));
+                end %id2
+            end %imake
         elseif opts.if_single(2)==0 & opts.if_single(3)==1 %all repeats, one set
+            for imake=1:nmake
+                ifold=0;
+                for id3=1:shape(3)
+                    for id2=1:shape(2)
+                        seq=xval_config_util(shape(1),opts.omit_per_fold);
+                        configs(:,id2,id3,imake)=seq+ifold;
+                    end %id2
+                    ifold=ifold+max(seq(:));
+                end %id3
+            end %imake
         else %opts.if_single(2)==0 & opts.if_single(3)==0 %all repeats, all sets
-        end       
+            for imake=1:nmake
+                ifold=0;
+                for id3=1:shape(3)
+                    for id2=1:shape(2)
+                        seq=xval_config_util(shape(1),opts.omit_per_fold);
+                        configs(:,id2,id3,imake)=seq+ifold;
+                    end %id2
+                end %id3
+                ifold=ifold+max(seq(:));
+            end %imake
+        end
+        nfolds=ifold;
+        if_ok=1;
     end
 end %if_ok
 if (opts.if_log)
     if if_det==1
         disp(sprintf(' deterministic setup, making only one configuration'));
     end
-    disp(sprintf('creeated %1.0f configurations, each with %4.0f folds for cross-validation',size(configs,4),nfolds))
+    disp(sprintf('created %1.0f configurations, each with %4.0f folds for cross-validation',size(configs,4),nfolds))
 end
 desc=cat(2,desc,sprintf(' folds:%4.0f, %s',nfolds,omit_string));
 opts_used=opts;
 return
 end
+
+function seq=xval_config_util(nstims,omits)
+%create a random sequence of length nstims, with omits or omits-1 of integers from 1 to ceil(nstims/omits)
+temp=repmat([1:ceil(nstims/omits)],1,omits);
+temp=temp(:); %create a sequence [1 1 1 2 2 2 3 3 3 ... ceil(nstims/omits)]'
+temp=temp(randperm(length(temp)));
+seq=temp([1:nstims]);
+return
+end
+
+
