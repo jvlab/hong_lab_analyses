@@ -1,5 +1,5 @@
 %hlid_rastim_trial_decode: single-trial decoding analysis
-% 
+%
 % does a cross-validated decode, beginning with response space construction with trials left out
 % uses consensus space to align data across individuals
 % 
@@ -8,22 +8,64 @@
 % (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation),
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
-%  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS.
+%  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS, XVAL_CONFIGS_MAKE,
+%  HLID_RASTIM_TRIAL_DECODE_3DPLOT.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
+if_debug=getinp('1 for debug mode','d',[0 1]);
+if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each time, <0 for a specific seed','d',[-10000 1],1);
+if (if_frozen~=0) 
+    rng('default');
+    if (if_frozen<0)
+        rand(1,abs(if_frozen));
+    end
+else
+    rng('shuffle');
+end
 %
-if ~exist('sub_labels') sub_labels={'',' (mean sub)'}; end %can replace by a subset to shorten analysis
+if ~exist('sub_labels') 
+    if if_debug
+        sub_labels={''};
+    else
+        sub_labels={'',' (mean sub)'}; end %can replace by a subset to shorten analysis
+end
 nsubs=length(sub_labels);
-if ~exist('preproc_labels') preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis
+if ~exist('preproc_labels') 
+    if if_debug
+        preproc_labels={'raw'};
+    else
+        preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis
+end
 npreprocs=length(preproc_labels);
-if ~exist('st_labels') st_labels={'stims','trials'}; end %can replace by a subset to shorten analysis
-nsts=length(st_labels);
 %
-if ~exist('opts_plot') opts_plot=struct; end
-if ~exist('opts_plot_consensus') opts_plot_consensus=opts_plot; end
+if ~exist('dec_labels')
+    if if_debug
+        dec_labels={'min rms'};
+    else
+        dec_labels={'min rms','min dist'};
+    end
+end
+ndecs=length(dec_labels);
+%
 if ~exist('opts_pcon') opts_pcon=struct; end %consensus options
+opts_pcon=filldefault(opts_pcon,'allow_reflection',1);
+opts_pcon=filldefault(opts_pcon,'allow_offset',1);
+if ~exist('opts_xv') opts_xv=struct; end %for cross-validation
+if ~exist('xv_defaults') xv_defaults=struct; end
+if ~exist('xv_nmake') xv_nmake=1; end
 %
 if ~exist('nrepts') nrepts=3; end %number of repeats
+if ~exist('nsets_min') nsets_min=2; end
+if ~exist('dmax') 
+    if if_debug
+        dmax=3;
+    else
+        dmax=7;%max representational space to create
+    end
+end
+if ~exist('dmin') 
+    dmin=1;
+end
 %
 hlid_rastim_trial_read;
 %
@@ -38,275 +80,226 @@ hlid_rastim_trial_read;
 % rois=cell(nfiles,1):  original rois
 % nrois_avail(ifile): number of rois available
 %
-%create response space based on mean responses, and then project the
-%single-trial responses into them
-%
 for k=1:nstims
     stimulus_names_display{k}=stimulus_names(k,1:-1+min(find(stimulus_names(k,:)==' ')));
 end
 %
-if ~exist('opts_plot')
-    opts_plot=struct;
-end
-if ~exist('colors') %colors for each trial
-    colors={'r','m','c'};
+disp(sprintf('number of files: %4.0f',nfiles));
+nsets=getinp('number of datasets to analyze together','d',[nsets_min nfiles]);
+%
+subsamps_list=nchoosek(1:nfiles,nsets);
+nsubsamps=size(subsamps_list,1);
+nsubsamps_use=getinp('number of subsample sets to use','d',[1 nsubsamps],1);
+subsamps_use=randperm(nsubsamps);
+subsamps_use=subsamps_use(1:nsubsamps_use);
+%
+dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) nstims],dmax);
+dmin=getinp('min dimension of representational space to create','d',[1 dmax],dmin);
+xv_nmake=getinp('number of cross-validation configurations to make','d',[1 Inf],xv_nmake);
+[xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
+%
+opts_pcon.allow_scale=getinp('allow scaling','d',[0 1],1);
+scaling_token=(opts_pcon.allow_scale==1);
+if opts_pcon.allow_reflection==1
+    reflection_token='best';
+else
+    reflection_token=false;
 end
 %
-dmax=-inf;
-for icl=1:length(coord_lists)
-    dmax=max(dmax,max(coord_lists{icl}(:)));
-end
-dmax=getinp('max dimension of representational space to create','d',[dmax nstims],dmax);
-coords_stim=cell(nfiles,nsubs,npreprocs,nsts);
-coords_trial=cell(nfiles,nsubs,npreprocs,nsts);
-% if_onlycons=getinp('1 to only plot consensus spaces','d',[0 1]);
-% %
-% dcons_choice=getinp('dimension to use for transformation to consensus: -1: max in plot; 0-> none, >0: fixed','d',[-1 dmax],-1);
-% %
-% for ifile=1:nfiles
-%     disp(sprintf('file %s',dsids{ifile}));
-%     for isub=1:nsubs
-%         rs=resps_mean{ifile};
-%         rt=resps_trial{ifile};
-%         switch sub_labels{isub}
-%             case ''
-%             case ' (mean sub)'
-%             rs_xm=mean(rs,1,'omitnan'); %global mean
-%             rs=rs-repmat(rs_xm,[nstims 1]);
-%             rt=rt-repmat(reshape(rs_xm,[1 1 nrois_avail(ifile)]),[nstims nrepts 1]);
-%         end
-%         for ipreproc=1:npreprocs
-%             switch preproc_labels{ipreproc}
-%                 case 'raw'
-%                 case 'normalized'
-%                     rs_norm=sqrt(sum(rs.^2,2));
-%                     rs_norm(rs_norm==0)=1;
-%                     rs=rs./repmat(rs_norm,[1 nrois_avail(ifile)]);
-%                     rt_norm=sqrt(sum(rt.^2,3));
-%                     rt_norm(rt_norm==0)=1;
-%                     rt=rt./repmat(rt_norm,[1 1 nrois_avail(ifile)]);
-%             end
-%             for ist=1:nsts
-%                 switch st_labels{ist}
-%                     case 'stims'
-%                         rpca=rs;
-%                     case 'trials'
-%                         rt_reshape=reshape(permute(rt,[2 1 3]),[nstims*nrepts,nrois_avail(ifile)]); %dim 1 is now stim (slow) and rept(fast)
-%                         rpca=rt_reshape;
-%                 end
-%                 nonans_pca=find(all(~isnan(rpca),2));
-%                 npcs=min(dmax,min(length(nonans_pca),size(rpca,2)));
-%                 [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
-%                 s=diag(s(1:npcs,1:npcs));
-%                 u=nan(size(rpca,1),npcs);
-%                 u(nonans_pca,:)=u_nonan(:,1:npcs);
-%                 v=v(:,1:npcs);
-%                 %
-%                 %c_stim=u*diag(s) but compute it a different way so we can use the trial pca as well
-%                 nonans_stim=find(all(~isnan(rs),2));
-%                 c_stim=nan(size(rs,1),npcs);
-%                 c_stim(nonans_stim,:)=rs(nonans_stim,:)*v;
-%                 %project rt into pca space, where coords are u*s
-%                 coords_trial_nonan=zeros(length(nonans_stim),npcs,nrepts);
-%                 for irept=1:nrepts
-%                     coords_trial_nonan(:,:,irept)=reshape(rt(nonans_stim,irept,:),length(nonans_stim),size(rs,2))*v;
-%                 end
-%                 c_trial=nan(size(rs,1),npcs,nrepts);
-%                 c_trial(nonans_stim,:,:)=coords_trial_nonan;
-%                 %
-%                 tstring=sprintf('file %s: %s %s, pca on %s',dsids{ifile},sub_labels{isub},preproc_labels{ipreproc},st_labels{ist});
-%                 plot_select=[isub ipreproc ist];
-%                 if_plot=any(all(repmat(plot_select,[size(plot_select_list,1),1])==plot_select_list,2));
-%                 coords_stim{ifile,isub,ipreproc,ist}=c_stim; %save
-%                 coords_trial{ifile,isub,ipreproc,ist}=c_trial; %save
-%                 if (if_plot) & (if_onlycons==0)
-%                     nplots=0;
-%                     for icl=1:length(coord_lists)
-%                         coord_list=coord_lists{icl};
-%                         if max(coord_list(:))<=npcs
-%                             nplots=nplots+1;
-%                             figure;
-%                             set(gcf,'Position',[100 100 1200 800]);
-%                             set(gcf,'NumberTitle','off');
-%                             set(gcf,'Name',cat(2,tstring,sprintf(', dmax: %2.0f',max(coord_list(:)))));
-%                             [nrows,ncols]=nicesubp(max(size(coord_list,1),2),0.7); %leave a space for second plot
-%                             for ic=1:size(coord_list,1)
-%                                 dimlist=coord_list(ic,:);
-%                                 opt_plot.axis_handle=subplot(nrows,ncols,ic);
-%                                 [opts_plot_used,opts_plot_trial_used]=...
-%                                     hlid_rastim_trial_vis_plot(c_stim,c_trial,dimlist,colors,stimulus_names_display,opts_plot);
-%                                 if size(coord_list,1)==1 %add a dashed line to origin on large plots
-%                                     for istim=1:nstims
-%                                         plot3([0,c_stim(istim,dimlist(1))],[0,c_stim(istim,dimlist(2))],[0,c_stim(istim,dimlist(3))],'k:');
-%                                     end
-%                                     hlid_rastim_trial_vis_legend;
-%                                     opts_plot.axis_handle=subplot(nrows,ncols,2);
-%                                     %replot with mean response moved to origin
-%                                     hlid_rastim_trial_vis_plot(zeros(size(c_stim)),c_trial-repmat(c_stim,[1 1 nrepts]),dimlist,colors,{' '},...
-%                                         setfield(opts_plot,'if_edges',1));
-%                                     title('centered at mean resp');
-%                                     hlid_rastim_trial_vis_legend;
-%                                 else
-%                                     hlid_rastim_trial_vis_legend;
-%                                 end
-%                             end
-%                             axes('Position',[0.01,0.02,0.01,0.01]); %for text
-%                             text(0,0,tstring,'Interpreter','none');
-%                             axis off;
-%                         end %max dim ok
-%                     end %icl
-%                     plot_string=sprintf('%2.0f plots',nplots);
-%                 else
-%                     plot_string='no plots';
-%                 end %if_plot
-%                 disp(sprintf(' computed coordinates (%s) for %s',plot_string,tstring));
-%             end %ist
-%         end %ipreproc
-%     end %isub
-% end %each file
-% %
-% %now transform into consensus across files, working with each set of coordinates
-% %
-% coords_consensus=cell(1,nsubs,npreprocs,nsts);
-% xforms_consensus=cell(nfiles,nsubs,npreprocs,nsts);
-% coords_devs_xform=cell(1,nsubs,npreprocs,nsts); % deviations of single-trials from trial-average, after transformation of trial-averaged responses to consensus
-% for isub=1:nsubs
-%     for ipreproc=1:npreprocs
-%         for ist=1:nsts
-%             opts_pcon_use=opts_pcon;
-%             opts_pcon_use=filldefault(opts_pcon_use,'allow_offset',1);
-%             opts_pcon_use.allow_reflection=1;
-%             switch preproc_labels{ipreproc}
-%                 case 'raw'
-%                     opts_pcon_use=filldefault(opts_pcon_use,'allow_scale',1); %typically allow scaling
-%                 case 'normalized'
-%                     opts_pcon_use.allow_scale=0; %but not if distances are already normalized to 1
-%             end
-%             tstring_pcon=sprintf('offset %1.0f refl %1.0f scale %1.0f',...
-%                 opts_pcon_use.allow_offset,opts_pcon_use.allow_reflection,opts_pcon_use.allow_scale);
-%             tstring_cons=sprintf('consensus (%s): %s to %s (%2.0f files), %s %s, pca on %s',tstring_pcon,dsids{1},dsids{nfiles},nfiles,...
-%                 sub_labels{isub},preproc_labels{ipreproc},st_labels{ist});
-%             plot_select=[isub ipreproc ist];
-%             disp(tstring_cons);
-%             %find consensus for each number of dimensions
-%             z=zeros(nstims,dmax,nfiles); %collate the stimulus space from each file
-%             for ifile=1:nfiles
-%                 z(:,:,ifile)=coords_stim{ifile,isub,ipreproc,ist};
-%             end
-%             dmax_use=size(z,2);
-%             consensus=cell(1,dmax_use);
-%             ts=cell(1,dmax_use); %a separate consensus for each max dimension
-%             coords_devs_xform{1,isub,ipreproc,ist}=cell(1,dmax_use);
-%             for idim=1:dmax_use
-%                 coords_devs_xform{1,isub,ipreproc,ist}{idim}=zeros(nstims,idim,nrepts,nfiles);
-%                 [consensus{idim},znew,ts{idim},details,opts_pcon_used]=procrustes_consensus(z(:,1:idim,:),opts_pcon_use);
-%                 %summary borrowed from psg_align_stats_demo
-%                 disp(sprintf(' creating Procrustes consensus for dim %2.0f, iterations: %4.0f, final total rms dev per coordinate: %8.5f',...
-%                     idim,length(details.rms_change),sqrt(sum(details.rms_dev(:,end).^2))));
-%                %compute deviations of single-trials from trial-average, after transformation of trial-averaged responses to consensus
-%                % note that trial-average response (c_stim) and single-trial
-%                % response (c_trial) are transformed separately, since the transformation may have an offset component
-%                for ifile=1:nfiles
-%                     xform=procrustes_compat(ts{idim}{ifile}); %transformation to consensus for dimension idim, file ifile
-%                     c_stim=coords_stim{ifile,isub,ipreproc,ist}(:,1:idim);
-%                     c_stim_xform=psg_geomodels_apply('procrustes',c_stim,xform); %stimulus-mean  response in consensus space
-%                     for irept=1:nrepts
-%                         c_trial=coords_trial{ifile,isub,ipreproc,ist}(:,1:idim,irept);
-%                         c_trial_xform=psg_geomodels_apply('procrustes',c_trial,xform); %trial response in consensus space
-%                         coords_devs_xform{1,isub,ipreproc,ist}{idim}(:,:,irept,ifile)=c_trial_xform-c_stim_xform; %note subtraction after transform, in case there is offset
-%                     end %irept
-%                     xforms_consensus{ifile,isub,ipreproc,ist}{idim}=ts{idim}{ifile};
-%                end %ifile              
-%             end %idim
-%             coords_consensus{1,isub,ipreproc,ist}=consensus;
-%             %
-%             if_plot=any(all(repmat(plot_select,[size(plot_select_list,1),1])==plot_select_list,2));
-%             if if_plot
-%                 nplots=0;
-%                 for icl=1:length(coord_lists)
-%                     coord_list=coord_lists{icl};
-%                     dplot=max(coord_list(:)); %this is the dimension of the coordinate set to use
-%                     if dplot<=dmax_use & size(coord_list,1)==1
-%                         dimlist=coord_list(1,:);
-%                         nplots=nplots+1;
-%                         cons_stim=consensus{dplot}; %response consensus
-%                         %compute deviation of single-trial response from its mean, after transformation to consensus space
-%                         devs_xform_off=nan(nstims,dplot,nrepts,nfiles);
-%                         switch dcons_choice
-%                             case -1
-%                                 dcons_use=dplot;
-%                                 tstring_xform=sprintf('resids transformed to Procrustes consensus in %2.0f dims (max)',dcons_use);
-%                             case 0
-%                                 dcons_use=0;
-%                                 tstring_xform='resids not transformed to Procrustes consensus';
-%                             otherwise
-%                                 dcons_use=dcons_choice;
-%                                 tstring_xform=sprintf('resids transformed to Procrustes consensus in %2.0f dims (fixed)',dcons_use);
-%                         end
-%                         for ifile=1:nfiles
-%                             for irept=1:nrepts
-%                                 if dcons_use>0
-%                                     devs_xform_off(:,:,irept,ifile)=coords_devs_xform{1,isub,ipreproc,ist}{dcons_use}(:,1:dplot,irept,ifile)+cons_stim; %difference, but plotted from consensus response
-%                                 else %untransformed resids                                  
-%                                     devs_xform_off(:,:,irept,ifile)=...
-%                                         coords_trial{ifile,isub,ipreproc,ist}(:,1:dplot,irept)-...
-%                                         coords_stim{ifile,isub,ipreproc,ist}(:,1:dplot)+...
-%                                         cons_stim; %difference, but plotted from consensus response
-%                                 end
-%                             end %irept
-%                         end %ifile
-%                         devs_xform_off_toplot=reshape(devs_xform_off,[nstims,dplot,nrepts*nfiles]);
-%                         figure;
-%                         set(gcf,'Position',[100 100 1200 800]);
-%                         set(gcf,'NumberTitle','off');
-%                         set(gcf,'Name',tstring_cons);
-%                         [opts_plot_consensus_used,opts_plot_consensus_trial_used]=...
-%                             hlid_rastim_trial_vis_plot(cons_stim,devs_xform_off_toplot,dimlist,repmat(colors,1,nfiles),...
-%                             stimulus_names_display,opts_plot_consensus);
-%                         hlid_rastim_trial_vis_legend(nrepts);
-%                         %
-%                         axes('Position',[0.01,0.05,0.01,0.01]); %for text
-%                         text(0,0,tstring_xform,'Interpreter','none');
-%                         axis off;
-%                         axes('Position',[0.01,0.02,0.01,0.01]); %for text
-%                         text(0,0,tstring_cons,'Interpreter','none');
-%                         axis off;
-%                     end %coord list ok?
-%                 end %next coord set?
-%             end %if_plot
-%         end %ist
-%     end %ipreproc
-% end %isub
-% %
-% %save results
-% %
-% results=struct;
-% results.nrepts=nrepts;
-% results.nstims=nstims;
-% results.nfiles=nfiles;
-% results.nsubs=nsubs;
-% results.sub_labels=sub_labels;
-% results.npreprocs=npreprocs;
-% results.preproc_labels=preproc_labels;
-% results.nsts=nsts;
-% results.st_labels=st_labels;
-% results.dmax=dmax;
-% results.coords_dims={'pca details: d1: file, d2: sub type, d3: preproc type, d4: stim or trial; resp=u*s*v, coords=u*s'};
-% results.coords_stim_dims={'d1: stim, d2: dim'};
-% results.coords_trial_dims={'d1: stim, d2: dim, d3: trial'};
-% results.coords_stim=coords_stim;
-% results.coords_trial=coords_trial;
-% results.metadata=metadata;
-% results.dsids=dsids;
-% results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
-% results.rois_avail=rois_avail;
-% results.rois=rois;
-% %
-% results.coords_consensus=coords_consensus;
-% results.xforms_consensus=xforms_consensus;
-% results.coords_devs_xform=coords_devs_xform;
-% results.coords_devs_xform_dims={'{d1: 1(consensus), d2: sub type, d3: preproc type, d4: stim or trial}{model dim}(stim,coord,rep,file)'};
-% %
-% disp('results structure created.');
-% 
+if_3dplot=getinp('1 to plot response space for 3d fit, last subsamp, last fold, last xv set','d',[0 1]);
+%
+%do the preprocessing on all files, as this is independent of the
+%sub-selection each subsample
+%
+resps_alltrials=cell(nsubs,npreprocs,nfiles);
+for ifile=1:nfiles
+    for isub=1:nsubs
+        rs=resps_mean{ifile};
+        rt=resps_trial{ifile};
+        switch sub_labels{isub}
+            case ''
+            case ' (mean sub)'
+            rs_xm=mean(rs,1,'omitnan'); %global mean
+            rt=rt-repmat(reshape(rs_xm,[1 1 nrois_avail(ifile)]),[nstims nrepts 1]);
+        end
+        for ipreproc=1:npreprocs
+            switch preproc_labels{ipreproc}
+                case 'raw'
+                case 'normalized'
+                    rt_norm=sqrt(sum(rt.^2,3));
+                    rt_norm(rt_norm==0)=1;
+                    rt=rt./repmat(rt_norm,[1 1 nrois_avail(ifile)]);
+            end
+            resps_alltrials{isub,ipreproc,ifile}=rt;
+        end %ipreproc
+    end %isub
+    disp(sprintf('preprocessed file %s',dsids{ifile}));
+end %ifile
+clear resps_mean resps_trial rois rs rs_xm rt rt_norm
+%initialize confusion matrices
+confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
+for isubsamp=1:nsubsamps_use
+    subsamp_sel=subsamps_list(subsamps_use(isubsamp),:);
+    disp(sprintf(' subsample %3.0f of %3.0f: original datasets %s',isubsamp,nsubsamps_use,sprintf(' %3.0f ',subsamp_sel)));
+    for isub=1:nsubs %mean subtract?
+        for ipreproc=1:npreprocs
+            for id=dmin:dmax
+                npcs=id;
+                %
+                %create a consensus from all of the data, to be used just for initialization
+                %
+                coords_nodrop=zeros(nstims,id,nrepts*nsets); 
+                for iset=1:nsets
+                    resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
+                    for irept=1:nrepts
+                        rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
+                        nonans_pca=find(all(~isnan(rpca),2));
+                        [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                        u=nan(size(rpca,1),npcs);
+                        u(nonans_pca,:)=u_nonan(:,1:npcs);
+                        coords_nodrop(:,:,irept+(iset-1)*nrepts)=u*s(1:npcs,1:npcs);
+                    end
+                end
+                consensus_nodrop=procrustes_consensus(coords_nodrop,opts_pcon);
+                disp(sprintf('no-drop consensus made for isubsamp %2.0f  %12s %10s dim %2.0f',isubsamp,sub_labels{isub},preproc_labels{ipreproc},id));
+                %now do each fold:
+                % eliminate some stimuli from conesnsus calculation
+                % use consensus_nodrop to initialize
+                % retain the transforms so that the dropped stimuli can be decoded
+                for ixv_make=1:xv_nmake
+                    nfolds=max(max(max(xv_configs(:,:,:,ixv_make))));
+                    for ifold=1:nfolds
+                        ndrop_thisfold=sum(sum(sum(double(xv_configs(:,:,:,ixv_make)==ifold)))); %number dropped on this fold
+                        coords_insample=zeros(nstims,id,nrepts*nsets-ndrop_thisfold);
+                        trans_lookup=zeros(nrepts,nsets);
+                        itrial_ct=0;
+                        v_insample=cell(nrepts,nsets);
+                        droplist=cell(nrepts,nsets); %what is dropped
+                        %omit the dropped stimuli and do pca to
+                        %create an in-sample space
+                        for iset=1:nsets
+                            resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
+                             for irept=1:nrepts
+                                rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
+                                droplist{irept,iset}=find(xv_configs(:,irept,iset,ixv_make)==ifold); %which stimuli are dropped from this rept and set
+                                rpca(droplist{irept,iset},:)=NaN;
+                                nonans_pca=find(all(~isnan(rpca),2));
+                                 if any(~isnan(rpca(:)))
+                                    [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                    u=nan(size(rpca,1),npcs);
+                                    u(nonans_pca,:)=u_nonan(:,1:npcs);
+                                    %
+                                    v_insample{irept,iset}=v(:,[1:npcs]); %for out-of-sample, coords=resp*v
+                                    %
+                                    itrial_ct=itrial_ct+1;
+                                    coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);
+                                    trans_lookup(irept,iset)=itrial_ct; %where to find the transform
+                                end
+                             end %irept
+                        end %iset
+                        ntrials_tot=itrial_ct;
+                        opts_pcon.initial_guess=consensus_nodrop;
+                        %find consensus of every insample set of trials,
+                        %and the transforms to each ts_insample{trans_lookup(irept,iset)}
+                        [consensus_insample,znew_insample,ts_insample,details_insample,opts_pcon_insample_used]=...
+                            procrustes_consensus(coords_insample,setfield(opts_pcon,'initialize_set',0));
+                        %
+                        coords_insample_align=cell(nstims,1); %coords_insample_align{istim}(itrial,id) are in-sample coords of istim
+                        for istim=1:nstims
+                            znew_stim=reshape(znew_insample(istim,:,:),id,ntrials_tot)'; %d1: itrial, d2: dim
+                            which_trials=find(all(~isnan(znew_stim),2));
+                            coords_insample_align{istim}=znew_stim(which_trials,:);
+                        end %end
+                        %
+                        %then transform the dropped stimuli into the in-sample activity space and decode
+                        coords_outsample_align=cell(nstims,1); %coords_outsample_align{istim}(itrial,id) are out-of-sample coords of istim
+                        for iset=1:nsets
+                            resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
+                            for irept=1:nrepts
+                                rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
+                                ndrop=length(droplist{irept,iset});
+                                %if only some of the trial is dropped, then use the alignment from the rest of the trial
+                                if ndrop>0 & ndrop<=opts_xv_used.omit_per_fold
+                                    resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
+                                    rpca_outsample=reshape(resps(droplist{irept,iset},irept,:),[ndrop,nrois_avail(subsamp_sel(iset))]);
+                                    coords_outsample=rpca_outsample*v_insample{irept,iset}; %unaligned coords
+                                    coords_outsample_align_alldrop=psg_geomodels_apply('procrustes',coords_outsample,...
+                                        procrustes_compat(ts_insample{trans_lookup(irept,iset)})); %d1: each dropped stim in droplist, d2: coord
+                                    %put these into coords_outsample_alignment
+                                    for idrop=1:ndrop
+                                        istim=droplist{irept,iset}(idrop);
+                                        coords_outsample_align{istim}(end+1,:)=coords_outsample_align_alldrop(idrop,:);
+                                    end                                   
+                                elseif ndrop>opts_xv_used.omit_per_fold %if all of the trial is dropped (corresponds to omit_per_fold=0)
+                                    %transform entire repeat into consensus_insample as a reference, first doing a private pca
+                                    rpca_outsample=reshape(resps(:,irept,:),[nstims,nrois_avail(subsamp_sel(iset))]);
+                                    nonans_pca=find(all(~isnan(rpca_outsample),2));
+                                    [u_nonan,s,v]=svd(rpca_outsample(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                    u=nan(size(rpca,1),npcs);
+                                    u(nonans_pca,:)=u_nonan(:,1:npcs);
+                                    coords_outsample=u*s(1:npcs,1:npcs);
+                                    %align with consensus_insample, using
+                                    %an option for procrustes that matches the option for procrustes_consensus
+                                    coords_outsample_xform=NaN(nstims,npcs);
+                                    [d_procrust,coords_outsample_xform(nonans_pca,:),xform]=...
+                                        procrustes(consensus_insample(nonans_pca,:),coords_outsample(nonans_pca,:),'Scaling',scaling_token,'Reflection',reflection_token);
+                                    if (opts_pcon.allow_offset==0) %remove offset if requested
+                                        coords_outsample_xform(nonans_pca,:)=coords_outsample_xform(nonans_pca,:)-xform.c;
+                                    end
+                                    for idrop=1:ndrop
+                                        istim=droplist{irept,iset}(idrop);
+                                        coords_outsample_align{istim}(end+1,:)=coords_outsample_xform(istim,:);
+                                    end
+                                end % ndrop
+                            end %irept
+                        end %iset
+                        % if only some of a trial are dropped, use the transformation from the in-sample 
+                        % if the entire trial is dropped, align to the in-sample consensus
+                        %trans_lookup(irept,iset) will be zero if the entire trial is omitted; otherwise, it points to
+                        %ts_insample{*} that transforms that trial into consensus_insample
+                    end %ifold
+                end %ixv_make
+                if (if_3dplot) & (id==3)
+                    hlid_rastim_trial_decode_3dplot;
+                end
+            end %dmax
+        end %ipreproc
+    end %isub (mean subtract)   
+end %isubsamp
+%
+%save results
+%
+results=struct;
+results.nrepts=nrepts;
+results.nstims=nstims;
+results.nfiles=nfiles;
+results.nsets=nsets;
+results.nsubs=nsubs;
+results.sub_labels=sub_labels;
+results.npreprocs=npreprocs;
+results.preproc_labels=preproc_labels;
+results.dec_labels=dec_labels;
+results.ndecs=ndecs;
+results.dmax=dmax;
+results.dmin=dmin;
+results.if_frozen=if_frozen;
+results.if_debug=if_debug;
+%
+results.metadata=metadata;
+results.dsids=dsids;
+results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
+results.rois_avail=rois_avail;
+%
+results.subsamps_list_used=subsamps_list(subsamps_use,:);
+%
+results.xv_configs=xv_configs;
+results.xv_label=xv_label;
+results.opts_xv=opts_xv;
+results.opts_xv_used=opts_xv_used;
+results.opts_pcon=opts_pcon;
+%
+results.confusion_matrices=confusion_matrices;
+results.confusion_matrices_dims={'d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set'};
+%
+disp('results structure created.');
 % 
