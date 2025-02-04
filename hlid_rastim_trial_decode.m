@@ -3,7 +3,7 @@
 % does a cross-validated decode, beginning with response space construction with trials left out
 % uses consensus space to align data across individuals
 % 
-% Constructs a representaional space using single-trial or stimulus-averaged raw (z-scored) responses,
+% Constructs a representational space using single-trial or stimulus-averaged raw (z-scored) responses,
 % optionally subtracting mean, optionally normalizing the magnitude,
 % (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation),
 %
@@ -38,14 +38,19 @@ if ~exist('preproc_labels')
 end
 npreprocs=length(preproc_labels);
 %
-if ~exist('dec_labels')
-    if if_debug
-        dec_labels={'min rms'};
-    else
-        dec_labels={'min rms','min dist'};
-    end
+if ~exist('dec_methods')
+    dec_methods=cell(0);
+    dec_methods{1}.dist_type='Euclidean';
+    dec_methods{1}.comb_type='mean';
+    dec_methods{2}.dist_type='Euclidean';
+    dec_methods{2}.comb_type='centroid';
+    dec_methods{3}.dist_type='1-cosine';
+    dec_methods{3}.comb_type='centroid';
+    dec_methods{4}.dist_type='Mahalanobis';
+    dec_methods{4}.comb_type='centroid';
 end
-ndecs=length(dec_labels);
+ndecs=length(dec_methods);
+dec_labels=cell(1,ndecs);
 %
 if ~exist('opts_pcon') opts_pcon=struct; end %consensus options
 opts_pcon=filldefault(opts_pcon,'allow_reflection',1);
@@ -211,7 +216,13 @@ for isubsamp=1:nsubsamps_use
                             coords_insample_align{istim}=znew_stim(which_trials,:);
                         end %end
                         %
-                        %then transform the dropped stimuli into the in-sample activity space and decode
+                        %transform the dropped stimuli into the in-sample activity space and decode
+                        %
+                        % if only some of a trial are dropped, use the transformation from the in-sample 
+                        % if the entire trial is dropped, align to the in-sample consensus
+                        %trans_lookup(irept,iset) will be zero if the entire trial is omitted; otherwise, it points to
+                        %ts_insample{*} that transforms that trial into consensus_insample
+                        %
                         coords_outsample_align=cell(nstims,1); %coords_outsample_align{istim}(itrial,id) are out-of-sample coords of istim
                         for iset=1:nsets
                             resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
@@ -253,10 +264,14 @@ for isubsamp=1:nsubsamps_use
                                 end % ndrop
                             end %irept
                         end %iset
-                        % if only some of a trial are dropped, use the transformation from the in-sample 
-                        % if the entire trial is dropped, align to the in-sample consensus
-                        %trans_lookup(irept,iset) will be zero if the entire trial is omitted; otherwise, it points to
-                        %ts_insample{*} that transforms that trial into consensus_insample
+                        %
+                        % add to confusion matrices                
+                        % confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
+                        for idec=1:ndecs
+                            [confmtx,aux]=xval_confmtx_make(coords_outsample_align,coords_insample_align,dec_methods{idec});
+                            dec_labels{idec}=aux.desc_brief;
+                            confusion_matrices(:,:,idec,id,ipreproc,isub,isubsamp)=confusion_matrices(:,:,idec,id,ipreproc,isub,isubsamp)+confmtx;
+                        end
                     end %ifold
                 end %ixv_make
                 if (if_3dplot) & (id==3)
@@ -278,6 +293,7 @@ results.nsubs=nsubs;
 results.sub_labels=sub_labels;
 results.npreprocs=npreprocs;
 results.preproc_labels=preproc_labels;
+results.dec_methods=dec_methods;
 results.dec_labels=dec_labels;
 results.ndecs=ndecs;
 results.dmax=dmax;

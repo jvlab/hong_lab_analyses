@@ -56,6 +56,7 @@ if (nargin<1)
     confmtx.comb_type=comb_type_list;
     confmtx.params_needed=params_needed;
 else
+    method=filldefault(method,'params',[]);
     nstims_out=size(outsamp,1);
     ndims_out=size(outsamp{1},2);
     nstims_in=size(insamp,1);
@@ -92,7 +93,7 @@ else
     %translate to the method that will be used
     dist_type_use=method.dist_type;   
     comb_type_use=method.comb_type;
-    params_use=method.params
+    params_use=method.params;
     if strcmp(method.comb_type,'powerlaw')
         if method.params(1)==-Inf
             comb_type_use='min';
