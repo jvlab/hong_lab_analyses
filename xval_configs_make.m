@@ -29,6 +29,8 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 %   * error and consistency checking
 %   * choice of max_partial_omit based on dimensionality of decoding space
 %
+%  See also: XVAL_CONFMTX_MAKE.
+%
 ny_chars='NY';
 %
 if (nargin<=2)
