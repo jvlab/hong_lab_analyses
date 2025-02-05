@@ -8,8 +8,9 @@
 % (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation),
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
-%  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS, XVAL_CONFIGS_MAKE,
-%  HLID_RASTIM_TRIAL_DECODE_3DPLOT.
+%  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
+%  XVAL_CONFIGS_MAKE, XVAL_CONFMTX_MAKE,
+%  HLID_RASTIM_TRIAL_DECODE_3DPLOT, HLID_RASTIM_TRIAL_DECODE_CONFMTX.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -318,4 +319,5 @@ results.confusion_matrices=confusion_matrices;
 results.confusion_matrices_dims={'d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set'};
 %
 disp('results structure created.');
-% 
+%
+disp('confusion matrices can be plotted with hlid_rastim_trial_decode_confmtx')

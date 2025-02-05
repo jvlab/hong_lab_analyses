@@ -49,7 +49,7 @@ text(0,0,sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use),'Interpreter',
 axis off;
 %
 axes('Position',[0.01,0.05,0.01,0.01]); %for text
-text(0,0,sprintf('%s %s ixv_make %3.0f ifold %3.0f',sub_labels{isub},preproc_labels{isub},ixv_make,ifold),'Interpreter','none');
+text(0,0,sprintf('%s %s ixv_make %3.0f ifold %3.0f, %s to %s',sub_labels{isub},preproc_labels{isub},ixv_make,ifold,dsids{1},dsids{end}),'Interpreter','none');
 axis off;
 %
 axes('Position',[0.01,0.02,0.01,0.01]); %for text
