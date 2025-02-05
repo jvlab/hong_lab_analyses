@@ -306,6 +306,8 @@ results.metadata=metadata;
 results.dsids=dsids;
 results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
 results.rois_avail=rois_avail;
+results.stimulus_names=stimulus_names;
+results.stimulus_names_display=stimulus_names_display;
 %
 results.subsamps_list_used=subsamps_list(subsamps_use,:);
 %
