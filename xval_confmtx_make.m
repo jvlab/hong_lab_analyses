@@ -3,6 +3,7 @@ function [confmtx,aux]=xval_confmtx_make(outsamp,insamp,method)
 %  with a variety of options for distances, and how to combine distances
 %
 % outsamp: data to be decoded: cell array of size (nstims_in,1), outsamp{istim}(isamp,idim) are the coordinates
+%  outsamp{stim} may be an array of size 0 if no responses to this stimulus are present
 % insamp: reference data: cell array of size (nstims_in_out,1), insamp{istim}(isamp,idim) are the coordinates
 %   any row with a NaN is ignored
 % method:
@@ -57,10 +58,23 @@ if (nargin<1)
     confmtx.params_needed=params_needed;
 else
     method=filldefault(method,'params',[]);
-    nstims_out=size(outsamp,1);
-    ndims_out=size(outsamp{1},2);
     nstims_in=size(insamp,1);
-    ndims_in=size(insamp{1},2);
+    nstims_out=size(outsamp,1);
+    %
+    %create concatenated outsamp as outsamp_all and tags, outsamp_tag
+    %
+    [outsamp_count,outsamp_all,outsamp_tag,ndims_out]=xval_concat_util(outsamp);
+    %
+    %remove all nans from insamp
+    %
+    for istim=1:nstims_in
+        nonans=find(all(~isnan(insamp{istim}),2));
+        insamp{istim}=insamp{istim}(nonans,:);
+    end
+    %
+    %create concatenated insamp as insamp_all and tags, insamp_tag
+    %
+    [insamp_count,insamp_all,insamp_tag,ndims_in]=xval_concat_util(insamp);
     %
     confmtx=zeros(nstims_out,nstims_in);
     aux.msgs=[];
@@ -111,23 +125,11 @@ else
     aux.dist_type_use=dist_type_use;
     aux.comb_type_use=comb_type_use;
     aux.params_use=params_use;
-    %
-    %remove all nans from insamp, ensure sufficient number of samples if Mahalanobis
-    %
-    insamps_count=zeros(nstims_in,1);
-    for istim=1:nstims_in
-        nonans=find(all(~isnan(insamp{istim}),2));
-        insamp{istim}=insamp{istim}(nonans,:);
-        insamps_count(istim)=length(nonans);       
-    end
-    if strcmp(dist_type_use,'Mahalanobis') & min(insamps_count)<=ndims_in
-        aux.msgs=strvcat(aux.msgs,sprintf('Mahalanobis distance will be degenerate, ndims=%2.0f but min(nstims)=%2.0f',ndims_in,min(insamps_count)));
+    %ensure sufficient number of samples for Mahalanobis    
+    if strcmp(dist_type_use,'Mahalanobis') & min(insamp_count)<=ndims_in
+        aux.msgs=strvcat(aux.msgs,sprintf('Mahalanobis distance will be degenerate, ndims=%2.0f but min(nstims)=%2.0f',ndims_in,min(insamp_count)));
         return;
     end
-    %
-    %create concatenated outsamp as outsamp_all and tags, outsamp_tag
-    %
-    [outsamp_count,outsamp_all,outsamp_tag]=xval_concat_util(outsamp);
     %
     %if combine by centroid, compute centroids of insample and then disparities to insample
     %
@@ -151,7 +153,6 @@ else
         end
     else
         %combine individual distances:  first compute the distances to each insample
-        [insamp_count,insamp_all,insamp_tag]=xval_concat_util(insamp);
         switch dist_type_use
             case 'Euclidean'
                 dists=sqrt(cootodsq(outsamp_all,insamp_all));
@@ -197,19 +198,25 @@ else
 end
 return
 
-function  [samp_count,samp_all,samp_tag]=xval_concat_util(samp)
-%concatenate and make tags
+function  [samp_count,samp_all,samp_tag,nd]=xval_concat_util(samp)
+%concatenate and make tags and determine dimension
+nd=-Inf;
+for istim=1:size(samp,1)
+    nd=max(nd,size(samp{istim},2));
+end
 nstims=size(samp,1);
 samp_count=zeros(nstims,1);
 for istim=1:nstims
     samp_count(istim)=size(samp{istim},1);
 end
-samp_all=zeros(sum(samp_count),size(samp{1},2));
+samp_all=zeros(sum(samp_count),nd);
 samp_tag=zeros(sum(samp_count),1);
 for istim=1:nstims
-    offset=sum(samp_count([1:(istim-1)]));
-    samp_tag(offset+[1:samp_count(istim)])=istim;
-    samp_all(offset+[1:samp_count(istim)],:)=samp{istim};
+    if samp_count(istim)>0
+        offset=sum(samp_count([1:(istim-1)]));
+        samp_tag(offset+[1:samp_count(istim)])=istim;
+        samp_all(offset+[1:samp_count(istim)],:)=samp{istim};
+    end   
 end
 return
 
