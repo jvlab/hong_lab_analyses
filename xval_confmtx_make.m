@@ -127,7 +127,7 @@ else
     aux.params_use=params_use;
     %ensure sufficient number of samples for Mahalanobis    
     if strcmp(dist_type_use,'Mahalanobis') & min(insamp_count(insamp_count>0))<=ndims_in
-        aux.msgs=strvcat(aux.msgs,sprintf('Mahalanobis distance will be degenerate, ndims=%2.0f but min(nstims)=%2.0f',ndims_in,min(insamp_count)));
+        aux.msgs=strvcat(aux.msgs,sprintf('Mahalanobis distance will be degenerate, ndims=%2.0f but min(nstims)=%2.0f',ndims_in,min(insamp_count(insamp_count>0))));
         return;
     end
     %
