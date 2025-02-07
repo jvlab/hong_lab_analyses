@@ -57,7 +57,7 @@ for isub=1:results.nsubs
             axis off;
             %
             axes('Position',[0.01,0.03,0.01,0.01]); %for text
-            text(0,0,sprintf('%s %s all folds, %s to %s',results.sub_labels{isub},results.preproc_labels{isub},results.dsids{1},results.dsids{end}),'Interpreter','none');
+            text(0,0,sprintf('%s %s all folds, %s to %s',results.sub_labels{isub},results.preproc_labels{ipreproc},results.dsids{1},results.dsids{end}),'Interpreter','none');
             axis off;
             %
             axes('Position',[0.01,0.01,0.01,0.01]); %for text
