@@ -126,20 +126,22 @@ else
     aux.comb_type_use=comb_type_use;
     aux.params_use=params_use;
     %ensure sufficient number of samples for Mahalanobis    
-    if strcmp(dist_type_use,'Mahalanobis') & min(insamp_count)<=ndims_in
+    if strcmp(dist_type_use,'Mahalanobis') & min(insamp_count(insamp_count>0))<=ndims_in
         aux.msgs=strvcat(aux.msgs,sprintf('Mahalanobis distance will be degenerate, ndims=%2.0f but min(nstims)=%2.0f',ndims_in,min(insamp_count)));
         return;
     end
     %
     %if combine by centroid, compute centroids of insample and then disparities to insample
     %
-    disparity=zeros(sum(outsamp_count),nstims_in);
+    disparity=Inf(sum(outsamp_count),nstims_in);
     if strcmp(comb_type_use,'centroid');
         insamp_centroids=zeros(nstims_in,ndims_in);
         for istim=1:nstims_in
-            insamp_centroids(istim,:)=mean(insamp{istim},1);
-            if strcmp(dist_type_use,'Mahalanobis')
-                disparity(:,istim)=sqrt(mahal(outsamp_all,insamp{istim}));
+            if insamp_count(istim)>0
+                insamp_centroids(istim,:)=mean(insamp{istim},1);
+                if strcmp(dist_type_use,'Mahalanobis')
+                    disparity(:,istim)=sqrt(mahal(outsamp_all,insamp{istim}));
+                end
             end
         end
         switch dist_type_use
