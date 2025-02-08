@@ -1,14 +1,20 @@
 
 %hlid_rastim_trial_decode_confmtx: heatmaps of confusion matrices
+% and line graphs of fraction correect
 %
 %runs on results structure from hlid_rastim_trial_decode
 %
+% heatmaps:
 %* each row of plots is a dimension of the space, each col of plots is a decoding method
 %* within each plot: row: a stimulus to be decoded, each col: what it is decoded as
 %* one page for each choice of isub (mean sub or not) and ipreproc (normalize or not)
 %* stimulus order is as in original data files
-%* if_eachsubsamp: 1 to plot each subsample, 0 to plot average across subsamples, defaults to 0
-% 
+%
+% line graphs:
+%* fraction correct as a function of dimensionality, one line for each decoding method
+%
+% if_eachsubsamp: 1 to plot each subsample, 0 to plot average across subsamples, defaults to 0
+%
 %  See also: HLID_RASTIM_TRIAL_DECODE.
 %
 nsubsamps_use=size(results.subsamps_list_used,1);
