@@ -17,6 +17,11 @@
 %
 %  See also: HLID_RASTIM_TRIAL_DECODE.
 %
+%fill in, and backward compatibility
+results=filldefault(results,'if_singleprep',0);
+results=filldefault(results,'nsubsamps_avail',nchoosek(results.nfiles,results.nsets));
+results=filldefault(results,'if_all_subsamps',double(size(results.subsamps_list_used,1)==results.nsubsamps_avail));
+%
 nsubsamps_use=size(results.subsamps_list_used,1);
 if ~exist('if_eachsubsamp') if_eachsubsamp=0; end
 if if_eachsubsamp
@@ -27,6 +32,17 @@ end
 nrows=max(results.dmax-results.dmin+1,2);
 ncols=max(results.ndecs,3);
 for isubsamp=subsamp_range(1):subsamp_range(2)
+    if if_eachsubsamp
+        subsamp_label=sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use);
+    else
+        subsamp_label=sprintf('all subsamps of %2.0f',nsubsamps_use);
+    end
+    if results.if_all_subsamps
+        subsamp_label=cat(2,subsamp_label,' (exhaustive)');
+    end
+    if results.if_singleprep
+        subsamp_label=cat(2,subsamp_label,' single prep mode');
+    end
     fcs=zeros(results.dmax,results.ndecs,results.nsubs,results.npreprocs);
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
@@ -57,11 +73,7 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
             end
             %
             axes('Position',[0.01,0.05,0.01,0.01]); %for text
-            if if_eachsubsamp
-                text(0,0,sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use),'Interpreter','none');
-            else
-                text(0,0,sprintf('all subsamps of %2.0f',nsubsamps_use),'Interpreter','none');
-            end
+            text(0,0,subsamp_label,'Interpreter','none');
             axis off;
             %
             axes('Position',[0.01,0.03,0.01,0.01]); %for text
@@ -81,7 +93,7 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
             subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
-            plot([1:results.dmax],fcs(:,:,isub,ipreproc),'LineWidth',2);
+            plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc),'LineWidth',2);
             xlabel('dimension');
             set(gca,'XTick',[1:results.dmax]);
             set(gca,'XTickLabel',[1:results.dmax]);
@@ -93,11 +105,7 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
         end %ipreproc
     end %isub
     axes('Position',[0.01,0.05,0.01,0.01]); %for text
-    if if_eachsubsamp
-        text(0,0,sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use),'Interpreter','none');
-    else
-        text(0,0,sprintf('all subsamps of %2.0f',nsubsamps_use),'Interpreter','none');
-    end
+    text(0,0,subsamp_label,'Interpreter','none');
     axis off;
     %
     axes('Position',[0.01,0.03,0.01,0.01]); %for text

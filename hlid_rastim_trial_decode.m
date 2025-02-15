@@ -12,9 +12,12 @@
 %  XVAL_CONFIGS_MAKE, XVAL_CONFMTX_MAKE,
 %  HLID_RASTIM_TRIAL_DECODE_3DPLOT, HLID_RASTIM_TRIAL_DECODE_CONFMTX.
 %
+% 15Feb25: add a single-prep mode (decode only within each prep)
+%
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
 if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each time, <0 for a specific seed','d',[-10000 1],1);
+if_singleprep=getinp('1 for decoding only within single preps','d',[0 1],0);
 if (if_frozen~=0) 
     rng('default');
     if (if_frozen<0)
@@ -28,14 +31,14 @@ if ~exist('sub_labels')
     if if_debug
         sub_labels={''};
     else
-        sub_labels={'',' (mean sub)'}; end %can replace by a subset to shorten analysis
+        sub_labels={'',' (mean sub)'}; end %subtract mean from responses
 end
 nsubs=length(sub_labels);
 if ~exist('preproc_labels') 
     if if_debug
         preproc_labels={'raw'};
     else
-        preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis
+        preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis or downsample
 end
 npreprocs=length(preproc_labels);
 %
@@ -47,8 +50,13 @@ if ~exist('dec_methods')
     dec_methods{2}.comb_type='centroid';
     dec_methods{3}.dist_type='1-cosine';
     dec_methods{3}.comb_type='centroid';
-    dec_methods{4}.dist_type='Mahalanobis';
-    dec_methods{4}.comb_type='centroid';
+    if if_singleprep %single-fly: Mahalanobis will fail because there are not enough trials
+        dec_methods{4}.dist_type='Euclidean';
+        dec_methods{4}.comb_type='gravitational';
+    else
+        dec_methods{4}.dist_type='Mahalanobis';
+        dec_methods{4}.comb_type='centroid';
+    end
 end
 ndecs=length(dec_methods);
 dec_labels=cell(1,ndecs);
@@ -56,7 +64,12 @@ dec_labels=cell(1,ndecs);
 if ~exist('opts_pcon') opts_pcon=struct; end %consensus options
 opts_pcon=filldefault(opts_pcon,'allow_reflection',1);
 opts_pcon=filldefault(opts_pcon,'allow_offset',1);
-if ~exist('opts_xv') opts_xv=struct; end %for cross-validation
+if ~exist('opts_xv') 
+    opts_xv=struct; 
+    if if_singleprep
+        opts_xv.if_single=[0 NaN 1]; %restrict to within single flies
+    end
+end %for cross-validation
 if ~exist('xv_defaults') xv_defaults=struct; end
 if ~exist('xv_nmake') xv_nmake=1; end
 %
@@ -91,12 +104,22 @@ for k=1:nstims
 end
 %
 disp(sprintf('number of files: %4.0f',nfiles));
-nsets=getinp('number of datasets to analyze together','d',[nsets_min nfiles]);
+if if_singleprep
+    nsets=1;
+else
+    nsets=getinp('number of datasets to analyze together','d',[nsets_min nfiles]);
+end
 %
 subsamps_list=nchoosek(1:nfiles,nsets);
 nsubsamps=size(subsamps_list,1);
-nsubsamps_use=getinp('number of subsample sets to use','d',[1 nsubsamps],1);
-subsamps_use=randperm(nsubsamps);
+if (if_singleprep)
+    nsubsamps_use=getinp('number of subsample sets to use','d',[1 nsubsamps],nsubsamps);
+    subsamps_use=[1:nsubsamps];
+else
+    nsubsamps_use=getinp('number of subsample sets to use','d',[1 nsubsamps],1);
+    subsamps_use=randperm(nsubsamps);
+end
+if_all_subsamps=double(nsubsamps_use==nsubsamps);
 subsamps_use=subsamps_use(1:nsubsamps_use);
 %
 dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) nstims],dmax);
@@ -301,6 +324,8 @@ results.dmax=dmax;
 results.dmin=dmin;
 results.if_frozen=if_frozen;
 results.if_debug=if_debug;
+results.if_singleprep=if_singleprep;
+results.if_all_subsamps=if_all_subsamps;
 %
 results.metadata=metadata;
 results.dsids=dsids;
