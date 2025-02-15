@@ -14,6 +14,8 @@
 %* fraction correct as a function of dimensionality, one line for each decoding method
 %
 % if_eachsubsamp: 1 to plot each subsample, 0 to plot average across subsamples, defaults to 0
+% dmin_confmtx_show: minimum dimension to show confusoin matrix, defaults to results.dmin
+% dmax_confmtx_show: maximum dimension to show confusion matrix, defaults to results.dmax
 %
 %  See also: HLID_RASTIM_TRIAL_DECODE.
 %
@@ -23,44 +25,71 @@ results=filldefault(results,'nsubsamps_avail',nchoosek(results.nfiles,results.ns
 results=filldefault(results,'if_all_subsamps',double(size(results.subsamps_list_used,1)==results.nsubsamps_avail));
 %
 nsubsamps_use=size(results.subsamps_list_used,1);
+%
+if ~exist('dmin_confmtx_show') dmin_confmtx_show=results.dmin; end
+dmin_confmtx_show=max(dmin_confmtx_show,results.dmin);
+if ~exist('dmax_confmtx_show') dmax_confmtx_show=results.dmax; end
+dmax_confmtx_show=min(dmax_confmtx_show,results.dmax);
+%
 if ~exist('if_eachsubsamp') if_eachsubsamp=0; end
+%
 if if_eachsubsamp
     subsamp_range=[1 nsubsamps_use];
 else
     subsamp_range=[0 0];
 end
-nrows=max(results.dmax-results.dmin+1,2);
+nrows=max(dmax_confmtx_show-dmin_confmtx_show+1,2);
 ncols=max(results.ndecs,3);
-for isubsamp=subsamp_range(1):subsamp_range(2)
-    if if_eachsubsamp
-        subsamp_label=sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use);
-    else
-        subsamp_label=sprintf('all subsamps of %2.0f',nsubsamps_use);
-    end
-    if results.if_all_subsamps
-        subsamp_label=cat(2,subsamp_label,' (exhaustive)');
-    end
-    if results.if_singleprep
-        subsamp_label=cat(2,subsamp_label,' single prep mode');
-    end
-    fcs=zeros(results.dmax,results.ndecs,results.nsubs,results.npreprocs);
+fcs=zeros(results.dmax,results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
+subsamp_label=cell(nsubsamps_use+1,1);
+for isubsamp=0:nsubsamps_use
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
-            %plot heatmaps
-            figure;
-            set(gcf,'Position',[100 50 1400 950]);
             for id=results.dmin:results.dmax
-                irow=id-results.dmin+1;
                 for idec=1:results.ndecs
                     icol=idec;
-                    subplot(nrows,ncols,icol+(irow-1)*ncols);
-                    % confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
                     if isubsamp>0
                         confmtx=results.confusion_matrices(:,:,icol,id,isub,ipreproc,isubsamp);
                     else
                         confmtx=sum(results.confusion_matrices(:,:,icol,id,isub,ipreproc,:),7);
                     end
-                    fcs(id,idec,isub,ipreproc)=sum(diag(confmtx))/sum(confmtx(:));
+                    fcs(id,idec,isub,ipreproc,isubsamp+1)=sum(diag(confmtx))/sum(confmtx(:));
+                end %idec
+            end %id
+        end %ipreproc
+    end %isub
+    if if_eachsubsamp
+        subsamp_label{isubsamp+1}=sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use);
+    else
+        subsamp_label{isubsamp+1}=sprintf('all subsamps of %2.0f',nsubsamps_use);
+    end
+    if results.if_all_subsamps
+        subsamp_label{isubsamp+1}=cat(2,subsamp_label{isubsamp+1},' (exhaustive)');
+    end
+    if results.if_singleprep
+        subsamp_label{isubsamp+1}=cat(2,subsamp_label{isubsamp+1},' single prep mode');
+    end
+end %isubsamp
+for isubsamp=subsamp_range(1):subsamp_range(2)
+    for isub=1:results.nsubs
+        for ipreproc=1:results.npreprocs
+            %plot heatmaps
+            label_proc=sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc});
+            figure;
+            set(gcf,'Position',[100 50 1400 950]);
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Name',cat(2,'confmtx: ',subsamp_label{isubsamp+1},' ',label_proc));
+            for id=dmin_confmtx_show:dmax_confmtx_show
+                irow=id-dmin_confmtx_show+1;
+                for idec=1:results.ndecs
+                    icol=idec;
+                    if isubsamp>0
+                        confmtx=results.confusion_matrices(:,:,icol,id,isub,ipreproc,isubsamp);
+                    else
+                        confmtx=sum(results.confusion_matrices(:,:,icol,id,isub,ipreproc,:),7);
+                    end
+                    subplot(nrows,ncols,icol+(irow-1)*ncols);
+                    % confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
                     imagesc(confmtx);
                     set(gca,'XTick',[1:results.nstims]);
                     set(gca,'XTickLabel',results.stimulus_names_display);
@@ -73,7 +102,7 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
             end
             %
             axes('Position',[0.01,0.05,0.01,0.01]); %for text
-            text(0,0,subsamp_label,'Interpreter','none');
+            text(0,0,subsamp_label{isubsamp+1},'Interpreter','none');
             axis off;
             %
             axes('Position',[0.01,0.03,0.01,0.01]); %for text
@@ -85,15 +114,19 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
             axis off;
         end %ipreproc
     end %isub
-    %
-    %plot fraction correct as line graphs
-    %
+end %isubsamp
+%
+%plot fraction correct as line graphs
+%
+for isubsamp=subsamp_range(1):subsamp_range(2)
     figure;
     set(gcf,'Position',[100 100 1200 800]);
+    set(gcf,'NumberTitle','off');
+    set(gcf,'Name',cat(2,'summary: ',subsamp_label{isubsamp+1}));
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
             subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
-            plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc),'LineWidth',2);
+            plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
             xlabel('dimension');
             set(gca,'XTick',[1:results.dmax]);
             set(gca,'XTickLabel',[1:results.dmax]);
@@ -105,7 +138,7 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
         end %ipreproc
     end %isub
     axes('Position',[0.01,0.05,0.01,0.01]); %for text
-    text(0,0,subsamp_label,'Interpreter','none');
+    text(0,0,subsamp_label{isubsamp+1},'Interpreter','none');
     axis off;
     %
     axes('Position',[0.01,0.03,0.01,0.01]); %for text
