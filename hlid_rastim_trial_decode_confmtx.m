@@ -13,9 +13,12 @@
 % line graphs:
 %* fraction correct as a function of dimensionality, one line for each decoding method
 %
-% if_eachsubsamp: 1 to plot each subsample, 0 to plot average across subsamples, defaults to 0
+% if_eachsubsamp: 1 to plot confusion matrices and summary plot for each subsample;
+%                 0 to plot confusion matrix and summary plot average across subsamples (default)
+%                -1 as in 0, but superimposes individual subsamples on summary plot
 % dmin_confmtx_show: minimum dimension to show confusoin matrix, defaults to results.dmin
 % dmax_confmtx_show: maximum dimension to show confusion matrix, defaults to results.dmax
+% if_summsubsamp: 1 to plot each subsample in summary plot even if 
 %
 %  See also: HLID_RASTIM_TRIAL_DECODE.
 %
@@ -33,7 +36,7 @@ dmax_confmtx_show=min(dmax_confmtx_show,results.dmax);
 %
 if ~exist('if_eachsubsamp') if_eachsubsamp=0; end
 %
-if if_eachsubsamp
+if if_eachsubsamp>0
     subsamp_range=[1 nsubsamps_use];
 else
     subsamp_range=[0 0];
@@ -58,7 +61,7 @@ for isubsamp=0:nsubsamps_use
             end %id
         end %ipreproc
     end %isub
-    if if_eachsubsamp
+    if if_eachsubsamp>0
         subsamp_label{isubsamp+1}=sprintf('subsamp %2.0f of %2.0f',isubsamp,nsubsamps_use);
     else
         subsamp_label{isubsamp+1}=sprintf('all subsamps of %2.0f',nsubsamps_use);
@@ -127,6 +130,14 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
         for ipreproc=1:results.npreprocs
             subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
             plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
+            hold on;
+            if if_eachsubsamp==-1
+                color_order=get(gca,'ColorOrder');
+                set(gca,'ColorOrder',color_order(1:results.ndecs,:)); %so that superimposed plots (if_eachsubsamp=-1) have same colors
+                for iss=1:nsubsamps_use
+                    plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc,iss+1),':','LineWidth',1);
+                end
+            end
             xlabel('dimension');
             set(gca,'XTick',[1:results.dmax]);
             set(gca,'XTickLabel',[1:results.dmax]);
