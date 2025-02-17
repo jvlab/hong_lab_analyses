@@ -122,10 +122,24 @@ end
 if_all_subsamps=double(nsubsamps_use==nsubsamps);
 subsamps_use=subsamps_use(1:nsubsamps_use);
 %
-dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) nstims],dmax);
-dmin=getinp('min dimension of representational space to create','d',[1 dmax],dmin);
-xv_nmake=getinp('number of cross-validation configurations to make','d',[1 Inf],xv_nmake);
-[xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
+if_ok=0;
+while (if_ok==0)
+    dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) nstims],dmax);
+    dmin=getinp('min dimension of representational space to create','d',[1 dmax],dmin);
+    xv_nmake=getinp('number of cross-validation configurations to make','d',[1 Inf],xv_nmake);
+    [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
+    max_dropped=max(opts_xv_used.max_dropped_rept(:));
+    min_dropped=min(opts_xv_used.min_dropped_rept(:));
+    if (max_dropped==nstims) & (min_dropped==nstims)
+        max_dropped=0;
+    end %if all stimuli of a repeat are dropped together, then no fold has fewer trials
+    dmax_allowed=nstims-max_dropped;
+    disp(sprintf('some insample pca analyses will have only %2.0f trials (%2.0f dropped), rep space can be up to %1.0f dims',...
+        dmax_allowed,max_dropped,dmax));
+    if dmax_allowed>=dmax
+        if_ok=1;
+    end
+end
 %
 opts_pcon.allow_scale=getinp('allow scaling','d',[0 1],1);
 scaling_token=(opts_pcon.allow_scale==1);
@@ -167,6 +181,7 @@ end %ifile
 clear resps_mean resps_trial rois rs rs_xm rt rt_norm
 %initialize confusion matrices
 confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
+maxerr_insamp_recon=repmat(-Inf,[nsubs npreprocs nsubsamps_use]); %maximum reconstruction error when number of pcs=number of in-sample responses
 for isubsamp=1:nsubsamps_use
     subsamp_sel=subsamps_list(subsamps_use(isubsamp),:);
     disp(sprintf(' subsample %3.0f of %3.0f: original datasets %s',isubsamp,nsubsamps_use,sprintf(' %3.0f ',subsamp_sel)));
@@ -223,6 +238,12 @@ for isubsamp=1:nsubsamps_use
                                     itrial_ct=itrial_ct+1;
                                     coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);
                                     trans_lookup(irept,iset)=itrial_ct; %where to find the transform
+                                    %
+                                    if npcs==length(nonans_pca)
+                                        recon=coords_insample(:,:,itrial_ct)*v(:,1:npcs)';
+                                        recon_error=max(max(abs(recon(nonans_pca,:)-rpca(nonans_pca,:))));
+                                        maxerr_insamp_recon(isub,ipreproc,isubsamp)=max(maxerr_insamp_recon(isub,ipreproc,isubsamp),recon_error);
+                                    end
                                 end
                              end %irept
                         end %iset
@@ -304,6 +325,10 @@ for isubsamp=1:nsubsamps_use
             end %dmax
         end %ipreproc
     end %isub (mean subtract)   
+    if any(maxerr_insamp_recon(:)~=Inf)
+        disp('maximum reconstruction error when number of pcs is number of in-sample trials')
+        disp(maxerr_insamp_recon(:,:,isubsamp));
+    end
 end %isubsamp
 %
 %save results

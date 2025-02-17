@@ -21,13 +21,18 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 % configs: array of size [nstims nrepts npreps nmake], each slice
 %   (:,:,:,imake) has integers corresponding to the cross-validation 'fold' in which it is deleted
 % descs: a string descriptor of the options used
-% opts_use: options used
+% opts_used: options used
+%   opts_used.[max|min]_dropped(nmake,1): [max|min]imum number of trials dropped, across all folds, for configuration k (k=1:nmake)
+%   opts_used.[max|min]_dropped_rept(nmake,nrpts): [max|min]imum number of trials
+%   dropped in one repeat, across all folds, for configuration k (k=1:nmake)
 %
 % possible future extensions:
 %   * missing data
 %   * more than two (or less than two) trial characterisics [now, just trial number and prep
 %   * error and consistency checking
 %   * choice of max_partial_omit based on dimensionality of decoding space
+%
+% 17Feb25: added opts_used.[max|min]_dropped*, to aid in calculation of min number of trials in any fold
 %
 %  See also: XVAL_CONFMTX_MAKE.
 %
@@ -177,13 +182,31 @@ while (if_ok==0)
         if_ok=1;
     end
 end %if_ok
+nconfigs_made=size(configs,4);
 if (opts.if_log)
     if if_det==1
         disp(sprintf(' deterministic setup, making only one configuration'));
     end
-    disp(sprintf('created %1.0f configurations, each with %4.0f folds for cross-validation',size(configs,4),nfolds))
+    disp(sprintf('created %1.0f configurations, each with %4.0f folds for cross-validation',nconfigs_made,nfolds))
 end
 desc=cat(2,desc,sprintf('folds:%4.0f, %s',nfolds,omit_string));
+opts.max_dropped=zeros(nconfigs_made,1);
+opts.min_dropped=zeros(nconfigs_made,1);
+nrepts=shape(2);
+opts.max_dropped_rept=zeros(nconfigs_made,nrepts);
+opts.min_dropped_rept=zeros(nconfigs_made,nrepts);
+for imake=1:nconfigs_made
+    c=configs(:,:,:,imake);
+    h=hist(c(:),[1:max(c(:))]);
+    opts.max_dropped(imake)=max(h); %maximum number of times a fold-tag occurs in configs(:,:,:,imake)
+    opts.min_dropped(imake)=min(h(h>0)); %minimum number of times a fold-tag occurs in configs(:,:,:,imake)
+    for irept=1:nrepts
+        cr=configs(:,irept,:,imake);
+        hr=hist(cr(:),[1:max(cr(:))]);
+        opts.max_dropped_rept(imake,irept)=max(hr);
+        opts.min_dropped_rept(imake,irept)=min(hr(hr>0));
+    end
+end
 opts_used=opts;
 return
 end
