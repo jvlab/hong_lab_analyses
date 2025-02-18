@@ -140,6 +140,7 @@ while (if_ok==0)
         if_ok=1;
     else
         disp('Need to adjust cross-validation or max rep space dimension.')
+        dmin=1;
     end
 end
 %
