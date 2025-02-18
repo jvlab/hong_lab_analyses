@@ -134,14 +134,16 @@ while (if_ok==0)
         max_dropped=0;
     end %if all stimuli of a repeat are dropped together, then no fold has fewer trials
     dmax_allowed=nstims-max_dropped;
-    disp(sprintf('some insample pca analyses will have only %2.0f trials (%2.0f dropped), rep space can be up to %1.0f dims',...
+    disp(sprintf('Some insample pca analyses will have as few as %2.0f trials (%2.0f dropped).  Max rep space dimension is %1.0f.',...
         dmax_allowed,max_dropped,dmax));
     if dmax_allowed>=dmax
         if_ok=1;
+    else
+        disp('Need to adjust cross-validation or max rep space dimension.')
     end
 end
 %
-opts_pcon.allow_scale=getinp('allow scaling','d',[0 1],1);
+opts_pcon.allow_scale=getinp('1 to allow scaling','d',[0 1],1);
 scaling_token=(opts_pcon.allow_scale==1);
 if opts_pcon.allow_reflection==1
     reflection_token='best';
@@ -325,7 +327,7 @@ for isubsamp=1:nsubsamps_use
             end %dmax
         end %ipreproc
     end %isub (mean subtract)   
-    if any(maxerr_insamp_recon(:)~=Inf)
+    if any(maxerr_insamp_recon(:)~=-Inf)
         disp('maximum reconstruction error when number of pcs is number of in-sample trials')
         disp(maxerr_insamp_recon(:,:,isubsamp));
     end
