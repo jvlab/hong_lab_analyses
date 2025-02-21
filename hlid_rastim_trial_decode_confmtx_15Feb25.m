@@ -26,15 +26,6 @@
 results=filldefault(results,'if_singleprep',0);
 results=filldefault(results,'nsubsamps_avail',nchoosek(results.nfiles,results.nsets));
 results=filldefault(results,'if_all_subsamps',double(size(results.subsamps_list_used,1)==results.nsubsamps_avail));
-if ~isfield(results,'dimlist') %legacy: confusion matrix d4 goes from1 to results.dmax, but not all entries used
-    dimlist=[1:results.dmax];
-    dimlist_avail=results.dmin:results.dmax;
-    dimlist_avail_ptr=dimlist_avail;
-else %confusion matrix d4 is just the dimensions used
-    dimlist=results.dimlist;
-    dimlist_avail=dimlist;
-    dimlist_avail_ptr=[1:length(dimlist)];
-end
 %
 nsubsamps_use=size(results.subsamps_list_used,1);
 %
@@ -50,24 +41,22 @@ if if_eachsubsamp>0
 else
     subsamp_range=[0 0];
 end
-dimlist_show=intersect([dmin_confmtx_show:dmax_confmtx_show],dimlist_avail);
-nrows=max(length(dimlist_show),2);
+nrows=max(dmax_confmtx_show-dmin_confmtx_show+1,2);
 ncols=max(results.ndecs,3);
-fcs=zeros(length(dimlist),results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
+fcs=zeros(results.dmax,results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
 subsamp_label=cell(nsubsamps_use+1,1);
 for isubsamp=0:nsubsamps_use
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
-            for id=dimlist_avail
-                id_ptr=find(dimlist==id);
+            for id=results.dmin:results.dmax
                 for idec=1:results.ndecs
                     icol=idec;
                     if isubsamp>0
-                        confmtx=results.confusion_matrices(:,:,icol,id_ptr,isub,ipreproc,isubsamp);
+                        confmtx=results.confusion_matrices(:,:,icol,id,isub,ipreproc,isubsamp);
                     else
-                        confmtx=sum(results.confusion_matrices(:,:,icol,id_ptr,isub,ipreproc,:),7);
+                        confmtx=sum(results.confusion_matrices(:,:,icol,id,isub,ipreproc,:),7);
                     end
-                    fcs(id_ptr,idec,isub,ipreproc,isubsamp+1)=sum(diag(confmtx))/sum(confmtx(:));
+                    fcs(id,idec,isub,ipreproc,isubsamp+1)=sum(diag(confmtx))/sum(confmtx(:));
                 end %idec
             end %id
         end %ipreproc
@@ -93,15 +82,14 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
             set(gcf,'Position',[100 50 1400 950]);
             set(gcf,'NumberTitle','off');
             set(gcf,'Name',cat(2,'confmtx: ',subsamp_label{isubsamp+1},' ',label_proc));
-            for id=dimlist_show
-                irow=find(dimlist_show==id);
-                id_ptr=find(dimlist==id);
+            for id=dmin_confmtx_show:dmax_confmtx_show
+                irow=id-dmin_confmtx_show+1;
                 for idec=1:results.ndecs
                     icol=idec;
                     if isubsamp>0
-                        confmtx=results.confusion_matrices(:,:,icol,id_ptr,isub,ipreproc,isubsamp);
+                        confmtx=results.confusion_matrices(:,:,icol,id,isub,ipreproc,isubsamp);
                     else
-                        confmtx=sum(results.confusion_matrices(:,:,icol,id_ptr,isub,ipreproc,:),7);
+                        confmtx=sum(results.confusion_matrices(:,:,icol,id,isub,ipreproc,:),7);
                     end
                     subplot(nrows,ncols,icol+(irow-1)*ncols);
                     % confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
@@ -112,7 +100,7 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
                     set(gca,'YTickLabel',results.stimulus_names_display);
                     axis square;
                     colormap hot;
-                    title(sprintf('dim%1.0f [%s] fc %5.3f',id,results.dec_labels{idec},fcs(id_ptr,idec)),'Interpreter','none');
+                    title(sprintf('dim%1.0f [%s] fc %5.3f',id,results.dec_labels{idec},fcs(id,idec)),'Interpreter','none');
                 end
             end
             %
@@ -141,13 +129,13 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
             subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
-            plot(dimlist_avail,fcs(dimlist_avail_ptr,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
+            plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
             hold on;
             if if_eachsubsamp==-1
                 color_order=get(gca,'ColorOrder');
                 set(gca,'ColorOrder',color_order(1:results.ndecs,:)); %so that superimposed plots (if_eachsubsamp=-1) have same colors
                 for iss=1:nsubsamps_use
-                    plot(dimlist_avail,fcs(dimlist_avail,:,isub,ipreproc,iss+1),':','LineWidth',1);
+                    plot([results.dmin:results.dmax],fcs(results.dmin:results.dmax,:,isub,ipreproc,iss+1),':','LineWidth',1);
                 end
             end
             xlabel('dimension');

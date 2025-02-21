@@ -126,7 +126,6 @@ if_ok=0;
 while (if_ok==0)
     dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) nstims],dmax);
     dmin=getinp('min dimension of representational space to create','d',[1 dmax],dmin);
-    dimlist=getinp('list of dimensions to create','d',[dmin dmax],[dmin:dmax]);
     xv_nmake=getinp('number of cross-validation configurations to make','d',[1 Inf],xv_nmake);
     [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
     max_dropped=max(opts_xv_used.max_dropped_rept(:));
@@ -184,15 +183,14 @@ for ifile=1:nfiles
 end %ifile
 clear resps_mean resps_trial rois rs rs_xm rt rt_norm
 %initialize confusion matrices
-confusion_matrices=zeros(nstims,nstims,ndecs,length(dimlist),nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: id_ptr, d5: sub mean d6: normalize, d7: subsample set
+confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
 maxerr_insamp_recon=repmat(-Inf,[nsubs npreprocs nsubsamps_use]); %maximum reconstruction error when number of pcs=number of in-sample responses
 for isubsamp=1:nsubsamps_use
     subsamp_sel=subsamps_list(subsamps_use(isubsamp),:);
     disp(sprintf(' subsample %3.0f of %3.0f: original datasets %s',isubsamp,nsubsamps_use,sprintf(' %3.0f ',subsamp_sel)));
     for isub=1:nsubs %mean subtract?
         for ipreproc=1:npreprocs
-            for id_ptr=1:length(dimlist)
-                id=dimlist(id_ptr);
+            for id=dmin:dmax
                 npcs=id;
                 %
                 %create a consensus from all of the data, to be used just for initialization
@@ -316,18 +314,18 @@ for isubsamp=1:nsubsamps_use
                         end %iset
                         %
                         % add to confusion matrices                
-                        % confusion_matrices=zeros(nstims,nstims,ndecs,length(timlist),nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: id_ptr, d5: sub mean d6: normalize, d7: subsample set
+                        % confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
                         for idec=1:ndecs
                             [confmtx,aux]=xval_confmtx_make(coords_outsample_align,coords_insample_align,dec_methods{idec});
                             dec_labels{idec}=aux.desc_brief;
-                            confusion_matrices(:,:,idec,id_ptr,ipreproc,isub,isubsamp)=confusion_matrices(:,:,idec,id_ptr,ipreproc,isub,isubsamp)+confmtx;
+                            confusion_matrices(:,:,idec,id,ipreproc,isub,isubsamp)=confusion_matrices(:,:,idec,id,ipreproc,isub,isubsamp)+confmtx;
                         end
                     end %ifold
                 end %ixv_make
                 if (if_3dplot) & (id==3)
                     hlid_rastim_trial_decode_3dplot;
                 end
-            end %id_ptr
+            end %dmax
         end %ipreproc
     end %isub (mean subtract)   
     if any(maxerr_insamp_recon(:)~=-Inf)
@@ -352,7 +350,6 @@ results.dec_labels=dec_labels;
 results.ndecs=ndecs;
 results.dmax=dmax;
 results.dmin=dmin;
-results.dimlist=dimlist;
 results.if_frozen=if_frozen;
 results.if_debug=if_debug;
 results.if_singleprep=if_singleprep;
@@ -374,7 +371,7 @@ results.opts_xv_used=opts_xv_used;
 results.opts_pcon=opts_pcon;
 %
 results.confusion_matrices=confusion_matrices;
-results.confusion_matrices_dims={'d1: actual stim, d2: decoded stim, d3: decision rule, d4: id_ptr, d5: sub mean d6: normalize, d7: subsample set'};
+results.confusion_matrices_dims={'d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set'};
 %
 disp('results structure created.');
 %
