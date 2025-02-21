@@ -13,6 +13,7 @@
 %  HLID_RASTIM_TRIAL_DECODE_3DPLOT, HLID_RASTIM_TRIAL_DECODE_CONFMTX.
 %
 % 15Feb25: add a single-prep mode (decode only within each prep)
+% 20Feb25: allow for dimension list to be non-contiguous
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);

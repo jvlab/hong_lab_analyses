@@ -20,6 +20,8 @@
 % dmax_confmtx_show: maximum dimension to show confusion matrix, defaults to results.dmax
 % if_summsubsamp: 1 to plot each subsample in summary plot even if 
 %
+% 20Feb25: allow for dimension list to be non-contiguous
+%
 %  See also: HLID_RASTIM_TRIAL_DECODE.
 %
 %fill in, and backward compatibility
