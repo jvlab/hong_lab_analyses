@@ -130,8 +130,8 @@ while (if_ok==0)
     dimlist=getinp('list of dimensions to create','d',[dmin dmax],[dmin:dmax]);
     xv_nmake=getinp('number of cross-validation configurations to make','d',[1 Inf],xv_nmake);
     [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
-    max_dropped=max(opts_xv_used.max_dropped_rept(:));
-    min_dropped=min(opts_xv_used.min_dropped_rept(:));
+    max_dropped=max(opts_xv_used.max_dropped_withinset_rept(:));
+    min_dropped=min(opts_xv_used.min_dropped_withinset_rept(:));
     if (max_dropped==nstims) & (min_dropped==nstims)
         max_dropped=0;
     end %if all stimuli of a repeat are dropped together, then no fold has fewer trials
