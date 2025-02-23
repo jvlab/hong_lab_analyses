@@ -86,8 +86,8 @@ for ireptavg=1:nreptavgs
 end %ireptavgs
 %
 disp(sprintf('statistics of participation ratios for %2.0f files',nfiles));
-for k=1:nfiles
-    disp(sprintf('%30s %30s %s',dsids{ifile},metadata{ifile}.title,metadata{ifile}.imaging_type));
+for ifile=1:nfiles
+    disp(sprintf('%40s %40s %s',dsids{ifile},metadata{ifile}.title,metadata{ifile}.imaging_type));
 end
 disp('                                              mean    min     max     stdv')
 for ireptavg=1:nreptavgs
