@@ -87,6 +87,7 @@ if ~exist('dmin')
     dmin=1;
 end
 %
+if ~exist('if_log') if_log=0; end
 hlid_rastim_trial_read;
 %
 % metadata=cell(nfiles,1);

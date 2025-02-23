@@ -1,8 +1,11 @@
 %hlid_rastim_trial_read script to red read calcium imaging data from Hong Lab at single-trial level
 %
+% 23Feb255: add if_log, can set to 0 to suppress most output
+%
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM_TRIAL_PCA, HLID_RASTIM_TRIAL_VIS.
 % 
 if ~exist('HongLab_fn') HongLab_fn='C:/Users/jdvicto/Dropbox/From_HongLab/HongLabOrig_for_jdv/data/kc_soma_nls/2022-10-10__fly01__megamat0.mat'; end
+if ~exist('if_log') if_log=1; end
 nfiles_signed=0;
 while nfiles_signed==0
     nfiles_signed=getinp('number of files to analyze (<0 for dialog box)','d',[-Inf Inf]);
@@ -107,7 +110,9 @@ while (if_ok==0)
                 else
                     trial_ptrs{ifile}(istim,:)=trials_found;
                 end
-                disp(cat(2,sprintf(' stimulus %2.0f (%s) appears in trials',istim,stimulus_names(istim,:)),sprintf(' %4.0f',trials_found)));
+                if if_log
+                    disp(cat(2,sprintf(' stimulus %2.0f (%s) appears in trials',istim,stimulus_names(istim,:)),sprintf(' %4.0f',trials_found)));
+                end
             end
             %
             nancols_all=find(all(isnan(resps_mean{ifile}),1));

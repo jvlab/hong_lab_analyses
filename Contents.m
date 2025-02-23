@@ -12,7 +12,11 @@
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity
 % hlid_nan_stims: script to set coords for some stimuli to NaN (mostly for debugging)
 % hlid_orn_merge: merge ORN datasets keeping track of responses in each glomeruli
+% hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
+% nlid_rastim_trial_decode: single-trial decoding of raw data
+% nlid_rastim_trial_decode_confmtx: confusion matrix plotting for hlid_rastim_trial_decode
+% nlid_rastim_trial_decode_3dplot: resonse space plotting for hlid_rastim_trial_decode
 % hlid_rastim_trial_pca: single-trial analysis of raw data
 % hlid_rastim_trial_pca2: further plots for single-trial analysis of raw data
 % hlid_rastim_trial_plot: utility plotting for hlid_rastim_trial_pca
