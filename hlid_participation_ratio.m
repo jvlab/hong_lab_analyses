@@ -7,6 +7,8 @@
 % ratio based on average across repeats.
 %
 % Could be adapted to work on trial-averaged datasets too.
+% Could make this  more efficient by calculating eigs of the covariance
+% matrix directly, rather than the data matrix and then squaring.
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM_TRIAL_READ
 %
@@ -75,7 +77,7 @@ for ireptavg=1:nreptavgs
                     [u,s,v]=svd(ruse); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
                     maxrank=min(size(ruse));
                     s=s(1:maxrank,1:maxrank);
-                    s=diag(s);
+                    s=diag(s).^2; %24Feb25
                     eigenvals{ifile,isub,ipreproc,ireptavg}=s;
                     partratio(ifile,isub,ipreproc,ireptavg)=sum(s).^2/sum(s.^2);
             end %ipreproc
@@ -121,4 +123,5 @@ results.stimulus_names_display=stimulus_names_display;
 results.partratio=partratio;
 results.partratio_dims={'d1: prep, d2: sub mean, d3: normalize, d4: avg repts'};
 results.eigenvals=eigenvals;
+results.eigenvals_desc='eigenvalues of covariance matrix';
 disp('results structure created.');
