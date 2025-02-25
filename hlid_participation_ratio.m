@@ -6,9 +6,9 @@
 % This works on single-trial datasets, and also computes participation
 % ratio based on average across repeats.
 %
+%For future:
 % Could be adapted to work on trial-averaged datasets too.
-% Could make this  more efficient by calculating eigs of the covariance
-% matrix directly, rather than the data matrix and then squaring.
+% Could add Chun's bias correction
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM_TRIAL_READ
 %
@@ -39,8 +39,8 @@ hlid_rastim_trial_read;
 for k=1:nstims
     stimulus_names_display{k}=stimulus_names(k,1:-1+min(find(stimulus_names(k,:)==' ')));
 end
-partratio=zeros(nfiles,nsubs,npreprocs,nreptavgs); %d1=prep, d2=subtract mean? d3=normalize? d4=avg repts?
-eigenvals=cell(nfiles,nsubs,npreprocs,nreptavgs);
+partratio=zeros(nfiles,nsubs,npreprocs,nreptavgs,nsubs); %d1=prep, d2=subtract mean? d3=normalize? d4=avg repts? d5: subtract mean across ROIs
+eigenvals=cell(nfiles,nsubs,npreprocs,nreptavgs,nsubs); 
 %begin revising here, loop over irept_avg and choose resps_mean or resps_trial
 for ireptavg=1:nreptavgs
     for ifile=1:nfiles       
@@ -52,7 +52,7 @@ for ireptavg=1:nreptavgs
             case 'repts avged'
                 r=resps_mean{ifile};
         end %r is now [stim x roi] or [(stim,rept) x roi]
-        for isub=1:nsubs
+        for isub=1:nsubs %subtract global stim mean?
             switch sub_labels{isub}
                 case ''
                     ruse=r;
@@ -60,27 +60,44 @@ for ireptavg=1:nreptavgs
                     rs_xm=mean(r,1,'omitnan'); %global mean
                     ruse=r-repmat(rs_xm,[size(r,1) 1]);
             end
-            for ipreproc=1:npreprocs
-                switch preproc_labels{ipreproc}
-                    case 'raw'
-                    case 'normalized'
-                        ruse_norm=sqrt(sum(ruse.^2,2));
-                        ruse_norm(ruse_norm==0)=1;
-                        ruse=ruse./repmat(ruse_norm,[1 nrois]);
+            for isub_roi=1:nsubs %subtrct global ROI mean?
+                switch sub_labels{isub_roi}
+                    case ''
+                    case ' (mean sub)'
+                        ruse=ruse-repmat(mean(ruse,2,'omitnan'),[1 size(ruse,2)]);
                 end
-                %compute svd
+                for ipreproc=1:npreprocs
+                    switch preproc_labels{ipreproc}
+                        case 'raw'
+                        case 'normalized'
+                            ruse_norm=sqrt(sum(ruse.^2,2));
+                            ruse_norm(ruse_norm==0)=1;
+                            ruse=ruse./repmat(ruse_norm,[1 nrois]);
+                    end
+                    %compute svd
                     nonans_stim=find(~all(isnan(ruse),2)); %exclude stimuli for which all are NaN
                     ruse=ruse(nonans_stim,:);
                     nonans_roi=find(all(~isnan(ruse),1)); %then exclude rois that have any NaN
                     ruse=ruse(:,nonans_roi);
                     %
-                    [u,s,v]=svd(ruse); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
-                    maxrank=min(size(ruse));
-                    s=s(1:maxrank,1:maxrank);
-                    s=diag(s).^2; %24Feb25
-                    eigenvals{ifile,isub,ipreproc,ireptavg}=s;
-                    partratio(ifile,isub,ipreproc,ireptavg)=sum(s).^2/sum(s.^2);
-            end %ipreproc
+                    %inefficient: compute eigs of data mtrix and square
+                    % [u,s,v]=svd(ruse); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                    % maxrank=min(size(ruse));
+                    % s=s(1:maxrank,1:maxrank);
+                    % s=diag(s).^2; %24Feb25: eigenvalues of the covariance matrix
+                    %
+                    %equivalent but more efficient: compute covariance matrix, then compute eigs
+                    %
+                    if size(ruse,1)<size(ruse,2)
+                        covarmtx=ruse*ruse';
+                    else
+                        covarmtx=ruse'*ruse;
+                    end
+                    s=eig(covarmtx);
+                    eigenvals{ifile,isub,ipreproc,ireptavg,isub_roi}=s;
+                    partratio(ifile,isub,ipreproc,ireptavg,isub_roi)=sum(s).^2/sum(s.^2);
+                end %ipreproc
+            end %isub_roi
         end %isub
         disp(sprintf('processed %14s (%3.0f stims, %4.0f rois, from %3.0f stims, %4.0f rois) for file %s ',...
             reptavg_labels{ireptavg},size(ruse),size(r),dsids{ifile}));
@@ -91,13 +108,15 @@ disp(sprintf('statistics of participation ratios for %2.0f files',nfiles));
 for ifile=1:nfiles
     disp(sprintf('%40s %40s %s',dsids{ifile},metadata{ifile}.title,metadata{ifile}.imaging_type));
 end
-disp('                                              mean    min     max     stdv')
+disp('                                                                     mean    min     max     stdv')
 for ireptavg=1:nreptavgs
     for isub=1:nsubs
-        for ipreproc=1:npreprocs
-            label=sprintf('%14s %11s %13s',reptavg_labels{ireptavg},sub_labels{isub},preproc_labels{ipreproc});
-            pr=partratio(:,isub,ipreproc,ireptavg);
-            disp(sprintf('%30s:  %7.3f %7.3f %7.3f %7.3f',label,mean(pr),min(pr),max(pr),std(pr)))
+        for isub_roi=1:nsubs
+            for ipreproc=1:npreprocs
+                label=sprintf('%14s stim %11s, ROI %11s, %13s,',reptavg_labels{ireptavg},sub_labels{isub},sub_labels{isub_roi},preproc_labels{ipreproc});
+                pr=partratio(:,isub,ipreproc,ireptavg,isub_roi);
+                disp(sprintf('%50s:  %7.3f %7.3f %7.3f %7.3f',label,mean(pr),min(pr),max(pr),std(pr)))
+            end
         end
     end
 end
@@ -121,7 +140,7 @@ results.rois_avail=rois_avail;
 results.stimulus_names=stimulus_names;
 results.stimulus_names_display=stimulus_names_display;
 results.partratio=partratio;
-results.partratio_dims={'d1: prep, d2: sub mean, d3: normalize, d4: avg repts'};
+results.partratio_dims={'d1: prep, d2: sub mean, d3: normalize, d4: avg repts, d5: sub mean for ROIs'};
 results.eigenvals=eigenvals;
 results.eigenvals_desc='eigenvalues of covariance matrix';
 disp('results structure created.');
