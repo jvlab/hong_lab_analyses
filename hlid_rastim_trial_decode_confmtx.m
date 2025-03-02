@@ -12,17 +12,18 @@
 %
 % line graphs:
 %* fraction correct as a function of dimensionality, one line for each decoding method
+%* transmitted information (raw and Treves-Panzeri debiased)
 %
 % if_eachsubsamp: 1 to plot confusion matrices and summary plot for each subsample;
 %                 0 to plot confusion matrix and summary plot average across subsamples (default)
 %                -1 as in 0, but superimposes individual subsamples on summary plot
 % dmin_confmtx_show: minimum dimension to show confusoin matrix, defaults to results.dmin
 % dmax_confmtx_show: maximum dimension to show confusion matrix, defaults to results.dmax
-% if_summsubsamp: 1 to plot each subsample in summary plot even if 
 %
 % 20Feb25: allow for dimension list to be non-contiguous
+% 02Mar25: add information calculated from confusion matrix; add fraction correct and info in ressults
 %
-%  See also: HLID_RASTIM_TRIAL_DECODE.
+%  See also: HLID_RASTIM_TRIAL_DECODEm TBLXINFO_COUNT, TBLXTPBI.
 %
 %fill in, and backward compatibility
 results=filldefault(results,'if_singleprep',0);
@@ -56,7 +57,9 @@ dimlist_show=intersect([dmin_confmtx_show:dmax_confmtx_show],dimlist_avail);
 nrows=max(length(dimlist_show),2);
 ncols=max(results.ndecs,3);
 fcs=zeros(length(dimlist),results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
-subsamp_label=cell(nsubsamps_use+1,1);
+info_cm_raw=zeros(length(dimlist),results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
+info_cm_debiased=zeros(length(dimlist),results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
+% subsamp_label=cell(nsubsamps_use+1,1);
 for isubsamp=0:nsubsamps_use
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
@@ -70,6 +73,9 @@ for isubsamp=0:nsubsamps_use
                         confmtx=sum(results.confusion_matrices(:,:,icol,id_ptr,isub,ipreproc,:),7);
                     end
                     fcs(id_ptr,idec,isub,ipreproc,isubsamp+1)=sum(diag(confmtx))/sum(confmtx(:));
+                    h=tblxinfo_count(confmtx);
+                    info_cm_raw(id_ptr,idec,isub,ipreproc,isubsamp+1)=h;
+                    info_cm_debiased(id_ptr,idec,isub,ipreproc,isubsamp+1)=h+tblxtpbi(confmtx,0); %Treves-Panzeri debiaser, all rows and columns
                 end %idec
             end %id
         end %ipreproc
@@ -174,4 +180,63 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
     text(0,0,results.xv_label,'Interpreter','none');
     axis off;
 end %isubsamp
+%
+%plot info, raw and debiased,
+%
+ymax=max(max(info_cm_raw(:)),max(info_cm_debiased(:)));
+for if_deb=0:1
+    switch if_deb
+        case 0
+            tstring='raw info';
+            info_plot=info_cm_raw;
+        case 1
+            tstring='debiased info';
+            info_plot=info_cm_debiased;
+    end
+    for isubsamp=subsamp_range(1):subsamp_range(2)
+        figure;
+        set(gcf,'Position',[100 100 1200 800]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',cat(2,tstring,' ',subsamp_label{isubsamp+1}));
+        for isub=1:results.nsubs
+            for ipreproc=1:results.npreprocs
+                subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
+                plot(dimlist_avail,info_plot(dimlist_avail_ptr,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
+                hold on;
+                if if_eachsubsamp==-1
+                    color_order=get(gca,'ColorOrder');
+                    set(gca,'ColorOrder',color_order(1:results.ndecs,:)); %so that superimposed plots (if_eachsubsamp=-1) have same colors
+                    for iss=1:nsubsamps_use
+                        plot(dimlist_avail,info_plot(dimlist_avail,:,isub,ipreproc,iss+1),':','LineWidth',1);
+                    end
+                end
+                xlabel('dimension');
+                set(gca,'XTick',[1:results.dmax]);
+                set(gca,'XTickLabel',[1:results.dmax]);
+                set(gca,'YLim',[0 ymax]);
+                ylabel(tstring);
+                legend(results.dec_labels,'Location','best');
+                title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none');
+                %
+            end %ipreproc
+        end %isub
+        axes('Position',[0.01,0.05,0.01,0.01]); %for text
+        text(0,0,subsamp_label{isubsamp+1},'Interpreter','none');
+        axis off;
+        %
+        axes('Position',[0.01,0.03,0.01,0.01]); %for text
+        text(0,0,sprintf('all folds, %s to %s',results.dsids{1},results.dsids{end}),'Interpreter','none');
+        axis off;
+        %
+        axes('Position',[0.01,0.01,0.01,0.01]); %for text
+        text(0,0,results.xv_label,'Interpreter','none');
+        axis off;
+    end %isubsamp
+end %if+deb
+
+%save key calculations
+results.fcs=fcs;
+results.fcs_info_dims='d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp';
+results.info_cm_raw=info_cm_raw;
+results.info_cm_debiased=info_cm_debiased;
 
