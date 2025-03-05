@@ -15,6 +15,7 @@
 % 15Feb25: add a single-prep mode (decode only within each prep)
 % 20Feb25: allow for dimension list to be non-contiguous
 % 03Mar25: begin to add option for single-prep decoding without embedding (dimlist entry=Inf)
+% 05Mar25: now defaults to 'econ' svd (can change by setting if_econ_svd=0)
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -48,6 +49,9 @@ if ~exist('preproc_labels')
         preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis or downsample
 end
 npreprocs=length(preproc_labels);
+if ~exist('if_econ_svd')
+    if_econ_svd=1;
+end
 %
 if ~exist('dec_methods')
     dec_methods=cell(0);
@@ -216,7 +220,11 @@ for isubsamp=1:nsubsamps_use
                         for irept=1:nrepts
                             rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
                             nonans_pca=find(all(~isnan(rpca),2));
-                            [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                            if if_econ_svd
+                                [u_nonan,s,v]=svd(rpca(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                            else
+                                [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                            end
                             u=nan(size(rpca,1),npcs);
                             u(nonans_pca,:)=u_nonan(:,1:npcs);
                             coords_nodrop(:,:,irept+(iset-1)*nrepts)=u*s(1:npcs,1:npcs);
@@ -257,7 +265,11 @@ for isubsamp=1:nsubsamps_use
                                     rpca(droplist{irept,iset},:)=NaN;
                                     nonans_pca=find(all(~isnan(rpca),2));
                                      if any(~isnan(rpca(:)))
-                                        [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                        if if_econ_svd
+                                            [u_nonan,s,v]=svd(rpca(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                        else
+                                            [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                        end
                                         u=nan(size(rpca,1),npcs);
                                         u(nonans_pca,:)=u_nonan(:,1:npcs);
                                         %
@@ -317,7 +329,11 @@ for isubsamp=1:nsubsamps_use
                                         %transform entire repeat into consensus_insample as a reference, first doing a private pca
                                         rpca_outsample=reshape(resps(:,irept,:),[nstims,nrois_avail(subsamp_sel(iset))]);
                                         nonans_pca=find(all(~isnan(rpca_outsample),2));
-                                        [u_nonan,s,v]=svd(rpca_outsample(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                        if if_econ_svd
+                                            [u_nonan,s,v]=svd(rpca_outsample(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                        else
+                                            [u_nonan,s,v]=svd(rpca_outsample(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                                        end
                                         u=nan(size(rpca,1),npcs);
                                         u(nonans_pca,:)=u_nonan(:,1:npcs);
                                         coords_outsample=u*s(1:npcs,1:npcs);
@@ -402,6 +418,7 @@ results.if_frozen=if_frozen;
 results.if_debug=if_debug;
 results.if_singleprep=if_singleprep;
 results.if_all_subsamps=if_all_subsamps;
+results.if_econ_svd=if_econ_svd;
 %
 results.metadata=metadata;
 results.dsids=dsids;
