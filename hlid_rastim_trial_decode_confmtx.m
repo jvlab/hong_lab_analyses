@@ -21,7 +21,8 @@
 % dmax_confmtx_show: maximum dimension to show confusion matrix, defaults to results.dmax
 %
 % 20Feb25: allow for dimension list to be non-contiguous
-% 02Mar25: add information calculated from confusion matrix; add fraction correct and info in ressults
+% 02Mar25: add information calculated from confusion matrix; add fraction correct and info in results
+% 04Mar25: add plotting of analyses without embedding, present if results.dimlist contains Inf
 %
 %  See also: HLID_RASTIM_TRIAL_DECODEm TBLXINFO_COUNT, TBLXTPBI.
 %
@@ -33,7 +34,7 @@ if ~isfield(results,'dimlist') %legacy: confusion matrix d4 goes from1 to result
     dimlist=[1:results.dmax];
     dimlist_avail=results.dmin:results.dmax;
     dimlist_avail_ptr=dimlist_avail;
-else %confusion matrix d4 is just the dimensions used
+else %confusion matrix d4 is only the dimensions used
     dimlist=results.dimlist;
     dimlist_avail=dimlist;
     dimlist_avail_ptr=[1:length(dimlist)];
@@ -54,6 +55,9 @@ else
     subsamp_range=[0 0];
 end
 dimlist_show=intersect([dmin_confmtx_show:dmax_confmtx_show],dimlist_avail);
+if (max(dimlist)==Inf) %if there data for decoding without embedding
+    dimlist_show=[dimlist_show Inf];
+end
 nrows=max(length(dimlist_show),2);
 ncols=max(results.ndecs,3);
 fcs=zeros(length(dimlist),results.ndecs,results.nsubs,results.npreprocs,1+nsubsamps_use); %d1: dim, d2: decode method, d3: sub mean or not, d4: norm or not, d5: 1+isubsamp
@@ -120,7 +124,12 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
                     set(gca,'YTickLabel',results.stimulus_names_display);
                     axis square;
                     colormap hot;
-                    title(sprintf('dim%1.0f [%s] fc %5.3f',id,results.dec_labels{idec},fcs(id_ptr,idec)),'Interpreter','none');
+                    if id==Inf
+                        dimtag='no embed';
+                    else
+                        dimtag=sprintf('dim %1.0f',id);
+                    end
+                    title(sprintf('%s [%s] fc %5.3f',dimtag,results.dec_labels{idec},fcs(id_ptr,idec)),'Interpreter','none');
                 end
             end
             %
@@ -141,6 +150,15 @@ end %isubsamp
 %
 %plot fraction correct as line graphs
 %
+dimlist_avail_plot=dimlist_avail;
+if dimlist_avail(end)==Inf
+    dimlist_avail_plot(end)=dimlist_avail_plot(end-1)+1;
+    xticks=[1:results.dmax+1];
+    xticklabels=strvcat(num2str([1:results.dmax]'),'no embed');
+else
+    xticks=[1:results.dmax];
+    xticklabels=[1:results.dmax];
+end
 for isubsamp=subsamp_range(1):subsamp_range(2)
     figure;
     set(gcf,'Position',[100 100 1200 800]);
@@ -149,18 +167,18 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
     for isub=1:results.nsubs
         for ipreproc=1:results.npreprocs
             subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
-            plot(dimlist_avail,fcs(dimlist_avail_ptr,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
+            plot(dimlist_avail_plot,fcs(dimlist_avail_ptr,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
             hold on;
             if if_eachsubsamp==-1
                 color_order=get(gca,'ColorOrder');
                 set(gca,'ColorOrder',color_order(1:results.ndecs,:)); %so that superimposed plots (if_eachsubsamp=-1) have same colors
                 for iss=1:nsubsamps_use
-                    plot(dimlist_avail,fcs(dimlist_avail,:,isub,ipreproc,iss+1),':','LineWidth',1);
+                    plot(dimlist_avail_plot,fcs(dimlist_avail_ptr,:,isub,ipreproc,iss+1),':','LineWidth',1); %bug fix 04Mar25
                 end
             end
             xlabel('dimension');
-            set(gca,'XTick',[1:results.dmax]);
-            set(gca,'XTickLabel',[1:results.dmax]);
+            set(gca,'XTick',xticks);
+            set(gca,'XTickLabel',xticklabels);
             set(gca,'YLim',[0 max(fcs(:))]);
             ylabel('fraction correct');
             legend(results.dec_labels,'Location','best');
@@ -201,18 +219,18 @@ for if_deb=0:1
         for isub=1:results.nsubs
             for ipreproc=1:results.npreprocs
                 subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
-                plot(dimlist_avail,info_plot(dimlist_avail_ptr,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
+                plot(dimlist_avail_plot,info_plot(dimlist_avail_ptr,:,isub,ipreproc,isubsamp+1),'LineWidth',2);
                 hold on;
                 if if_eachsubsamp==-1
                     color_order=get(gca,'ColorOrder');
                     set(gca,'ColorOrder',color_order(1:results.ndecs,:)); %so that superimposed plots (if_eachsubsamp=-1) have same colors
                     for iss=1:nsubsamps_use
-                        plot(dimlist_avail,info_plot(dimlist_avail,:,isub,ipreproc,iss+1),':','LineWidth',1);
+                        plot(dimlist_avail_plot,info_plot(dimlist_avail_ptr,:,isub,ipreproc,iss+1),':','LineWidth',1); %bug fix 04Mar25
                     end
                 end
                 xlabel('dimension');
-                set(gca,'XTick',[1:results.dmax]);
-                set(gca,'XTickLabel',[1:results.dmax]);
+                set(gca,'XTick',xticks);
+                set(gca,'XTickLabel',xticklabels);
                 set(gca,'YLim',[0 ymax]);
                 ylabel(tstring);
                 legend(results.dec_labels,'Location','best');
