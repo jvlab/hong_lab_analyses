@@ -23,6 +23,7 @@
 % 20Feb25: allow for dimension list to be non-contiguous
 % 02Mar25: add information calculated from confusion matrix; add fraction correct and info in results
 % 04Mar25: add plotting of analyses without embedding, present if results.dimlist contains Inf
+% 06Mar25: fix bug with labeling of fraction correct
 %
 %  See also: HLID_RASTIM_TRIAL_DECODEm TBLXINFO_COUNT, TBLXTPBI.
 %
@@ -129,7 +130,8 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
                     else
                         dimtag=sprintf('dim %1.0f',id);
                     end
-                    title(sprintf('%s [%s] fc %5.3f',dimtag,results.dec_labels{idec},fcs(id_ptr,idec)),'Interpreter','none');
+                    % title(sprintf('%s [%s] fc %5.3f',dimtag,results.dec_labels{idec},fcs(id_ptr,idec)),'Interpreter','none'); %fix 06Mar25
+                    title(sprintf('%s [%s] fc %5.3f',dimtag,results.dec_labels{idec},fcs(id_ptr,idec,isub,ipreproc,isubsamp+1)),'Interpreter','none');
                 end
             end
             %
