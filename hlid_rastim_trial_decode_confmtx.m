@@ -23,7 +23,7 @@
 % 20Feb25: allow for dimension list to be non-contiguous
 % 02Mar25: add information calculated from confusion matrix; add fraction correct and info in results
 % 04Mar25: add plotting of analyses without embedding, present if results.dimlist contains Inf
-% 06Mar25: fix bug with labeling of fraction correct
+% 06Mar25: fix bug with labeling of fraction correct; row-normalize confusion matrices and plot on scale of [0 1]
 %
 %  See also: HLID_RASTIM_TRIAL_DECODEm TBLXINFO_COUNT, TBLXTPBI.
 %
@@ -116,9 +116,13 @@ for isubsamp=subsamp_range(1):subsamp_range(2)
                     else
                         confmtx=sum(results.confusion_matrices(:,:,icol,id_ptr,isub,ipreproc,:),7);
                     end
+                    %row-normalize
+                    confmtx_rowsum=sum(confmtx,2);
+                    confmtx_rowsum(confmtx_rowsum==0)=1;
+                    confmtx_norm=confmtx./repmat(confmtx_rowsum,[1 size(confmtx,2)]);
                     subplot(nrows,ncols,icol+(irow-1)*ncols);
                     % confusion_matrices=zeros(nstims,nstims,ndecs,dmax,nsubs,npreprocs,nsubsamps_use); % d1: actual stim, d2: decoded stim, d3: decision rule, d4: dmax, d5: sub mean d6: normalize, d7: subsample set
-                    imagesc(confmtx);
+                    imagesc(confmtx_norm,[0 1]);
                     set(gca,'XTick',[1:results.nstims]);
                     set(gca,'XTickLabel',results.stimulus_names_display);
                     set(gca,'YTick',[1:results.nstims]);
