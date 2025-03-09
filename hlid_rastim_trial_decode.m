@@ -12,10 +12,11 @@
 %  XVAL_CONFIGS_MAKE, XVAL_CONFMTX_MAKE, HLID_RASTIM_TRIAL_READ,
 %  HLID_RASTIM_TRIAL_DECODE_3DPLOT, HLID_RASTIM_TRIAL_DECODE_CONFMTX.
 %
-% 15Feb25: add a single-prep mode (decode only within each prep)
+% 15Feb25: add a single-prep mode (decode only within each prep), if_singleprep
 % 20Feb25: allow for dimension list to be non-contiguous
-% 03Mar25: begin to add option for single-prep decoding without embedding (dimlist entry=Inf)
+% 03Mar25: begin to add option for single-prep decoding without embedding, if_noembed (dimlist entry=Inf)
 % 05Mar25: now defaults to 'econ' svd (can change by setting if_econ_svd=0)
+% 09Mar25: begin to add option to do pca embedding of all repeats of a prep at the same time (if_embedbyprep)
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -26,6 +27,7 @@ if if_singleprep==1
 else
     if_noembed=0;
 end
+if_embedbyprep=getinp('1 to embed all repeats of a prep together','d',[0 1],0);
 if (if_frozen~=0) 
     rng('default');
     if (if_frozen<0)
@@ -77,8 +79,12 @@ opts_pcon=filldefault(opts_pcon,'allow_reflection',1);
 opts_pcon=filldefault(opts_pcon,'allow_offset',1);
 if ~exist('opts_xv') 
     opts_xv=struct; 
+    opts_xv=filldefault(opts_xv,'if_single',[0 NaN NaN]);
     if if_singleprep
-        opts_xv.if_single=[0 NaN 1]; %restrict to within single flies
+        opts_xv.if_single(3)=1; %restrict to within single prep
+    end
+    if if_embedbyprep
+        opts_xv.if_single(2)=1; %restrict to a single repeat (irrelevant, only one repeat, so don't even ask)
     end
 end %for cross-validation
 if ~exist('xv_defaults') xv_defaults=struct; end
@@ -134,19 +140,35 @@ end
 if_all_subsamps=double(nsubsamps_use==nsubsamps);
 subsamps_use=subsamps_use(1:nsubsamps_use);
 %
+if if_embedbyprep==0
+    max_embed=nstims;
+else
+    max_embed=nstims*nrepts;
+end
+%
+%logic to get size of reprentational space (embedding dimension), and
+%cross-validation schemes, and check for consistency -- max embed dimension
+%cannot exceed number of responses retained in any insample
+%
 if_ok=0;
 while (if_ok==0)
-    dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) nstims],dmax);
+    dmax=getinp('max dimension of representational space to create','d',[max(1,dmin) max_embed],dmax);
     dmin=getinp('min dimension of representational space to create','d',[1 dmax],dmin);
     dimlist=getinp('list of dimensions to create','d',[dmin dmax],[dmin:dmax]);
     xv_nmake=getinp('number of cross-validation configurations to make','d',[1 Inf],xv_nmake);
-    [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
+    if if_embedbyprep==0
+        [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
+    else
+        [xv_configs_temp,xv_label_temp,opts_xv_used]=xval_configs_make([nstims*nrepts,1,nsets],xv_nmake,opts_xv,xv_defaults);
+        xv_configs=reshape(xv_configs_temp,[nstims nrepts nsets xv_nmake]);
+        xv_label=strrep(xv_label_temp,'[stim rept set]','[stimXrept 1 set]');
+    end
     max_dropped=max(opts_xv_used.max_dropped_withinset_rept(:));
     min_dropped=min(opts_xv_used.min_dropped_withinset_rept(:));
-    if (max_dropped==nstims) & (min_dropped==nstims)
+    if (max_dropped==max_embed) & (min_dropped==max_embed) 
         max_dropped=0;
     end %if all stimuli of a repeat are dropped together, then no fold has fewer trials
-    dmax_allowed=nstims-max_dropped;
+    dmax_allowed=max_embed-max_dropped;
     disp(sprintf('Some insample pca analyses will have as few as %2.0f trials (%2.0f dropped).  Max rep space dimension is %1.0f.',...
         dmax_allowed,max_dropped,dmax));
     if dmax_allowed>=dmax
@@ -417,6 +439,8 @@ results.dimlist=dimlist;
 results.if_frozen=if_frozen;
 results.if_debug=if_debug;
 results.if_singleprep=if_singleprep;
+results.if_noembed=if_noembed;
+results.if_embedbyprep=if_embedbyprep;
 results.if_all_subsamps=if_all_subsamps;
 results.if_econ_svd=if_econ_svd;
 %
