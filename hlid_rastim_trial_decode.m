@@ -11,8 +11,8 @@
 % if if_singleprep is enabled, then there is also an option (if_noembed) to decode without embedding (i.e., dimension reduction by pca)
 % if_embedbyprep=0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
 % if_embedbyprep=1:SVD is carried out on all repeats of the same prep (nrepts_gp=nrepts). 
-%    Alignment between preps is same as with if_embedbyprep=0, i.e., ignores the repeat number; only aligns on the basis of stimulus
-%
+%    Alignment between preps is Not the same as with if_embedbyprep=0, i.e., needs to align by stimulus and repeat number
+% 
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
 %  XVAL_CONFIGS_MAKE, XVAL_CONFMTX_MAKE, HLID_RASTIM_TRIAL_READ,
@@ -337,7 +337,9 @@ for isubsamp=1:nsubsamps_use
                                 which_trials=find(all(~isnan(znew_stim),2)); %a subset of [1:nsets*nrepts]
                                 coords_insample_align{istim}=znew_stim(which_trials,:); %d1: trial (excluding those dropped), d2: dim
                             end %end
-                            %*****mods for if_embedbyprep to here
+                            %*****mods for if_embedbyprep to here -- but
+                            %should modify earlier so that consensus is
+                            %done on all nstims*nrepts at the same time
                             %
                             %transform the dropped stimuli into the in-sample activity space and decode
                             %
