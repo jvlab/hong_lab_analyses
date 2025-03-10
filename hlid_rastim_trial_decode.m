@@ -234,6 +234,7 @@ maxerr_insamp_recon=repmat(-Inf,[nsubs npreprocs nsubsamps_use]); %maximum recon
 for isubsamp=1:nsubsamps_use
     subsamp_sel=subsamps_list(subsamps_use(isubsamp),:);
     disp(sprintf(' subsample %3.0f of %3.0f: original datasets %s',isubsamp,nsubsamps_use,sprintf(' %3.0f ',subsamp_sel)));
+    nrois=nrois_avail(subsamp_sel(:)); %number of rois for each set selected
     for isub=1:nsubs %mean subtract?
         for ipreproc=1:npreprocs
             for id_ptr=1:length(dimlist)
@@ -286,15 +287,15 @@ for isubsamp=1:nsubsamps_use
                             coords_insample=zeros(nstims*nrepts_gp,id,nrepts*nsets/nrepts_gp); %out-of-sample data will be replaced by NaN's after PCA
                             trans_lookup=zeros(nrepts/nrepts_gp,nsets);
                             itrial_ct=0;
-                            v_insample=cell(nrepts,nsets);
-                            droplist=cell(nrepts,nsets); %what is dropped
+                            v_insample=cell(nrepts/nrepts_gp,nsets);
+                            droplist=cell(nrepts/nrepts_gp,nsets); %what is dropped
                             %omit the dropped stimuli and do pca to
                             %create an in-sample space
                             for iset=1:nsets
                                 resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
                                  for irept=1:nrepts/nrepts_gp
                                     irepts=irept+[0:nrepts_gp-1];
-                                    rpca=reshape(resps(:,irepts,:),nstims*nrepts_gp,nrois_avail(subsamp_sel(iset)));
+                                    rpca=reshape(resps(:,irepts,:),nstims*nrepts_gp,nrois(iset));
                                     droplist{irept,iset}=find(xv_configs(:,irepts,iset,ixv_make)==ifold); %which stimuli are dropped from this rept and set; OK if > irepts is a vector
                                     rpca(droplist{irept,iset},:)=NaN;
                                     nonans_pca=find(all(~isnan(rpca),2));
@@ -339,8 +340,6 @@ for isubsamp=1:nsubsamps_use
                                 coords_insample_align{istim}=znew_stim(which_trials,:); %d1: trial (excluding those dropped), d2: dim
                             end %end
                             %
-                            %*****mods for if_embedbyprep to here -- but
-                            %
                             %transform the dropped stimuli into the in-sample activity space and decode
                             %
                             % if only some of a trial are dropped, use the transformation from the in-sample 
@@ -351,24 +350,28 @@ for isubsamp=1:nsubsamps_use
                             coords_outsample_align=cell(nstims,1); %coords_outsample_align{istim}(itrial,id) are out-of-sample coords of istim
                             for iset=1:nsets
                                 resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
-                                for irept=1:nrepts
-                                    rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
+                                for irept=1:nrepts/nrepts_gp;
+                                    irepts=irept+[0:nrepts_gp-1];
+                                    rpca=reshape(resps(:,irepts,:),nstims*nrepts_gp,nrois(iset));
                                     ndrop=length(droplist{irept,iset});
                                     %if only some of the trial is dropped, then use the alignment from the rest of the trial
                                     if ndrop>0 & ndrop<=opts_xv_used.omit_per_fold
                                         resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
-                                        rpca_outsample=reshape(resps(droplist{irept,iset},irept,:),[ndrop,nrois_avail(subsamp_sel(iset))]);
+                                        %rpca_outsample=reshape(resps(droplist{irept,iset},irept,:),[ndrop,nrois_avail(subsamp_sel(iset))]);
+                                        resps_gp=reshape(resps,[nstims*nrepts_gp,nrepts/nrepts_gp,nrois(iset)]);
+                                        rpca_outsample=reshape(resps_gp(droplist{irept,iset},irept,:),[ndrop,nrois(iset)]);
                                         coords_outsample=rpca_outsample*v_insample{irept,iset}; %unaligned coords
                                         coords_outsample_align_alldrop=psg_geomodels_apply('procrustes',coords_outsample,...
                                             procrustes_compat(ts_insample{trans_lookup(irept,iset)})); %d1: each dropped stim in droplist, d2: coord
                                         %put these into coords_outsample_alignment
                                         for idrop=1:ndrop
                                             istim=droplist{irept,iset}(idrop);
-                                            coords_outsample_align{istim}(end+1,:)=coords_outsample_align_alldrop(idrop,:);
-                                        end                                   
+                                            coords_outsample_align{mod(istim-1,nstims)+1}(end+1,:)=coords_outsample_align_alldrop(idrop,:);
+                                        end
+                                        %if_embedbyprep mods to here
                                     elseif ndrop>opts_xv_used.omit_per_fold %if all of the trial is dropped (corresponds to omit_per_fold=0)
                                         %transform entire repeat into consensus_insample as a reference, first doing a private pca
-                                        rpca_outsample=reshape(resps(:,irept,:),[nstims,nrois_avail(subsamp_sel(iset))]);
+                                        rpca_outsample=reshape(resps(:,irept,:),[nstims,nrois(iset)]);
                                         nonans_pca=find(all(~isnan(rpca_outsample),2));
                                         if if_econ_svd
                                             [u_nonan,s,v]=svd(rpca_outsample(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
@@ -396,8 +399,8 @@ for isubsamp=1:nsubsamps_use
                         else %if_pca=0, no embedding. nsets=1
                             iset=1;
                             resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)};
-                            coords_insample=NaN(nstims,nrois_avail(subsamp_sel(iset)),nrepts*nsets);
-                            coords_outsample=NaN(nstims,nrois_avail(subsamp_sel(iset)),nrepts*nsets);
+                            coords_insample=NaN(nstims,nrois(iset),nrepts*nsets);
+                            coords_outsample=NaN(nstims,nrois(iset),nrepts*nsets);
                             coords_insample_align=cell(nstims,1); %coords_insample_align{istim}(itrial,id) are in-sample coords of istim
                             coords_outsample_align=cell(nstims,1); %coords_outsample_align{istim}(itrial,id) are out-of-sample coords of istim
                             for irept=1:nrepts %get the responses for the dropped nd non-dropped stimuli on each repeat
