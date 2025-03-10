@@ -11,7 +11,7 @@
 % if if_singleprep is enabled, then there is also an option (if_noembed) to decode without embedding (i.e., dimension reduction by pca)
 % if_embedbyprep=0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
 % if_embedbyprep=1:SVD is carried out on all repeats of the same prep (nrepts_gp=nrepts). 
-%    Alignment between preps is Not the same as with if_embedbyprep=0, i.e., needs to align by stimulus and repeat number
+%    Alignment between preps is NOT the same as with if_embedbyprep=0, i.e., alignment tags the responses by stimulus and repeat number
 % 
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
@@ -244,7 +244,7 @@ for isubsamp=1:nsubsamps_use
                     %
                     %create a consensus from all of the data, to be used just for initialization
                     %
-                    coords_nodrop=zeros(nstims,id,nrepts*nsets);
+                    coords_nodrop=zeros(nstims*nrepts_gp,id,nrepts*nsets/nrepts_gp); %new for embedbyprep
                     for iset=1:nsets
                         resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
                         for irept=1:nrepts/nrepts_gp
@@ -259,13 +259,12 @@ for isubsamp=1:nsubsamps_use
                             u=nan(size(rpca,1),npcs);
                             u(nonans_pca,:)=u_nonan(:,1:npcs);
                             % coords_nodrop(:,:,irept+(iset-1)*nrepts)=u*s(1:npcs,1:npcs);
-                            c=u*s(1:npcs,1:npcs); %d1: stimsxrepts, d2: dim
-                            c=reshape(c,[nstims,nrepts_gp,npcs]); %d1: stims, d2: rept, d3: dim
-                            coords_nodrop(:,:,irepts+(iset-1)*nrepts)=permute(c,[1 3 2]);                           
+                            coords_nodrop(:,:,irept+(iset-1)*nrepts/nrepts_gp)=u*s(1:npcs,1:npcs);
                         end
                     end
                     consensus_nodrop=procrustes_consensus(coords_nodrop,opts_pcon);
-                    disp(sprintf('no-drop consensus made for isubsamp %2.0f  %12s %10s dim %2.0f',isubsamp,sub_labels{isub},preproc_labels{ipreproc},id));
+                    disp(sprintf('no-drop consensus [%2.0f x %2.0f] made for isubsamp %2.0f  %12s %10s dim %2.0f',...
+                        size(consensus_nodrop,1),size(consensus_nodrop,2),isubsamp,sub_labels{isub},preproc_labels{ipreproc},id));
                 else
                     disp(sprintf('no-embed decoding      for isubsamp %2.0f  %12s %10s',isubsamp,sub_labels{isub},preproc_labels{ipreproc}));
                 end %if_pca
@@ -284,8 +283,8 @@ for isubsamp=1:nsubsamps_use
                         coords_insample_align=cell(nstims,1); %coords_insample_align{istim}(itrial,id) are in-sample coords of istim
                         if if_pca
                             %coords_insample=zeros(nstims,id,nrepts*nsets-ndrop_thisfold); % eliminated 03Mar25
-                            coords_insample=zeros(nstims,id,nrepts*nsets); %out-of-sample data will be replaced by NaN's after PCA
-                            trans_lookup=zeros(nrepts,nsets);
+                            coords_insample=zeros(nstims*nrepts_gp,id,nrepts*nsets/nrepts_gp); %out-of-sample data will be replaced by NaN's after PCA
+                            trans_lookup=zeros(nrepts/nrepts_gp,nsets);
                             itrial_ct=0;
                             v_insample=cell(nrepts,nsets);
                             droplist=cell(nrepts,nsets); %what is dropped
@@ -312,10 +311,8 @@ for isubsamp=1:nsubsamps_use
                                         %
                                         itrial_ct=itrial_ct+1;
                                         % coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);
-                                        c=u*s(1:npcs,1:npcs); %d1: stimsxrepts, d2: dim
-                                        c=reshape(c,[nstims,nrepts_gp,npcs]); %d1: stims, d2: rept, d3: dim
-                                        coords_insample(:,:,irepts+(iset-1)*nrepts)=permute(c,[1 3 2]);                           
-                                        trans_lookup(irepts,iset)=itrial_ct; %where to find the transform
+                                        coords_insample(:,:,irept+(iset-1)*nrepts/nrepts_gp)=u*s(1:npcs,1:npcs);                           
+                                        trans_lookup(irept,iset)=itrial_ct; %where to find the transform
                                         %
                                         if npcs==length(nonans_pca)
                                             recon=coords_insample(:,:,itrial_ct)*v(:,1:npcs)';
@@ -333,13 +330,16 @@ for isubsamp=1:nsubsamps_use
                                 procrustes_consensus(coords_insample,setfield(opts_pcon,'initialize_set',0));
                             %
                             for istim=1:nstims
-                                znew_stim=reshape(znew_insample(istim,:,:),id,ntrials_tot*nrepts_gp)'; %d1: itrial, d2: dim
+                                znew_stim=[];
+                                for irept=1:nrepts_gp %stack up the responses to the same stimulus on different uns
+                                    znew_stim=[znew_stim;reshape(znew_insample(istim+(irept-1)*nstims,:,:),id,ntrials_tot)']; %d1: itrial, d2: dim
+                                end
+%                                znew_stim=reshape(znew_insample(istim,:,:),id,ntrials_tot)'; %d1: itrial, d2: dim
                                 which_trials=find(all(~isnan(znew_stim),2)); %a subset of [1:nsets*nrepts]
                                 coords_insample_align{istim}=znew_stim(which_trials,:); %d1: trial (excluding those dropped), d2: dim
                             end %end
+                            %
                             %*****mods for if_embedbyprep to here -- but
-                            %should modify earlier so that consensus is
-                            %done on all nstims*nrepts at the same time
                             %
                             %transform the dropped stimuli into the in-sample activity space and decode
                             %
