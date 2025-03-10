@@ -5,7 +5,13 @@
 % 
 % Constructs a representational space using single-trial or stimulus-averaged raw (z-scored) responses,
 % optionally subtracting mean, optionally normalizing the magnitude,
-% (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation),
+% (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation)
+%
+% if_singleprep: single-prep decoding only uses the repeats within a prep, and does not attempt to align across preps
+% if if_singleprep is enabled, then there is also an option (if_noembed) to decode without embedding (i.e., dimension reduction by pca)
+% if_embedbyprep=0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
+% if_embedbyprep=1:SVD is carried out on all repeats of the same prep (nrepts_gp=nrepts). 
+%    Alignment between preps is same as with if_embedbyprep=0, i.e., ignores the repeat number; only aligns on the basis of stimulus
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
@@ -17,6 +23,7 @@
 % 03Mar25: begin to add option for single-prep decoding without embedding, if_noembed (dimlist entry=Inf)
 % 05Mar25: now defaults to 'econ' svd (can change by setting if_econ_svd=0)
 % 09Mar25: begin to add option to do pca embedding of all repeats of a prep at the same time (if_embedbyprep)
+
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -141,10 +148,11 @@ if_all_subsamps=double(nsubsamps_use==nsubsamps);
 subsamps_use=subsamps_use(1:nsubsamps_use);
 %
 if if_embedbyprep==0
-    max_embed=nstims;
+    nrepts_gp=1;
 else
-    max_embed=nstims*nrepts;
+    nrepts_gp=nrepts;
 end
+max_embed=nstims*nrepts_gp;
 %
 %logic to get size of reprentational space (embedding dimension), and
 %cross-validation schemes, and check for consistency -- max embed dimension
@@ -236,11 +244,12 @@ for isubsamp=1:nsubsamps_use
                     %
                     %create a consensus from all of the data, to be used just for initialization
                     %
-                    coords_nodrop=zeros(nstims,id,nrepts*nsets); 
+                    coords_nodrop=zeros(nstims,id,nrepts*nsets);
                     for iset=1:nsets
                         resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
-                        for irept=1:nrepts
-                            rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
+                        for irept=1:nrepts/nrepts_gp
+                            irepts=irept+[0:nrepts_gp-1];
+                            rpca=reshape(resps(:,irepts,:),nstims*nrepts_gp,nrois_avail(subsamp_sel(iset)));
                             nonans_pca=find(all(~isnan(rpca),2));
                             if if_econ_svd
                                 [u_nonan,s,v]=svd(rpca(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
@@ -249,7 +258,10 @@ for isubsamp=1:nsubsamps_use
                             end
                             u=nan(size(rpca,1),npcs);
                             u(nonans_pca,:)=u_nonan(:,1:npcs);
-                            coords_nodrop(:,:,irept+(iset-1)*nrepts)=u*s(1:npcs,1:npcs);
+                            % coords_nodrop(:,:,irept+(iset-1)*nrepts)=u*s(1:npcs,1:npcs);
+                            c=u*s(1:npcs,1:npcs); %d1: stimsxrepts, d2: dim
+                            c=reshape(c,[nstims,nrepts_gp,npcs]); %d1: stims, d2: rept, d3: dim
+                            coords_nodrop(:,:,irepts+(iset-1)*nrepts)=permute(c,[1 3 2]);                           
                         end
                     end
                     consensus_nodrop=procrustes_consensus(coords_nodrop,opts_pcon);
@@ -281,9 +293,10 @@ for isubsamp=1:nsubsamps_use
                             %create an in-sample space
                             for iset=1:nsets
                                 resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
-                                 for irept=1:nrepts
-                                    rpca=reshape(resps(:,irept,:),nstims,nrois_avail(subsamp_sel(iset)));
-                                    droplist{irept,iset}=find(xv_configs(:,irept,iset,ixv_make)==ifold); %which stimuli are dropped from this rept and set
+                                 for irept=1:nrepts/nrepts_gp
+                                    irepts=irept+[0:nrepts_gp-1];
+                                    rpca=reshape(resps(:,irepts,:),nstims*nrepts_gp,nrois_avail(subsamp_sel(iset)));
+                                    droplist{irept,iset}=find(xv_configs(:,irepts,iset,ixv_make)==ifold); %which stimuli are dropped from this rept and set; OK if > irepts is a vector
                                     rpca(droplist{irept,iset},:)=NaN;
                                     nonans_pca=find(all(~isnan(rpca),2));
                                      if any(~isnan(rpca(:)))
@@ -298,8 +311,11 @@ for isubsamp=1:nsubsamps_use
                                         v_insample{irept,iset}=v(:,[1:npcs]); %for out-of-sample, coords=resp*v
                                         %
                                         itrial_ct=itrial_ct+1;
-                                        coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);
-                                        trans_lookup(irept,iset)=itrial_ct; %where to find the transform
+                                        % coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);
+                                        c=u*s(1:npcs,1:npcs); %d1: stimsxrepts, d2: dim
+                                        c=reshape(c,[nstims,nrepts_gp,npcs]); %d1: stims, d2: rept, d3: dim
+                                        coords_insample(:,:,irepts+(iset-1)*nrepts)=permute(c,[1 3 2]);                           
+                                        trans_lookup(irepts,iset)=itrial_ct; %where to find the transform
                                         %
                                         if npcs==length(nonans_pca)
                                             recon=coords_insample(:,:,itrial_ct)*v(:,1:npcs)';
@@ -317,10 +333,11 @@ for isubsamp=1:nsubsamps_use
                                 procrustes_consensus(coords_insample,setfield(opts_pcon,'initialize_set',0));
                             %
                             for istim=1:nstims
-                                znew_stim=reshape(znew_insample(istim,:,:),id,ntrials_tot)'; %d1: itrial, d2: dim
-                                which_trials=find(all(~isnan(znew_stim),2));
-                                coords_insample_align{istim}=znew_stim(which_trials,:);
+                                znew_stim=reshape(znew_insample(istim,:,:),id,ntrials_tot*nrepts_gp)'; %d1: itrial, d2: dim
+                                which_trials=find(all(~isnan(znew_stim),2)); %a subset of [1:nsets*nrepts]
+                                coords_insample_align{istim}=znew_stim(which_trials,:); %d1: trial (excluding those dropped), d2: dim
                             end %end
+                            %*****mods for if_embedbyprep to here
                             %
                             %transform the dropped stimuli into the in-sample activity space and decode
                             %
