@@ -23,7 +23,7 @@
 % 03Mar25: begin to add option for single-prep decoding without embedding, if_noembed (dimlist entry=Inf)
 % 05Mar25: now defaults to 'econ' svd (can change by setting if_econ_svd=0)
 % 09Mar25: begin to add option to do pca embedding of all repeats of a prep at the same time (if_embedbyprep)
-
+% 10Mar25: fix bug when all stimuli in a trial are dropped
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -291,10 +291,13 @@ for isubsamp=1:nsubsamps_use
                             droplist=cell(nrepts/nrepts_gp,nsets); %what is dropped
                             %omit the dropped stimuli and do pca to
                             %create an in-sample space
+                            trials_havedata=[];
+                            itrial_ct=0;
                             for iset=1:nsets
                                 resps=resps_alltrials{isub,ipreproc,subsamp_sel(iset)}; %stim, irept, iroi
                                  for irept=1:nrepts/nrepts_gp
                                     irepts=irept+[0:nrepts_gp-1];
+                                    itrial_ct=itrial_ct+1;
                                     rpca=reshape(resps(:,irepts,:),nstims*nrepts_gp,nrois(iset));
                                     droplist{irept,iset}=find(xv_configs(:,irepts,iset,ixv_make)==ifold); %which stimuli are dropped from this rept and set; OK if > irepts is a vector
                                     rpca(droplist{irept,iset},:)=NaN;
@@ -309,10 +312,8 @@ for isubsamp=1:nsubsamps_use
                                         u(nonans_pca,:)=u_nonan(:,1:npcs);
                                         %
                                         v_insample{irept,iset}=v(:,[1:npcs]); %for out-of-sample, coords=resp*v
-                                        %
-                                        itrial_ct=itrial_ct+1;
-                                        % coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);
-                                        coords_insample(:,:,irept+(iset-1)*nrepts/nrepts_gp)=u*s(1:npcs,1:npcs);                           
+                                        trials_havedata=[trials_havedata itrial_ct];
+                                        coords_insample(:,:,itrial_ct)=u*s(1:npcs,1:npcs);                           
                                         trans_lookup(irept,iset)=itrial_ct; %where to find the transform
                                         %
                                         if npcs==length(nonans_pca)
@@ -328,12 +329,12 @@ for isubsamp=1:nsubsamps_use
                             %find consensus of every insample set of trials,
                             %and the transforms to each ts_insample{trans_lookup(irept,iset)}
                             [consensus_insample,znew_insample,ts_insample,details_insample,opts_pcon_insample_used]=...
-                                procrustes_consensus(coords_insample,setfield(opts_pcon,'initialize_set',0));
+                                procrustes_consensus(coords_insample(:,:,trials_havedata),setfield(opts_pcon,'initialize_set',0));
                             %
                             for istim=1:nstims
                                 znew_stim=[];
                                 for irept=1:nrepts_gp %stack up the responses to the same stimulus on different uns
-                                    znew_stim=[znew_stim;reshape(znew_insample(istim+(irept-1)*nstims,:,:),id,ntrials_tot)']; %d1: itrial, d2: dim
+                                    znew_stim=[znew_stim;reshape(znew_insample(istim+(irept-1)*nstims,:,:),[id,length(trials_havedata)])']; %d1: itrial, d2: dim
                                 end
 %                                znew_stim=reshape(znew_insample(istim,:,:),id,ntrials_tot)'; %d1: itrial, d2: dim
                                 which_trials=find(all(~isnan(znew_stim),2)); %a subset of [1:nsets*nrepts]
