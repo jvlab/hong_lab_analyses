@@ -35,6 +35,7 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 %
 % 17Feb25: added opts_used.[max|min]_dropped*, to aid in calculation of min number of trials in any fold
 % 22Feb25: added the dropped*within set specific to each set
+% 10Mar25: fix bug in display of number of folds for deterministic case of one trial dropped
 %
 %  See also: XVAL_CONFMTX_MAKE.
 %
@@ -130,9 +131,8 @@ while (if_ok==0)
         configs=zeros([shape nmake]);
         if opts.if_single(2)==1 & opts.if_single(3)==1 % one repeat, one set
             if opts.omit_per_fold==1
-                nfolds=prod(shape);
+                ifold=prod(shape); %will allow nfolds to be computed correctly
                 configs=reshape([1:prod(shape)],shape);
-                ifold=1;
                 if_det=1;
             else
                 for imake=1:nmake
