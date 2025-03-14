@@ -173,9 +173,10 @@ while (if_ok==0)
         [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
     else
         [xv_configs_temp,xv_label_temp,opts_xv_used]=xval_configs_make([nstims*nrepts,1,nsets],xv_nmake,opts_xv,xv_defaults);
-        xv_configs=reshape(xv_configs_temp,[nstims nrepts nsets xv_nmake]);
+        xv_configs=reshape(xv_configs_temp,[nstims nrepts nsets xv_nmake size(xv_configs_temp,4)]);
         xv_label=strrep(xv_label_temp,'[stim rept set]','[stimXrept 1 set]');
     end
+    xv_nmake=size(xv_configs,4); %in case this was a deterministic configuratin, and only one xv_config was made
     max_dropped=max(opts_xv_used.max_dropped_withinset_rept(:));
     min_dropped=min(opts_xv_used.min_dropped_withinset_rept(:));
     if (max_dropped==max_embed) & (min_dropped==max_embed) 
