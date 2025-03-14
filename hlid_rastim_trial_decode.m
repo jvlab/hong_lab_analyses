@@ -1,29 +1,33 @@
 %hlid_rastim_trial_decode: single-trial decoding analysis
 %
 % does a cross-validated decode, beginning with response space construction with trials left out
-% uses consensus space to align data across individuals
+% uses consensus space to align data across preps
 % 
-% Constructs a representational space using single-trial or stimulus-averaged raw (z-scored) responses,
+% Constructs a representational space using single-trial responses,
 % optionally subtracting mean, optionally normalizing the magnitude,
 % (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation)
 %
-% if_singleprep: single-prep decoding only uses the repeats within a prep, and does not attempt to align across preps
-% if if_singleprep is enabled, then there is also an option (if_noembed) to decode without embedding (i.e., dimension reduction by pca)
-% if_embedbyprep=0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
-% if_embedbyprep=1:SVD is carried out on all repeats of the same prep (nrepts_gp=nrepts). 
-%    Alignment between preps is NOT the same as with if_embedbyprep=0, i.e., alignment tags the responses by stimulus and repeat number
-% 
+% if_singleprep:
+%  if_singleprep=0 (default): aligns across preps
+%  if_singleprep=1: only uses the repeats within a prep, and does not attempt to align across preps
+% if_embedbyprep:
+%  if_embedbyprep=0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
+%  if_embedbyprep=1: SVD is carried out on all repeats of the same prep (nrepts_gp=nrepts). Only possible if if_singleprep=0
+%    Alignment between preps is NOT the same as with if_embedbyprep=0, i.e., alignment only will align responses
+%    to the same stimuilus on the same repeat. Cannot have both if_singleprep=1 and if_embedbyprep=1
+%
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
 %  XVAL_CONFIGS_MAKE, XVAL_CONFMTX_MAKE, HLID_RASTIM_TRIAL_READ,
 %  HLID_RASTIM_TRIAL_DECODE_3DPLOT, HLID_RASTIM_TRIAL_DECODE_CONFMTX.
 %
-% 15Feb25: add a single-prep mode (decode only within each prep), if_singleprep
+% 15Feb25: add a single-prep mode (decode only within each prep): if_singleprep
 % 20Feb25: allow for dimension list to be non-contiguous
-% 03Mar25: begin to add option for single-prep decoding without embedding, if_noembed (dimlist entry=Inf)
+% 03Mar25: begin to add option for single-prep decoding without embedding, if_noembed: dimlist entry=Inf
 % 05Mar25: now defaults to 'econ' svd (can change by setting if_econ_svd=0)
-% 09Mar25: begin to add option to do pca embedding of all repeats of a prep at the same time (if_embedbyprep)
+% 09Mar25: begin option to do embedding of all repeats of a prep at the same time: if_embedbyprep
 % 10Mar25: fix bug when all stimuli in a trial are dropped
+% 14Mar25: finished option to do embedding of all repeats of a prep at the same time: if_embedbyprep
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -31,10 +35,11 @@ if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each tim
 if_singleprep=getinp('1 for decoding only within single preps','d',[0 1],0);
 if if_singleprep==1
     if_noembed=getinp('1 to also decode without embedding','d',[0 1],0);
+    if_embedbyprep=0;
 else
     if_noembed=0;
+    if_embedbyprep=getinp('1 to embed all repeats of a prep together','d',[0 1],0);
 end
-if_embedbyprep=getinp('1 to embed all repeats of a prep together','d',[0 1],0);
 if (if_frozen~=0) 
     rng('default');
     if (if_frozen<0)
