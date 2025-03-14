@@ -36,6 +36,7 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 % 17Feb25: added opts_used.[max|min]_dropped*, to aid in calculation of min number of trials in any fold
 % 22Feb25: added the dropped*within set specific to each set
 % 10Mar25: fix bug in display of number of folds for deterministic case of one trial dropped
+% 14Mar25: require 'do not restrict' to repeat or set if there is only one repeat or set
 %
 %  See also: XVAL_CONFMTX_MAKE.
 %
@@ -70,7 +71,12 @@ while (if_ok==0)
             if isnan(def_val)
                 def_val='';
             end
-            opts.if_single(idim)=getinp(sprintf('1 to restrict omitted trials to a single %s',opts.dimnames{idim}),'d',[0 1],def_val);       
+            if shape(idim)==1 %if there is only one repeat or set, restriction doesn't matter, but call it unrestricted so that disallowed-setup logic will work
+                disp(sprintf('omitted trials assumed to be not restricted to %s, as there is only one %s',opts.dimnames{idim},opts.dimnames{idim}));
+                opts.if_single(idim)=0;
+            else
+                opts.if_single(idim)=getinp(sprintf('1 to restrict omitted trials to a single %s',opts.dimnames{idim}),'d',[0 1],def_val);       
+            end
         end
         % if opts.if_single(idim)==0
         %     max_partial_omit_per_fold=max_partial_omit_per_fold*shape(idim);
@@ -187,7 +193,7 @@ end %if_ok
 nconfigs_made=size(configs,4);
 if (opts.if_log)
     if if_det==1
-        disp(sprintf(' deterministic setup, making only one configuration'));
+        disp(sprintf('deterministic setup, making only one configuration'));
     end
     disp(sprintf('created %1.0f configurations, each with %4.0f folds for cross-validation',nconfigs_made,nfolds))
 end
