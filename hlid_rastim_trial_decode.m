@@ -372,7 +372,7 @@ for isubsamp=1:nsubsamps_use
                                         %if_embedbyprep mods to here
                                     elseif ndrop>opts_xv_used.omit_per_fold %if all of the trial is dropped (corresponds to omit_per_fold=0)
                                         %transform entire repeat into consensus_insample as a reference, first doing a private pca
-                                        rpca_outsample=reshape(resps(:,irept,:),[nstims,nrois(iset)]);
+                                        rpca_outsample=reshape(resps(:,irepts,:),[nstims*nrepts_gp,nrois(iset)]);
                                         nonans_pca=find(all(~isnan(rpca_outsample),2));
                                         if if_econ_svd
                                             [u_nonan,s,v]=svd(rpca_outsample(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
@@ -392,7 +392,7 @@ for isubsamp=1:nsubsamps_use
                                         end
                                         for idrop=1:ndrop
                                             istim=droplist{irept,iset}(idrop);
-                                            coords_outsample_align{istim}(end+1,:)=coords_outsample_xform(istim,:);
+                                            coords_outsample_align{mod(istim-1,nstims)+1}(end+1,:)=coords_outsample_xform(istim,:);
                                         end
                                     end % ndrop
                                 end %irept
