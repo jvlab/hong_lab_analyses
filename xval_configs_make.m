@@ -193,6 +193,9 @@ while (if_ok==0)
     elseif opts.omit_per_fold>0 & blocked==1 %blocked, deterministc
         if_det=1;
         nmake=min(nmake,opts.omit_per_fold);
+        if opts.omit_per_fold==1 %trivial block, all configs just leave out one trial and are the same
+            nmake=1;
+        end
         configs=zeros([shape nmake]);
         nfolds=prod(shape)/opts.omit_per_fold;
         if_ok=1;
