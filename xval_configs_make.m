@@ -16,6 +16,11 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 %     if_single(1) is not used
 %     if_single(2) is 1 to force all held-out trials to be from a single repeat, otherwise 0
 %     if_single(3) is 1 to force all held-out trials to be from a signle trial, otherwise 0
+%  opts.if_blocks: 1 to allow blocks (default), 0 to not allow blocks, -1 to only allow blocks
+%     block size is given by a negative value supplied or entered for omit_per_fold
+%     With blocks, sequential stimuli are removed, and the number of configs generated will not exceed the size of the block;
+%     each config starts at a different phase 
+%
 % defaults: default values of options  
 %
 % configs: array of size [nstims nrepts npreps nmake], each slice
@@ -37,6 +42,7 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 % 22Feb25: added the dropped*within set specific to each set
 % 10Mar25: fix bug in display of number of folds for deterministic case of one trial dropped
 % 14Mar25: require 'do not restrict' to repeat or set if there is only one repeat or set
+% 15Mar25: add blocks
 %
 %  See also: XVAL_CONFMTX_MAKE.
 %
@@ -53,6 +59,7 @@ opts=filldefault(opts,'if_log',1);
 opts=filldefault(opts,'if_single',[0 NaN NaN]);
 opts=filldefault(opts,'max_partial_omit',3);
 opts=filldefault(opts,'omit_per_fold',NaN);
+opts=filldefault(opts,'if_blocks',1);
 %
 if_ok=0;
 while (if_ok==0)
@@ -92,10 +99,43 @@ while (if_ok==0)
         if isnan(def_val)
             def_val='';
         end
-        opts.omit_per_fold=getinp('0 to omit all stimuli together in a fold, otherwise number of stims to omit, per repeat per set, in each fold','d',[0 max_partial_omit_per_fold],def_val);
+        block_divide=shape(1);
+        if opts.if_single(2)==0
+            block_divide=block_divide*shape(2);
+        end
+        if opts.if_single(3)==0
+            block_divide=block_divide*shape(3);
+        end
+        block_ok=0;
+        while block_ok==0
+            switch opts.if_blocks
+                case 0
+                    opts.omit_per_fold=getinp('0 to omit all stimuli together in a fold, otherwise number of stims to omit, per repeat per set, in each fold','d',[0 max_partial_omit_per_fold],def_val);
+                    block_ok=1;
+                case 1
+                    opts.omit_per_fold=getinp('0 to omit all stimuli together in a fold, otherwise number of stims to omit, per repeat per set, in each fold, <0 for blocks','d',[-block_divide max_partial_omit_per_fold],def_val);
+                case -1
+                    opts.omit_per_fold=getinp('0 to omit all stimuli together in a fold, otherwise number of stims to omit, per repeat per set, in each fold, <0 for blocks','d',[-block_divide 0],def_val);
+            end
+            if block_ok==0
+                block_ok=double(mod(block_divide,abs(opts.omit_per_fold))==0);
+                if block_ok==0
+                    disp(sprintf('for blocks, value must be negative and a factor of %1.0f',block_divide));
+                end
+            end
+        end
     end
-    if opts.omit_per_fold>0
+    if opts.omit_per_fold<0
+        blocked=1;
+    else
+        blocked=0;
+    end
+    opts.omit_per_fold=abs(opts.omit_per_fold);
+    if opts.omit_per_fold~=0
         omit_string=sprintf(' omit %2.0f per %s per %s',opts.omit_per_fold,opts.dimnames{2},opts.dimnames{3});
+        if blocked
+            omit_string=cat(2,omit_string,', blocked');
+        end
     else
         omit_string=' omit all';
     end
@@ -133,11 +173,22 @@ while (if_ok==0)
             disp('Disallowed setup, all trials in same fold.')
             opts.omit_per_fold=NaN;
         end
+    elseif opts.omit_per_fold>0 & blocked==1
+        if_det=1;
+        nmake=min(nmake,opts.omit_per_fold);
+        configs=zeros([shape nmake]);
+        nfolds=prod(shape)/opts.omit_per_fold;
+        if_ok=1;
+        %fix for other optoins of opts.if_single
+        for iphase=1:nmake
+            dropped=1+floor(mod(iphase-1+[0:prod(shape)-1],prod(shape))/opts.omit_per_fold);
+            configs(:,:,:,iphase)=reshape(dropped,shape);
+        end
     else %a subset of stimuli held out from each trial number
         configs=zeros([shape nmake]);
         if opts.if_single(2)==1 & opts.if_single(3)==1 % one repeat, one set
             if opts.omit_per_fold==1
-                ifold=prod(shape); %will allow nfolds to be computed correctly
+                ifold=prod(shape); %will allow nfolds to be computed
                 configs=reshape([1:prod(shape)],shape);
                 if_det=1;
             else
@@ -193,7 +244,7 @@ end %if_ok
 nconfigs_made=size(configs,4);
 if (opts.if_log)
     if if_det==1
-        disp(sprintf('deterministic setup, making only one configuration'));
+        disp(sprintf('deterministic setup, making only %1.0f configuration(s)',nconfigs_made));
     end
     disp(sprintf('created %1.0f configurations, each with %4.0f folds for cross-validation',nconfigs_made,nfolds))
 end
