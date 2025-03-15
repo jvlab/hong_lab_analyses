@@ -149,9 +149,10 @@ while (if_ok==0)
     end
     opts.omit_per_fold=abs(opts.omit_per_fold);
     if opts.omit_per_fold~=0
-        omit_string=sprintf(' omit %2.0f per %s per %s',opts.omit_per_fold,opts.dimnames{2},opts.dimnames{3});
         if blocked
-            omit_string=cat(2,omit_string,', blocked');
+            omit_string=sprintf(' omit %2.0f block',opts.omit_per_fold);
+        else
+            omit_string=sprintf(' omit %2.0f per %s per %s',opts.omit_per_fold,opts.dimnames{2},opts.dimnames{3});
         end
     else
         omit_string=' omit all';
