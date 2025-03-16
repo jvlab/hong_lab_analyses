@@ -17,11 +17,13 @@ function [configs,desc,opts_used]=xval_configs_make(shape,nmake,opts,defaults)
 %     if_single(2) is 1 to force all held-out trials to be from a single repeat, otherwise 0
 %     if_single(3) is 1 to force all held-out trials to be from a signle trial, otherwise 0
 %  opts.if_blocks: 1 to allow blocks (default), 0 to not allow blocks, -1 to only allow blocks
-%     block size is given by a negative value supplied or entered for omit_per_fold
-%     With blocks, sequential stimuli are removed, and the number of configs generated will not exceed the size of the block;
-%     each config starts at a different phase
+%     Block size is given by a negative value supplied or entered for omit_per_fold
+%     With blocks specified, the dropped stimuli form a contiguous sequence of stimulus numbers, not random. 
+%     The number of configs generated will not exceed the size of the block.
+%     Each config starts at a different phase, except if opts.phases_allowed=0, then, only the phase strts on the first stimulus is generated.
 %  opts.blocks_allowed: (optional) a list of allowed blocks
 %     This must divide shapes(1)*[shapes(2) if if_single(2)=0]*[shapes(3) if if_single(3)=0]
+%  opts.phases_allowed: (default=1):  for blocks, all starting phases are allowed; 0 forces zero-phase only
 %
 % defaults: default values of options  
 %
@@ -63,6 +65,7 @@ opts=filldefault(opts,'max_partial_omit',3);
 opts=filldefault(opts,'omit_per_fold',NaN);
 opts=filldefault(opts,'if_blocks',1);
 opts=filldefault(opts,'blocks_allowed',NaN);
+opts=filldefault(opts,'phases_allowed',1);
 %
 if_ok=0;
 while (if_ok==0)
@@ -195,6 +198,9 @@ while (if_ok==0)
         if_det=1;
         nmake=min(nmake,opts.omit_per_fold);
         if opts.omit_per_fold==1 %trivial block, all configs just leave out one trial and are the same
+            nmake=1;
+        end
+        if opts.phases_allowed==0
             nmake=1;
         end
         configs=zeros([shape nmake]);

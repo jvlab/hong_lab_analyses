@@ -17,7 +17,7 @@
 %   0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
 %   1: embedding is carried out all repeats of the same prep together. (nrepts_gp=nrepts). Only possible if if_singleprep=0
 %    Alignment between preps is NOT the same as with if_embedbyprep=0, i.e., alignment only will align responses
-%    to the same stimuilus on the same repeat. Cannot have both if_singleprep=1 and if_embedbyprep=1
+%    to the same stimuilus on the same repeat.
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
@@ -38,11 +38,10 @@ if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each tim
 if_singleprep=getinp('1 for decoding only within single preps','d',[0 1],0);
 if if_singleprep==1
     if_noembed=getinp('1 to also decode without embedding','d',[0 1],0);
-    if_embedbyprep=0;
 else
     if_noembed=0;
-    if_embedbyprep=getinp('1 to embed all repeats of a prep together','d',[0 1],0);
 end
+if_embedbyprep=getinp('1 to embed all repeats of a prep together','d',[0 1],0);
 if (if_frozen~=0) 
     rng('default');
     if (if_frozen<0)
@@ -175,11 +174,23 @@ while (if_ok==0)
     if if_embedbyprep==0
         [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
     else
-        [xv_configs_temp,xv_label_temp,opts_xv_used]=xval_configs_make([nstims*nrepts,1,nsets],xv_nmake,opts_xv,xv_defaults);
-        xv_configs=reshape(xv_configs_temp,[nstims nrepts nsets size(xv_configs_temp,4)]);
-        xv_label=strrep(xv_label_temp,'[stim rept set]','[stimXrept 1 set]');
+        opts_xv_embedbyprep=opts_xv;
+        opts_xv_embedbyprep.blocks_allowed=[1 nstims]; %either delete one stimulus or an entire repeat
+        opts_xv_embedbyprep.phases_allowed=0; %one starting phase only
+        ixv_valid=0;
+        while ixv_valid==0
+            [xv_configs_temp,xv_label_temp,opts_xv_used]=xval_configs_make([nstims*nrepts,1,nsets],xv_nmake,opts_xv_embedbyprep,xv_defaults);
+            xv_configs=reshape(xv_configs_temp,[nstims nrepts nsets size(xv_configs_temp,4)]);
+            xv_label=strrep(xv_label_temp,'[stim rept set]','[stimXrept 1 set]');
+            %verify that in each cross-validation configuration, no stimulus is completely dropped
+            if any(any(any(min(xv_configs,[],2)==max(xv_configs,[],2))))
+                disp('configuration is not valid, some stimulus is completely dropped in at least one cross-validation set')
+            else
+                ixv_valid=1;
+            end
+        end
     end
-    xv_nmake=size(xv_configs,4); %in case this was a deterministic configuratin, and only one xv_config was made
+    xv_nmake=size(xv_configs,4); %in case this was a deterministic configuration, and only one xv_config was made
     max_dropped=max(opts_xv_used.max_dropped_withinset_rept(:));
     min_dropped=min(opts_xv_used.min_dropped_withinset_rept(:));
     if (max_dropped==max_embed) & (min_dropped==max_embed) 
