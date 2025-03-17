@@ -362,7 +362,7 @@ for isubsamp=1:nsubsamps_use
                             ntrials_tot=itrial_ct;
                             %find consensus of every insample set of trials, and the transforms to each ts_insample{trans_lookup(irept,iset)}
                             %but first exclude the stims (or stimsxrepts) that are not present
-                            stims_keep=setdiff([1:size(coords_insample,1)],find(xv_configs_exclude{ixv_make}==ifold));
+                            stims_keep=setdiff([1:size(coords_insample,1)],intersect(xv_configs_exclude{ixv_make},find(xv_configs_embed(:,:,:,ixv_make)==ifold)));
                             opts_pcon.initial_guess=consensus_nodrop(stims_keep,:);
                             consensus_insample=NaN(nstims*nrepts_gp,npcs);
                             znew_insample=NaN(nstims*nrepts_gp,npcs,length(trials_havedata));
