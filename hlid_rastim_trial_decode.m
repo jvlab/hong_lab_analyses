@@ -108,7 +108,7 @@ if ~exist('xv_defaults') xv_defaults=struct; end
 if ~exist('xv_nmake') xv_nmake=1; end
 %
 if ~exist('nrepts') nrepts=3; end %number of repeats
-if ~exist('nsets_min') nsets_min=2; end
+if ~exist('nsets_min') nsets_min=1; end
 if ~exist('dmax') 
     if if_debug
         dmax=3;
