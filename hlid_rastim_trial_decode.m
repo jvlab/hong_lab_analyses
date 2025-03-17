@@ -177,12 +177,13 @@ while (if_ok==0)
     while ixv_valid==0
         if if_embedbyprep==0
             [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
+            xv_configs_embed=xv_configs;
         else
             opts_xv_embedbyprep=opts_xv;
             opts_xv_embedbyprep.blocks_allowed=[1 nstims]; %either delete one stimulus or an entire repeat
             opts_xv_embedbyprep.phases_allowed=0; %one starting phase only
-            [xv_configs_temp,xv_label_temp,opts_xv_used]=xval_configs_make([nstims*nrepts,1,nsets],xv_nmake,opts_xv_embedbyprep,xv_defaults);
-            xv_configs=reshape(xv_configs_temp,[nstims nrepts nsets size(xv_configs_temp,4)]);
+            [xv_configs_embed,xv_label_temp,opts_xv_used]=xval_configs_make([nstims*nrepts,1,nsets],xv_nmake,opts_xv_embedbyprep,xv_defaults);
+            xv_configs=reshape(xv_configs_embed,[nstims nrepts nsets size(xv_configs_embed,4)]);
             xv_label=strrep(xv_label_temp,'[stim rept set]','[stimXrept 1 set]');
         end
         %verify that in each cross-validation configuration, no stimulus is completely dropped
@@ -193,6 +194,18 @@ while (if_ok==0)
         end
     end
     xv_nmake=size(xv_configs,4); %in case this was a deterministic configuration, and only one xv_config was made
+    %
+    %determine if any embeddings of in-sample data are missing all examples of (stim x rept)
+    %
+    xv_configs_exclude=cell(1,xv_nmake);
+    for ixv_make=1:xv_nmake
+        which_drop=xv_configs_embed(:,:,:,ixv_make);
+        xv_configs_exclude{ixv_make}=find(min(min(which_drop,[],2),[],3)==max(max(which_drop,[],2),[],3));
+        if ~isempty(xv_configs_exclude{ixv_make})
+            disp(sprintf('Note that  for xv config %2.0f, single folds drop all examples of stimuli x repeats %s',...
+                ixv_make,sprintf(' %2.0f',xv_configs_exclude{ixv_make})));
+        end
+    end
     max_dropped=max(opts_xv_used.max_dropped_withinset_rept(:));
     min_dropped=min(opts_xv_used.min_dropped_withinset_rept(:));
     if (max_dropped==max_embed) & (min_dropped==max_embed) 
@@ -347,11 +360,14 @@ for isubsamp=1:nsubsamps_use
                                  end %irept
                             end %iset
                             ntrials_tot=itrial_ct;
-                            opts_pcon.initial_guess=consensus_nodrop;
-                            %find consensus of every insample set of trials,
-                            %and the transforms to each ts_insample{trans_lookup(irept,iset)}
-                            [consensus_insample,znew_insample,ts_insample,details_insample,opts_pcon_insample_used]=...
-                                procrustes_consensus(coords_insample(:,:,trials_havedata),setfield(opts_pcon,'initialize_set',0));
+                            %find consensus of every insample set of trials, and the transforms to each ts_insample{trans_lookup(irept,iset)}
+                            %but first exclude the stims (or stimsxrepts) that are not present
+                            stims_keep=setdiff([1:size(coords_insample,1)],find(xv_configs_exclude{ixv_make}==ifold));
+                            opts_pcon.initial_guess=consensus_nodrop(stims_keep,:);
+                            consensus_insample=NaN(nstims*nrepts_gp,npcs);
+                            znew_insample=NaN(nstims*nrepts_gp,npcs,length(trials_havedata));
+                            [consensus_insample(stims_keep,:),znew_insample(stims_keep,:,:),ts_insample,details_insample,opts_pcon_insample_used]=...
+                                procrustes_consensus(coords_insample(stims_keep,:,trials_havedata),setfield(opts_pcon,'initialize_set',0));
                             %
                             for istim=1:nstims
                                 znew_stim=[];
