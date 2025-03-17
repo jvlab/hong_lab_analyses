@@ -18,7 +18,7 @@
 %   1: embedding is carried out all repeats of the same prep together. (nrepts_gp=nrepts). Only possible if if_singleprep=0
 %    Alignment between preps is NOT the same as with if_embedbyprep=0, i.e., alignment only will align responses
 %    to the same stimulus on the same repeat.
-%  if both if_singleprep=1 and if_embedbyprep=1, then only some kinds of cross-validation configurations are allowed,
+% If both if_singleprep=1 and if_embedbyprep=1, then only some kinds of cross-validation configurations are allowed,
 %    to prevent all responses to the same stimulus being dropped on all repeats
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
@@ -33,6 +33,7 @@
 % 09Mar25: begin option to do embedding of all repeats of a prep at the same time: if_embedbyprep
 % 10Mar25: fix bug when all stimuli in a trial are dropped
 % 14Mar25: finished option to do embedding of all repeats of a prep at the same time: if_embedbyprep
+% 17Mar25: better logic to allow if_singleprep=1 with if_embedbyprep=1
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if_debug=getinp('1 for debug mode','d',[0 1]);
@@ -177,7 +178,7 @@ while (if_ok==0)
     while ixv_valid==0
         if if_embedbyprep==0
             [xv_configs,xv_label,opts_xv_used]=xval_configs_make([nstims,nrepts,nsets],xv_nmake,opts_xv,xv_defaults);
-            xv_configs_embed=xv_configs;
+            xv_configs_embed=xv_configs; %embedding is by rept, not by prep
         else
             opts_xv_embedbyprep=opts_xv;
             opts_xv_embedbyprep.blocks_allowed=[1 nstims]; %either delete one stimulus or an entire repeat
@@ -197,13 +198,21 @@ while (if_ok==0)
     %
     %determine if any embeddings of in-sample data are missing all examples of (stim x rept)
     %
-    xv_configs_exclude=cell(1,xv_nmake);
+    xv_configs_exclude=cell(xv_nmake,max(xv_configs(:)));
+    xv_configs_exclude_count=zeros(xv_nmake,max(xv_configs(:)));
     for ixv_make=1:xv_nmake
         which_drop=xv_configs_embed(:,:,:,ixv_make);
-        xv_configs_exclude{ixv_make}=find(min(min(which_drop,[],2),[],3)==max(max(which_drop,[],2),[],3));
-        if ~isempty(xv_configs_exclude{ixv_make})
-            disp(sprintf('Note that  for xv config %2.0f, single folds drop all examples of stimuli x repeats %s',...
-                ixv_make,sprintf(' %2.0f',xv_configs_exclude{ixv_make})));
+        folds_alldropped=unique(which_drop(find(min(min(which_drop,[],2),[],3)==max(max(which_drop,[],2),[],3)))); %folds that have all examples of (stim x rept) dropped
+        for fold_ptr=1:length(folds_alldropped)
+            ifold=folds_alldropped(fold_ptr);
+            xv_configs_exclude{ixv_make,ifold}=find(which_drop==ifold); %  xv_configs_exclude{ixv_make,ifold} is a list of the stim x rept that are completely missing in any fold
+                           
+            xv_configs_exclude_count(ixv_make,ifold)=sum(which_drop==ifold);
+        end
+        if sum(xv_configs_exclude_count(ixv_make,:))>0
+            disp(sprintf('Note that  for xv config %2.0f, %2.0f folds drop all examples of stimuli x repeats',ixv_make,sum(xv_configs_exclude_count>0)));
+            disp(sprintf('     fold: %s',sprintf(' %3.0f',folds_alldropped)));
+            disp(sprintf(' ndropped: %s',sprintf(' %3.0f',xv_configs_exclude_count(ixv_make,folds_alldropped))));
         end
     end
     max_dropped=max(opts_xv_used.max_dropped_withinset_rept(:));
@@ -361,8 +370,9 @@ for isubsamp=1:nsubsamps_use
                             end %iset
                             ntrials_tot=itrial_ct;
                             %find consensus of every insample set of trials, and the transforms to each ts_insample{trans_lookup(irept,iset)}
-                            %but first exclude the stims (or stimsxrepts) that are not present
-                            stims_keep=setdiff([1:size(coords_insample,1)],intersect(xv_configs_exclude{ixv_make},find(xv_configs_embed(:,:,:,ixv_make)==ifold)));
+                            %after excluding the stims (or stims x repts) that are not present
+                            %  xv_configs_exclude{ixv_make,ifold} is a list of the stim x rept that are completely missing in any fold
+                            stims_keep=setdiff([1:size(coords_insample,1)],xv_configs_exclude{ixv_make,ifold});
                             opts_pcon.initial_guess=consensus_nodrop(stims_keep,:);
                             consensus_insample=NaN(nstims*nrepts_gp,npcs);
                             znew_insample=NaN(nstims*nrepts_gp,npcs,length(trials_havedata));
