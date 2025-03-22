@@ -8,19 +8,18 @@
 % (setting Euclidean length to 1, so that distances are monotonically related to 1-correlation)
 %
 % if_singleprep:
-%   0 (default): aligns across preps, allows if_embedbyprep=1
-%   1: only uses the repeats within a prep, and does not attempt to align across preps
+%   0 (default): decodes by aligning across preps
+%   1: decodes by using the repeats within the same prep, and does not attempt to align across preps
 % if_noembed:
 %   0 (default): only does decoding based on embedding
 %   1: also does decoding based on ROI data, without a dimension-reduction, requires if_singleprep=1
 % if_embedbyprep:
 %   0 (default):  embedding does an SVD on each repeat separately, and then aligns them (nrepts_gp=1)
-%   1: embedding is carried out all repeats of the same prep together. (nrepts_gp=nrepts). Only possible if if_singleprep=0
-%    Alignment between preps is NOT the same as with if_embedbyprep=0, i.e., alignment only will align responses
-%    to the same stimulus on the same repeat.
+%   1: embedding is carried out all repeats of the same prep together. (nrepts_gp=nrepts).
+%    With this option, alignment only will align responses to the same stimulus on the same repeat.
 % If both if_singleprep=1 and if_embedbyprep=1, then only some kinds of cross-validation configurations are allowed,
-%    to prevent all responses to the same stimulus being dropped on all repeats
-%
+%    to prevent all responses to the same stimulus being dropped for the in-sample of a fold.
+% 
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
 %  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT, HLID_RASTIM_TRIAL_VIS,
 %  XVAL_CONFIGS_MAKE, XVAL_CONFMTX_MAKE, HLID_RASTIM_TRIAL_READ,
@@ -58,14 +57,14 @@ if ~exist('sub_labels')
     if if_debug
         sub_labels={''};
     else
-        sub_labels={'',' (mean sub)'}; end %subtract mean from responses
+        sub_labels={'',' (mean sub)'}; end %subtract mean from responses, can replace by a subset to shorten analysis
 end
 nsubs=length(sub_labels);
 if ~exist('preproc_labels') 
     if if_debug
         preproc_labels={'raw'};
     else
-        preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis or downsample
+        preproc_labels={'raw','normalized'}; end %can replace by a subset to shorten analysis
 end
 npreprocs=length(preproc_labels);
 if ~exist('if_econ_svd')
