@@ -7,7 +7,8 @@
 %  psg_align_vara_demo: variance analysis after aligning multiple datasets grouped by condition
 %  psg_geomodels_run: to determine transformation between two datasets
 %
-% Constructs a representational space using single-trial responses or mean responses,
+% Constructs a representational space using single-trial responses or mean responses 
+% (but requires a file with single-trial responses),
 % optionally subtracting mean, optionally normalizing the magnitude,
 %
 % The list of models to anlayze is given by model_types. This should be a subset of
