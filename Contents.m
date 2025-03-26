@@ -7,6 +7,9 @@
 % hlid_csv2coords_demo: convert model data in csv file to coordinates
 % hlid_coords_plot: utility to plot coords and SVD after conversion from data files
 % hlid_coords_svd: utility to create coordinates from data files via SVD, and to create associated metadata
+% hlid_geom_transform_stats: analysis of transformations between datasets, with shuffle statistics
+% hlid_geom_transform_stats_3dplot: plot of representational spaces for hlid_geom_transform_stats
+% hlid_geom_transform_stats_summ: summary plot for hli_geom_transform_stats
 % hlid_localopts: set up local options for file  names, etc
 % hlid_majaxes: examine axes identified in a transformation
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity

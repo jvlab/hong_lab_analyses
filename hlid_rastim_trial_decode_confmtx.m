@@ -1,6 +1,4 @@
-
-%hlid_rastim_trial_decode_confmtx: heatmaps of confusion matrices
-% and line graphs of fraction correect
+%hlid_rastim_trial_decode_confmtx: heatmaps of confusion matrices and line graphs of fraction correect
 %
 %runs on results structure from hlid_rastim_trial_decode
 %
@@ -25,7 +23,7 @@
 % 04Mar25: add plotting of analyses without embedding, present if results.dimlist contains Inf
 % 06Mar25: fix bug with labeling of fraction correct; row-normalize confusion matrices and plot on scale of [0 1]
 %
-%  See also: HLID_RASTIM_TRIAL_DECODEm TBLXINFO_COUNT, TBLXTPBI.
+%  See also: HLID_RASTIM_TRIAL_DECODE, TBLXINFO_COUNT, TBLXTPBI.
 %
 %fill in, and backward compatibility
 results=filldefault(results,'if_singleprep',0);

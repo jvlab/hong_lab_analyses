@@ -532,6 +532,6 @@ results.opts_pcon=opts_pcon;
 results.confusion_matrices=confusion_matrices;
 results.confusion_matrices_dims={'d1: actual stim, d2: decoded stim, d3: decision rule, d4: id_ptr, d5: sub mean d6: normalize, d7: subsample set'};
 %
-disp('results structure created.');
+disp('results structure created, consider saving it');
 %
 disp('confusion matrices can be plotted with hlid_rastim_trial_decode_confmtx')
