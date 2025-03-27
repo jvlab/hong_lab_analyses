@@ -102,8 +102,11 @@ for imodel=1:results.nmodels
         axes('Position',[0.01,0.01,0.01,0.01]); %for text
         text(0,0,cat(2,'adj: ',rbase.adj_file),'Interpreter','none');
         axis off
-        axes('Position',[0.5,0.01,0.01,0.01]);
-        text(0,0,cat(2,sprintf('allow scale: %1.0f',results.opts_pcon.allow_scale),' quantiles:',sprintf(' %6.4f',ratio_quantiles)));
+        axes('Position',[0.5,0.05,0.01,0.01]);
+        text(0,0,sprintf('allow scale in consensus: %1.0f',results.opts_pcon.allow_scale));
+        axis off
+        axes('Position',[0.5,0.03,0.01,0.01]);
+        text(0,0,cat(2,'quantiles:',sprintf(' %6.4f',ratio_quantiles)));
         axis off
     end %iembed
 end %imodel
