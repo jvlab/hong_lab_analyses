@@ -1,6 +1,7 @@
 %hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_stats
 % 
 % runs on results structure from hlid_geom_transform_stats
+% to plot and tabulate major axis ratios, for adj dim = ref dim
 %
 rbase=results.geo{1,1,1}{results.dimlist(1),results.dimlist(1)};
 dimlist=results.dimlist;
@@ -10,6 +11,7 @@ nrq=length(ratio_quantiles);
 %
 %plot axis magnifications for adj dim = ref dim
 results.magnif_summ_dims='d1: nsubs, d2: npreprocs, d3: nembeds, d4: nmodels';
+results.magnif_summ_dims_inside='d1: ref dim= adj dim, d2: eiv number';
 magnif_summ=cell(results.nsubs,results.npreprocs,results.nembeds,results.nmodels);
 for imodel=1:results.nmodels
     for iembed=1:results.nembeds
