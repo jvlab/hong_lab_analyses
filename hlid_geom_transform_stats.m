@@ -239,6 +239,10 @@ results.rois_avail=rois_avail;
 results.stimulus_names=stimulus_names;
 results.stimulus_names_display=stimulus_names_display;
 %
+results.nmodels=nmodels;
+results.model_types_use=model_types_use;
+results.opts_majaxes=opts_majaxes;
+%
 results.opts_pcon=opts_pcon;
 results.nshuffs_between=nshuffs_between;
 results.shuff_gp_selects=shuff_gp_selects;
@@ -374,7 +378,7 @@ for isub=1:nsubs
                 r_geo.d=NaN(nmodels,1);
                 r_geo.adj_model=cell(nmodels,1); %not in psg_geo_models_run but could be useful (model fit)
                 r_geo.transforms=cell(nmodels,1);
-                r_geo.opts_models_used=cell(nmodels,1);
+                r_geo.opts_model_used=cell(nmodels,1);
                 r_geo_base{ref_dim,adj_dim}=r_geo;
                 for imodel=1:nmodels
                     model_type=model_types{imodel};
@@ -429,7 +433,7 @@ for isub=1:nsubs
                         r_geo_shuff.d=NaN(nmodels,1);
                         r_geo_shuff.adj_model=cell(nmodels,1); %not in psg_geo_models_run but could be useful (model fit)
                         r_geo_shuff.transforms=cell(nmodels,1);
-                        r_geo_shuff.opts_models_used=cell(nmodels,1);
+                        r_geo_shuff.opts_model_used=cell(nmodels,1);
                         %fit the model
                         for imodel=1:nmodels
                             model_type=model_types{imodel};
