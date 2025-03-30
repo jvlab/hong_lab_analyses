@@ -245,6 +245,7 @@ results.opts_majaxes=opts_majaxes;
 %
 results.opts_pcon=opts_pcon;
 results.nshuffs_between=nshuffs_between;
+results.shuffs_between=shuffs_between;
 results.shuff_gp_selects=shuff_gp_selects;
 results.shuff_gp_origs=shuff_gp_origs;
 %
