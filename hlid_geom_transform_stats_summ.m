@@ -8,6 +8,7 @@ dimlist=results.dimlist;
 model_types=rbase.model_types_def.model_types;
 if ~exist('ratio_quantiles') ratio_quantiles=[.5 .05 .01]; end %to look at top of distribution
 nrq=length(ratio_quantiles);
+if ~exist('if_show_max') if_show_max=0; end % set to 1 to show maximum axis ratio
 %
 %plot axis magnifications for adj dim = ref dim
 results.magnif_summ_dims='d1: nsubs, d2: npreprocs, d3: nembeds, d4: nmodels';
@@ -61,14 +62,24 @@ for imodel=1:results.nmodels
                     hp=semilogy(dimlist,magnif_rgm(dimlist),'g','LineWidth',2);
                     hl=[hl,hp];
                     ht=strvcat(ht,'high/geomean');
+                    if if_show_max  
+                        hp=semilogy(dimlist,magnif_all(dimlist,1),'m','LineWidth',2);
+                        hl=[hl,hp];
+                        ht=strvcat(ht,'high');
+                    end
                     if nrq>0
                         magnif_r12_shuff=reshape(magnif_all_shuff(:,1,:)./magnif_all_shuff(:,2,:),[max(dimlist) results.nshuffs_between]);
                         magnif_rgm_shuff=reshape(magnif_all_shuff(:,1,:)./geomean(magnif_all_shuff,2,'omitnan'),[max(dimlist) results.nshuffs_between]);
                         for iq=1:nrq
-                            hp=semilogy(dimlist,quantile(magnif_r12_shuff(dimlist,:,:),1-ratio_quantiles(iq),2),'r','LineWidth',1);
-                            hp=semilogy(dimlist,quantile(magnif_rgm_shuff(dimlist,:,:),1-ratio_quantiles(iq),2),'g','LineWidth',1);
-                        end
-                    end
+                            hp=semilogy(dimlist,quantile(magnif_r12_shuff(dimlist,:),1-ratio_quantiles(iq),2),'r','LineWidth',1);
+                            hp=semilogy(dimlist,quantile(magnif_rgm_shuff(dimlist,:),1-ratio_quantiles(iq),2),'g','LineWidth',1);
+                            if if_show_max                                                               
+                                hp=semilogy(dimlist,quantile(magnif_all_shuff(dimlist,1,:),1-ratio_quantiles(iq),3),'m','LineWidth',1);
+                                hp=semilogy(dimlist,quantile(magnif_all_shuff(dimlist,1,:),ratio_quantiles(iq),3),'m:','LineWidth',1);
+
+                            end
+                        end %iq
+                    end %nrq
                 end
                 %
                 legend(hl,ht,'Location','NorthWest');
