@@ -24,7 +24,7 @@ mixents_maxposs=-sum(lognz(results.nsets_gp/results.nsets).*(results.nsets_gp/re
 disp(sprintf('before selection: %5.0f shuffles, mixing entropies range from %7.4f to %7.4f, %4.0f unique values, max possible is %7.4f, nrelabeled: %2.0f to %2.0f',...
     length(mixents),min(mixents),max(mixents),length(unique(mixents)),mixents_maxposs,min(nrelabeled),max(nrelabeled)));
 %add a small amount of random jitter so that quantiles will give close to the exact number desired
-mixent_jit=min(min(abs(diff(unique(mixents)))),1);
+mixent_jit=min([1;abs(diff(unique(mixents)))]);
 mixents_jittered=mixents+rand(results.nshuffs_between,1)*mixent_jit;
 mixents_minkeep=quantile(mixents_jittered,[1-mixent_frac]);
 mixents_ptrs=find(mixents_jittered>=mixents_minkeep);

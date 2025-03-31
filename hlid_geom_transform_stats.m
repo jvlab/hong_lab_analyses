@@ -182,15 +182,18 @@ else
 end
 [shuffs_between,gp_info,opts_shuff_used]=multi_shuff_groups(gps,opts_shuff);
 nshuffs_between=size(shuffs_between,1);
+
 shuff_gp_selects=cell(1,ngps);
 shuff_gp_origs=cell(1,ngps);
 for igp=1:ngps
     shuff_gp_selects{igp}=zeros(nshuffs_between,nsets_gp(igp)); %which sets are in each group
     shuff_gp_origs{igp}=zeros(nshuffs_between,nsets_gp(igp)); %original group membership in each group
 end
+if_keep_all_shuff=0;
 %set up shuffled group selections
 if nshuffs_between>0
-     for ishuff=1:nshuffs_between
+    if_keep_all_shuff=getinp('1 to keep all outputs from shuffles, 0 for outputs only neeed for stats','d',[0 1],if_debug);
+    for ishuff=1:nshuffs_between
         gp_select=cell(1,ngps);
         gp_orig=cell(1,ngps);
         for igp=1:ngps
@@ -285,7 +288,9 @@ consensus_init=cell(1,length(dimlist)); %initial guess, uniform across nsubs, np
 results.geo=cell(nsubs,npreprocs,nembeds);
 results.geo_majaxes=cell(nsubs,npreprocs,nembeds);
 results.geo_majaxes_dims='d1: nsubs, d2: npreprocs, d3: nembeds, d4: nshuffs';
-results.geo_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
+if if_keep_all_shuff
+    results.geo_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
+end
 results.geo_majaxes_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
 %
 for isub=1:nsubs
@@ -449,7 +454,20 @@ for isub=1:nsubs
                     end %idim_pair
                     %determine major axes
                     [r_geo_majaxes_shuff,opts_shuff_majaxes_used]=psg_majaxes(d_ref_shuff,sa_ref,d_adj_shuff,sa_adj,r_geo_all_shuff,opts_majaxes);
-                    results.geo_shuff{isub,ipreproc,iembed,ishuff}=r_geo_all_shuff;
+                    if if_keep_all_shuff
+                        results.geo_shuff{isub,ipreproc,iembed,ishuff}=r_geo_all_shuff;
+                    else %strip fields from r_geo_majaxes_shuff
+                        r_geo_majaxes_shuff_full=r_geo_majaxes_shuff;
+                        r_geo_majaxes_shuff=cell(size(r_geo_majaxes_shuff_full));
+                        for ird=1:size(r_geo_majaxes_shuff,1)
+                            for iad=1:size(r_geo_majaxes_shuff,2);
+                                if ~isempty(r_geo_majaxes_shuff_full{ird,iad})
+                                    r_geo_majaxes_shuff{ird,iad}.ref.magnifs=r_geo_majaxes_shuff_full{ird,iad}.ref.magnifs;
+                                    r_geo_majaxes_shuff{ird,iad}.ref.magnif_ratio=r_geo_majaxes_shuff_full{ird,iad}.ref.magnif_ratio;
+                                end %empty
+                            end %iad
+                        end %ird
+                    end
                     results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}=r_geo_majaxes_shuff;
                 end %ishuff
                 disp(sprintf(' %5.0f shuffles between ref and adj done',nshuffs_between));
