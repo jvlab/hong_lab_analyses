@@ -511,7 +511,7 @@ for isub=1:nsubs
                     end
                     results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}=r_geo_majaxes_shuff;
                 end %ishuff
-                disp(sprintf(' %5.0f shuffles between ref and adj done',nshuffs_between));
+                disp(sprintf(' %5.0f shuffles  between ref and adj done',nshuffs_between));
             end %nshuffs_between
             %
             %bootstraps
@@ -584,7 +584,7 @@ for isub=1:nsubs
                     end
                     results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}=r_geo_majaxes_boot;
                 end %iboot
-                disp(sprintf(' %5.0f boots within ref and adj done',nboots_within));
+                disp(sprintf(' %5.0f bootstraps within ref and adj done',nboots_within));
             end %nboots_within
         end %iembed
     end %ipreproc
