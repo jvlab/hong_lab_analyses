@@ -9,7 +9,10 @@
 %
 % Constructs a representational space using single-trial responses or mean responses 
 % (but requires a file with single-trial responses),
-% optionally subtracting mean, optionally normalizing the magnitude,
+% optionally subtracting mean, optionally normalizing the magnitude.
+%
+% Then shuffles the labels and re-analyzes; hlid_geom_transform_stats_summ
+% will plot and summarize.  Main results saved in 'results'.
 %
 % The list of models to anlayze is given by model_types. This should be a subset of
 % the model_types field of psg_geomodels_define().  It defaults to 'affine_noofset'
@@ -22,7 +25,9 @@
 %  HLID_GEOM_TRANSFORM_STATS_3DPLOT, HLID_GEOM_TRANSFORM_STATS_SUMM, 
 %  PSG_GEOMODELS_DEFINE, PSG_GEO_GENERAL,
 %  HLID_RASTIM_TRIAL_DECODE, HLID_MAJAXES, PSG_ALIGN_VARA_DEMO, PSG_GEOMODELS_RUN, PSG_MAJAXES,
-%  MULIT_SHUFF_GROUPS.
+%  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS.
+%
+% 02Apr 25:Begin adding bootstraps within groups for confidence limits.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
@@ -171,18 +176,18 @@ end
 %
 if_3dplot=getinp('1 to plot response space for 3d consensus','d',[0 1]);
 %
-%get between-group shuffle information 
+%get between-group shuffle information
+%
 opts_shuff=struct;
 opts_shuff.if_ask=-1;
 opts_shuff.if_reduce=0;
 if if_debug
-    opts_shuff.nshuffs=10;
+    opts_shuff.nshuffs=10;gp_select
 else
     opts_shuff.nshuffs=1000;
 end
 [shuffs_between,gp_info,opts_shuff_used]=multi_shuff_groups(gps,opts_shuff);
 nshuffs_between=size(shuffs_between,1);
-
 shuff_gp_selects=cell(1,ngps);
 shuff_gp_origs=cell(1,ngps);
 for igp=1:ngps
@@ -190,7 +195,6 @@ for igp=1:ngps
     shuff_gp_origs{igp}=zeros(nshuffs_between,nsets_gp(igp)); %original group membership in each group
 end
 if_keep_all_shuff=0;
-%set up shuffled group selections
 if nshuffs_between>0
     if_keep_all_shuff=getinp('1 to keep all outputs from shuffles, 0 for outputs only neeed for stats','d',[0 1],if_debug);
     for ishuff=1:nshuffs_between
@@ -202,6 +206,36 @@ if nshuffs_between>0
             shuff_gp_selects{igp}(ishuff,:)=gp_select{igp};
             shuff_gp_origs{igp}(ishuff,:)=gp_orig{igp};
         end
+    end
+end
+%
+% get bootstrap settings
+%
+opts_boot=opts_shuff;
+[boots_within,gp_info_boot,opts_boot_used]=multi_boot_groups(gps,opts_boot);
+nboots_within=size(boots_within,1);
+boot_gp_selects=cell(1,ngps);
+boot_gp_origs=cell(1,ngps);
+for igp=1:ngps
+    boot_gp_selects{igp}=zeros(nboots_within,nsets_gp(igp)); %which sets are in each group
+    boot_gp_origs{igp}=zeros(nboots_within,nsets_gp(igp)); %original group membership in each group
+end
+if nboots_within>0
+    if_keep_all_boot=getinp('1 to keep all outputs from bootstraps, 0 for outputs only neeed for stats','d',[0 1],if_debug);
+    for iboot=1:nboots_within
+        gp_select=cell(1,ngps);
+        gp_orig=cell(1,ngps);
+        for igp=1:ngps
+            gp_select{igp}=boots_within(iboot,gp_list{igp});
+            gp_orig{igp}=gps(gp_select{igp});
+            boot_gp_selects{igp}(iboot,:)=gp_select{igp};
+            boot_gp_origs{igp}(iboot,:)=gp_orig{igp}; %should always = igp
+        end
+    end
+end
+for igp=1:ngps
+    if any(boot_gp_origs{igp}~=igp)
+        warning(sprintf(' bootstrap cross-check fails for group %1.0f',igp));
     end
 end
 %
@@ -247,10 +281,17 @@ results.model_types_use=model_types_use;
 results.opts_majaxes=opts_majaxes;
 %
 results.opts_pcon=opts_pcon;
+%
 results.nshuffs_between=nshuffs_between;
 results.shuffs_between=shuffs_between;
 results.shuff_gp_selects=shuff_gp_selects;
 results.shuff_gp_origs=shuff_gp_origs;
+results.opts_shuff=opts_shuff_used;
+%
+results.nboots_within=nboots_within;
+results.boots_within=boots_within;
+results.boog_gp_selects=boot_gp_selects;
+results.opts_boot=opts_boot_used;
 %
 %do the preprocessing on all files, as this is independent of later steps
 %
@@ -472,6 +513,79 @@ for isub=1:nsubs
                 end %ishuff
                 disp(sprintf(' %5.0f shuffles between ref and adj done',nshuffs_between));
             end %nshuffs_between
+            %
+            %bootstraps
+            %
+            if nboots_within>0
+                for iboot=1:nboots_within
+                    r_geo_all_boot=cell(max(dimlist),max(dimlist)); %in keeping with psg_geomodels_run
+                    d_ref_boot=cell(1,max(dimlist));
+                    d_adj_boot=cell(1,max(dimlist));
+                    %create consensus within groups, after bootstraps within groups, using global consensus for initialization and alignment
+                    opts_pcon_use=opts_pcon;
+                    opts_pcon_use.initialize_set=0;
+                    consensus_boot_bygp=cell(length(dimlist),ngps); %compute the consensus for each group, each dimension, this embedding, and center if necessary
+                    for idim_ptr=1:length(dimlist)
+                        for igp=1:ngps
+                            opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
+                            consensus_boot_bygp{idim_ptr,igp}=procrustes_consensus(coords_embedded{iembed,idim_ptr}(:,:,boot_gp_selects{igp}(iboot,:)),opts_pcon_use);
+                            if if_center
+                                consensus_boot_bygp{idim_ptr,igp}=consensus_boot_bygp{idim_ptr,igp}-repmat(mean(consensus_boot_bygp{idim_ptr,igp},1),[npts_embed,1]);
+                            end
+                            d_ref_boot{dimlist(idim_ptr)}=consensus_boot_bygp{idim_ptr,1};
+                            d_adj_boot{dimlist(idim_ptr)}=consensus_boot_bygp{idim_ptr,2};
+                        end %igp
+                    end %idim_ptr
+                    for idim_pair=1:size(dimpair_list,1)
+                        ref_dim=dimpair_list(idim_pair,1);
+                        adj_dim=dimpair_list(idim_pair,2);
+                        r_geo_boot=r_geo_base{ref_dim,adj_dim};
+                        r_geo_boot.ref_file=sprintf('ref, boot_within %5.0f of %5.0f',iboot,nboots_within);
+                        r_geo_boot.adj_file=sprintf('adj, boot_within %5.0f of %5.0f',iboot,nboots_within);
+                        idim_ref_ptr=find(dimlist==ref_dim);
+                        idim_adj_ptr=find(dimlist==adj_dim);
+                        %
+                        r_geo_boot.d=NaN(nmodels,1);
+                        r_geo_boot.adj_model=cell(nmodels,1); %not in psg_geo_models_run but could be useful (model fit)
+                        r_geo_boot.transforms=cell(nmodels,1);
+                        r_geo_boot.opts_model_used=cell(nmodels,1);
+                        %fit the model
+                        for imodel=1:nmodels
+                            model_type=model_types{imodel};
+                            if adj_dim>=model_types_def.(model_type).min_inputdims
+                                opts_model=model_types_def.(model_type).opts;
+                                model_class=model_types_def.(model_type).class;
+                                [r_geo_boot.d(imodel),r_geo_boot.adj_model{imodel},r_geo_boot.transforms{imodel},r_geo_boot.opts_model_used{imodel}]=...
+                                    psg_geo_general(d_ref_boot{ref_dim},d_adj_boot{adj_dim},model_class,opts_model);
+                            end
+                        end %imodel
+                         r_geo_all_boot{ref_dim,adj_dim}=r_geo_boot;
+                    end %idim_pair
+                    %determine major axes
+                    [r_geo_majaxes_boot,opts_boot_majaxes_used]=psg_majaxes(d_ref_boot,sa_ref,d_adj_boot,sa_adj,r_geo_all_boot,opts_majaxes);
+                    if if_keep_all_boot
+                        results.geo_boot{isub,ipreproc,iembed,iboot}=r_geo_all_boot;
+                    else %strip fields from r_geo_majaxes_boot
+                        r_geo_majaxes_boot_full=r_geo_majaxes_boot;
+                        r_geo_majaxes_boot=cell(size(r_geo_majaxes_boot_full));
+                        for ird=1:size(r_geo_majaxes_boot,1)
+                            for iad=1:size(r_geo_majaxes_boot,2);
+                                if ~isempty(r_geo_majaxes_boot_full{ird,iad})
+                                    r_geo_majaxes_boot{ird,iad}.ref.magnifs=r_geo_majaxes_boot_full{ird,iad}.ref.magnifs;
+                                    r_geo_majaxes_boot{ird,iad}.ref.magnif_ratio=r_geo_majaxes_boot_full{ird,iad}.ref.magnif_ratio;
+                                    r_geo_majaxes_boot{ird,iad}.ref.projections=r_geo_majaxes_boot_full{ird,iad}.ref.projections; %also keep projections, for confidence limits
+                                    %
+                                    r_geo_majaxes_boot{ird,iad}.adj.magnifs=r_geo_majaxes_boot_full{ird,iad}.adj.magnifs;
+                                    r_geo_majaxes_boot{ird,iad}.adj.magnif_ratio=r_geo_majaxes_boot_full{ird,iad}.adj.magnif_ratio;
+                                    r_geo_majaxes_boot{ird,iad}.adj.projections=r_geo_majaxes_boot_full{ird,iad}.adj.projections; %also keep projections, for confidence limits
+                                end %empty
+                            end %iad
+                        end %ird
+                    end
+                    results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}=r_geo_majaxes_boot;
+                end %iboot
+                disp(sprintf(' %5.0f boots within ref and adj done',nboots_within));
+            end %nboots_within
         end %iembed
     end %ipreproc
 end % isub
