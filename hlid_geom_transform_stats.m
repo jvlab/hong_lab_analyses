@@ -182,7 +182,7 @@ opts_shuff=struct;
 opts_shuff.if_ask=-1;
 opts_shuff.if_reduce=0;
 if if_debug
-    opts_shuff.nshuffs=10;gp_select
+    opts_shuff.nshuffs=10;
 else
     opts_shuff.nshuffs=1000;
 end
