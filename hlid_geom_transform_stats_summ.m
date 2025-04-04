@@ -8,7 +8,8 @@
 % mixent_frac can be set to less than 1 to only inclucde shuffles with 
 %   a minimum amount of mixing entropies
 %
-%   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT
+%   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
+%   HLID_GEOM_TRANSFORM_STATS_LABEL.
 %
 if ~exist('ratio_quantiles') ratio_quantiles=[.5 .05 .01]; end %to look at top of distribution
 nrq=length(ratio_quantiles);
@@ -17,6 +18,12 @@ if ~exist('mixent_frac') mixent_frac=1; end %set to < 1 to only include shuffles
 if ~exist('boot_quantiles') boot_quantiles=[0.025 0.975]; end %make empty to omit bootstraps
 nbq=length(boot_quantiles);
 if ~exist('ebw') ebw=0.1; end %error bar width
+ra_text={'ref','adj'};
+%
+rng_state=rng;
+if (results.if_frozen~=0) 
+    rng('default');
+end
 %
 [mixents,mixmats]=multi_shuff_mixent(results.shuffs_between,results.gps);
 nrelabeled=zeros(results.nshuffs_between,1);
@@ -40,10 +47,6 @@ if ~isfield(results,'nboots_within') %for compatibility
     results.nboots_within=0;
 end
 %
-rng_state=rng;
-if (results.if_frozen~=0) 
-    rng('default');
-end
 rbase=results.geo{1,1,1}{results.dimlist(1),results.dimlist(1)};
 dimlist=results.dimlist;
 model_types=rbase.model_types_def.model_types;
@@ -59,13 +62,8 @@ results.projs_summ=cell(results.nsubs,results.npreprocs,results.nembeds,results.
 %
 for imodel=1:results.nmodels
     for iembed=1:results.nembeds
-        figure;
-        set(gcf,'Position',[100 100 1200 800]);
-        set(gcf,'NumberTitle','off');
-        set(gcf,'Name',cat(2,model_types{imodel},', ',results.embed_labels{iembed}));
         for isub=1:results.nsubs
             for ipreproc=1:results.npreprocs
-                subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
                 %
                 %collect for each model dimension (ref dim = adj dim = idim), then do vectorized calcs
                 %for shuffles, only collect magnif factors
@@ -131,45 +129,59 @@ for imodel=1:results.nmodels
                 p.projs=projs;
                 p.projs_boot=projs_boot;
                 results.projs_summ{isub,ipreproc,iembed,imodel}=p;
-                %
-                %magnification factor plots
-                %
+            end %ipreproc
+        end %isub
+    end %iembed
+end %imodel
+for imodel=1:results.nmodels
+    for iembed=1:results.nembeds
+        %
+        %magnification factor plots
+        %
+        figure;
+        set(gcf,'Position',[100 100 1200 800]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',cat(2,'magnif factors for ',model_types{imodel},', ',results.embed_labels{iembed}));
+        for isub=1:results.nsubs
+            for ipreproc=1:results.npreprocs
+                m=results.magnif_summ{isub,ipreproc,iembed,imodel};
+                subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);               
                 hl=cell(0);
                 ht=[];
-                hp=semilogy(dimlist,magnif_rng(dimlist),'k','LineWidth',2);
+                hp=semilogy(dimlist,m.magnif_rng(dimlist),'k','LineWidth',2);
                 hold on;
                 hl=[hl,hp];
                 ht=strvcat(ht,'high/low');
                 if nrq>0
                     for iq=1:nrq
-                        hp=semilogy(dimlist,quantile(magnif_rng_shuff(dimlist,mixents_ptrs),1-ratio_quantiles(iq),2),'k','LineWidth',1);
+                        hp=semilogy(dimlist,quantile(m.magnif_rng_shuff(dimlist,mixents_ptrs),1-ratio_quantiles(iq),2),'k','LineWidth',1);
                     end
                 end
                 %
                 if length(dimlist)>=2
-                    hp=semilogy(dimlist,magnif_r12(dimlist),'r','LineWidth',2);
+                    hp=semilogy(dimlist,m.magnif_r12(dimlist),'r','LineWidth',2);
                     hl=[hl,hp];
                     ht=strvcat(ht,'high/second');
-                    hp=semilogy(dimlist,magnif_rgm(dimlist),'g','LineWidth',2);
+                    hp=semilogy(dimlist,m.magnif_rgm(dimlist),'g','LineWidth',2);
                     hl=[hl,hp];
                     ht=strvcat(ht,'high/geomean');
                     if if_show_max  
-                        hp=semilogy(dimlist,magnif_all(dimlist,1),'m','LineWidth',2);
+                        hp=semilogy(dimlist,m.magnif_all(dimlist,1),'m','LineWidth',2);
                         hl=[hl,hp];
                         ht=strvcat(ht,'high');
                     end
                     if nrq>0
                         for iq=1:nrq
-                            hp=semilogy(dimlist,quantile(magnif_r12_shuff(dimlist,mixents_ptrs),1-ratio_quantiles(iq),2),'r','LineWidth',1);
-                            hp=semilogy(dimlist,quantile(magnif_rgm_shuff(dimlist,mixents_ptrs),1-ratio_quantiles(iq),2),'g','LineWidth',1);
+                            hp=semilogy(dimlist,quantile(m.magnif_r12_shuff(dimlist,mixents_ptrs),1-ratio_quantiles(iq),2),'r','LineWidth',1);
+                            hp=semilogy(dimlist,quantile(m.magnif_rgm_shuff(dimlist,mixents_ptrs),1-ratio_quantiles(iq),2),'g','LineWidth',1);
                             if if_show_max                                                               
-                                hp=semilogy(dimlist,quantile(magnif_all_shuff(dimlist,1,mixents_ptrs),1-ratio_quantiles(iq),3),'m','LineWidth',1);
-                                hp=semilogy(dimlist,quantile(magnif_all_shuff(dimlist,1,mixents_ptrs),ratio_quantiles(iq),3),'m:','LineWidth',1);
+                                hp=semilogy(dimlist,quantile(m.magnif_all_shuff(dimlist,1,mixents_ptrs),1-ratio_quantiles(iq),3),'m','LineWidth',1);
+                                hp=semilogy(dimlist,quantile(m.magnif_all_shuff(dimlist,1,mixents_ptrs),ratio_quantiles(iq),3),'m:','LineWidth',1);
                             end
                         end %iq
                     end %nrq
                     if nbq>1 & results.nboots_within>0
-                        boot_ebs_rng=quantile(magnif_rng_boot,boot_quantiles,2);
+                        boot_ebs_rng=quantile(m.magnif_rng_boot,boot_quantiles,2);
                         for idim_ptr=1:length(dimlist)
                             idim=dimlist(idim_ptr);
                             semilogy(repmat(idim,1,nbq),boot_ebs_rng(idim,:),'k');
@@ -178,9 +190,9 @@ for imodel=1:results.nmodels
                             end
                         end
                         if length(dimlist)>=2
-                            boot_ebs_r12=quantile(magnif_r12_boot,boot_quantiles,2);
-                            boot_ebs_rgm=quantile(magnif_rgm_boot,boot_quantiles,2);
-                            boot_ebs_all=quantile(squeeze(magnif_all_boot(:,1,:)),boot_quantiles,2);
+                            boot_ebs_r12=quantile(m.magnif_r12_boot,boot_quantiles,2);
+                            boot_ebs_rgm=quantile(m.magnif_rgm_boot,boot_quantiles,2);
+                            boot_ebs_all=quantile(squeeze(m.magnif_all_boot(:,1,:)),boot_quantiles,2);
                             for idim_ptr=1:length(dimlist)
                                 idim=dimlist(idim_ptr);
                                 semilogy(repmat(idim,1,nbq),boot_ebs_r12(idim,:),'r');
@@ -209,27 +221,36 @@ for imodel=1:results.nmodels
                 title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
              end %ipreproc
         end %isub
-        axes('Position',[0.01,0.05,0.01,0.01]); %for text
-        text(0,0,sprintf(' %s, %s, shuffles between sets: %4.0f',...
-            model_types{imodel},results.embed_labels{iembed},results.nshuffs_between),'Interpreter','none');
-        axis off;
-        axes('Position',[0.01,0.03,0.01,0.01]); %for text
-        text(0,0,cat(2,'ref: ',rbase.ref_file),'Interpreter','none');
-        axis off       
+        hlid_geom_transform_stats_label;
         %
-        axes('Position',[0.01,0.01,0.01,0.01]); %for text
-        text(0,0,cat(2,'adj: ',rbase.adj_file),'Interpreter','none');
-        axis off
-        axes('Position',[0.5,0.05,0.01,0.01]);
-        text(0,0,sprintf('allow scale in consensus: %1.0f',results.opts_pcon.allow_scale));
-        axis off
-        axes('Position',[0.5,0.03,0.01,0.01]);
-        text(0,0,cat(2,'quantiles:',sprintf(' %6.4f',ratio_quantiles),' error bars:',sprintf(' %6.4f',boot_quantiles)));
-        axis off
-        axes('Position',[0.5,0.01,0.01,0.01]);
-        text(0,0,sprintf('shuffles selected: %5.0f of %5.0f (frac: %5.3f), nrelabeled: %2.0f to %2.0f',...
-            length(mixents_ptrs),length(mixents),mixent_frac,min(nrelabeled(mixents_ptrs)),max(nrelabeled(mixents_ptrs))));
-        axis off;
+        %projection plots
+        %
+        for ira=1:2
+            figure;
+            set(gcf,'Position',[100 100 1200 800]);
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Name',cat(2,'major axes for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
+            for isub=1:results.nsubs
+                for ipreproc=1:results.npreprocs
+                    m=results.magnif_summ{isub,ipreproc,iembed,imodel};
+                    p=results.projs_summ{isub,ipreproc,iembed,imodel};
+                    subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
+                    for idim_ptr=1:length(dimlist)
+                        idim=dimlist(idim_ptr);
+                        plot([0.5 results.nstims+0.5],[idim idim],'k:');
+                        hold on;
+                    end
+                    set(gca,'XLim',[1 results.nstims]+[-0.5 0.5]);
+                    set(gca,'XTick',[1:results.nstims]);
+                    set(gca,'XTickLabel',results.stimulus_names_display);
+                    set(gca,'YLim',[1 max(dimlist)]+[-0.5 0.5]);
+                    set(gca,'YTick',[1:max(dimlist)]);
+                    ylabel(sprintf('%s dim',ra_text{ira}));
+                    title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
+                end %ipreproc
+            end %isub
+        end %iar
+        hlid_geom_transform_stats_label;
     end %iembed
 end %imodel
 %
