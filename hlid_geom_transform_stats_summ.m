@@ -19,10 +19,14 @@ if ~exist('mixent_frac') mixent_frac=1; end %set to < 1 to only include shuffles
 if ~exist('boot_quantiles') boot_quantiles=[0.025 0.975]; end %make empty to omit bootstraps
 nbq=length(boot_quantiles);
 if ~exist('if_flip_projs') if_flip_projs=1; end
+%plotting params
 if ~exist('ebw') ebw=0.1; end %error bar width
 if ~exist('colors') colors={'k','b','c','r','g','y'}; end
 if ~exist('dim_off') dim_off=0.1; end %offset for each dimension in projection plot
+%
 ra_text={'ref','adj'};
+%
+results.if_flip_projs=if_flip_projs;
 %
 rng_state=rng;
 if (results.if_frozen~=0) 
@@ -96,13 +100,12 @@ for imodel=1:results.nmodels
                     %
                     for ira=1:2
                         projs_orig=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.(ra_text{ira}).projections{imodel};
+                        projs{idim,ira}=projs_orig;
                         if if_flip_projs
                             for ieiv=1:idim
                                 flip=sign(projs_orig(find(abs(projs_orig(:,ieiv))==max(abs(projs_orig(:,ieiv)))),ieiv));
                                 projs{idim,ira}(:,ieiv)=projs_orig(:,ieiv)*flip;
                             end
-                        else
-                            projs{idim,ira}=projs_orig;
                         end
                         projs_boot{idim,ira}=NaN(size(projs{idim,ira},1),idim,results.nboots_within);
                         pboot=NaN(size(projs{idim,ira},1),idim,2);
@@ -279,6 +282,9 @@ for imodel=1:results.nmodels
                 end %ipreproc
             end %isub
             hlid_geom_transform_stats_label;
+            axes('Position',[0.75,0.05,0.01,0.01]);
+            text(0,0,sprintf('flip projections so max is >0: %1.0f',if_flip_projs));
+            axis off
         end %ira
     end %iembed
 end %imodel
