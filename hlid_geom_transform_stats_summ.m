@@ -5,8 +5,9 @@
 %
 % ratio_quantiles can be customized for significance levelsalues
 % if_show_max can be set to 1 to also show max axis ratio
-% mixent_frac can be set to less than 1 to only inclucde shuffles with 
-%   a minimum amount of mixing entropies
+% mixent_frac can be set to less than 1 to only inclucde shuffles with a minimum amount of mixing entropies
+% if_flip_projs can be set to 0 to disable flipping of projections so that largest projection is positive
+%   (boostrapped projections are aligned b dot-product to unbootstrapped versions)
 %
 %   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
 %   HLID_GEOM_TRANSFORM_STATS_LABEL.
@@ -17,6 +18,7 @@ if ~exist('if_show_max') if_show_max=0; end % set to 1 to show maximum axis rati
 if ~exist('mixent_frac') mixent_frac=1; end %set to < 1 to only include shuffles with a large mixing entropy
 if ~exist('boot_quantiles') boot_quantiles=[0.025 0.975]; end %make empty to omit bootstraps
 nbq=length(boot_quantiles);
+if ~exist('if_flip_projs') if_flip_projs=1; end
 if ~exist('ebw') ebw=0.1; end %error bar width
 if ~exist('colors') colors={'k','b','c','r','g','y'}; end
 if ~exist('dim_off') dim_off=0.1; end %offset for each dimension in projection plot
@@ -87,21 +89,34 @@ for imodel=1:results.nmodels
                     magnif_all(dimlist(idim_ptr),[1:idim])=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.ref.magnifs{imodel}';
                     magnif_rng(dimlist(idim_ptr),1)=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.ref.magnif_ratio{imodel};
                     %
-                    projs{idim,1}=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.ref.projections{imodel};
-                    projs{idim,2}=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.adj.projections{imodel};
                     for ishuff=1:results.nshuffs_between
                         magnif_all_shuff(dimlist(idim_ptr),[1:idim],ishuff)=results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}{idim,idim}.ref.magnifs{imodel}';
                         magnif_rng_shuff(dimlist(idim_ptr),ishuff)=results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}{idim,idim}.ref.magnif_ratio{imodel};
                     end %ishuff
                     %
-                    for iar=1:2
-                        projs_boot{idim,iar}=NaN(size(projs{idim,iar},1),idim,results.nboots_within);
+                    for ira=1:2
+                        projs_orig=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.(ra_text{ira}).projections{imodel};
+                        if if_flip_projs
+                            for ieiv=1:idim
+                                flip=sign(projs_orig(find(abs(projs_orig(:,ieiv))==max(abs(projs_orig(:,ieiv)))),ieiv));
+                                projs{idim,ira}(:,ieiv)=projs_orig(:,ieiv)*flip;
+                            end
+                        else
+                            projs{idim,ira}=projs_orig;
+                        end
+                        projs_boot{idim,ira}=NaN(size(projs{idim,ira},1),idim,results.nboots_within);
+                        pboot=NaN(size(projs{idim,ira},1),idim,2);
                     end
                     for iboot=1:results.nboots_within
-                        magnif_all_boot(dimlist(idim_ptr),[1:idim],iboot)=results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}{idim,idim}.ref.magnifs{imodel}';
-                        magnif_rng_boot(dimlist(idim_ptr),iboot)=results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}{idim,idim}.ref.magnif_ratio{imodel};
-                        projs_boot{idim,1}(:,:,iboot)=results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}{idim,idim}.ref.projections{imodel};
-                        projs_boot{idim,2}(:,:,iboot)=results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}{idim,idim}.adj.projections{imodel};
+                        boot_base=results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}{idim,idim};
+                        magnif_all_boot(dimlist(idim_ptr),[1:idim],iboot)=boot_base.ref.magnifs{imodel}';
+                        magnif_rng_boot(dimlist(idim_ptr),iboot)=boot_base.ref.magnif_ratio{imodel};
+                        %flip the bootstrapped projections if needed to align with non-bootstrapped data
+                        for ira=1:2
+                            pboot(:,:,ira)=boot_base.(ra_text{ira}).projections{imodel};
+                            flips=sign(pboot(:,:,ira).*projs{idim,ira});
+                            projs_boot{idim,ira}(:,:,iboot)=flips.*pboot(:,:,ira);
+                        end %ira
                     end %iboot
                 end %idim_ptr
                 dm=min(2,size(magnif_all,2)); %in case only one dim
@@ -256,15 +271,15 @@ for imodel=1:results.nmodels
                     set(gca,'XLim',[1 results.nstims]+[-0.5 0.5]);
                     set(gca,'XTick',[1:results.nstims]);
                     set(gca,'XTickLabel',results.stimulus_names_display);
-                    set(gca,'YLim',[0 2*max(dimlist)+1]);
+                    set(gca,'YLim',[0 2*max(dimlist)]);
                     set(gca,'YTick',[1:2:2*max(dimlist)-1]);
                     set(gca,'YTickLabel',[1:max(dimlist)]);
                     ylabel(sprintf('%s dim',ra_text{ira}));
                     title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
                 end %ipreproc
             end %isub
+            hlid_geom_transform_stats_label;
         end %ira
-        hlid_geom_transform_stats_label;
     end %iembed
 end %imodel
 %
