@@ -1,4 +1,4 @@
-%hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_stats
+%hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_statslength(dimlist)
 % 
 % runs on results structure from hlid_geom_transform_stats
 % to plot and tabulate major axis ratios, for adj dim = ref dim
@@ -18,6 +18,8 @@ if ~exist('mixent_frac') mixent_frac=1; end %set to < 1 to only include shuffles
 if ~exist('boot_quantiles') boot_quantiles=[0.025 0.975]; end %make empty to omit bootstraps
 nbq=length(boot_quantiles);
 if ~exist('ebw') ebw=0.1; end %error bar width
+if ~exist('colors') colors={'k','b','c','r','g','y'}; end
+if ~exist('dim_off') dim_off=0.1; end %offset for each dimension in projection plot
 ra_text={'ref','adj'};
 %
 rng_state=rng;
@@ -227,7 +229,7 @@ for imodel=1:results.nmodels
         %
         for ira=1:2
             figure;
-            set(gcf,'Position',[100 100 1200 800]);
+            set(gcf,'Position',[100 50 1600 950]);
             set(gcf,'NumberTitle','off');
             set(gcf,'Name',cat(2,'major axes for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
             for isub=1:results.nsubs
@@ -237,19 +239,31 @@ for imodel=1:results.nmodels
                     subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
                     for idim_ptr=1:length(dimlist)
                         idim=dimlist(idim_ptr);
-                        plot([0.5 results.nstims+0.5],[idim idim],'k:');
+                        yplot_off=2*idim-1;
+                        plot([0.5 results.nstims+0.5],repmat(yplot_off,1,2),'k:');
                         hold on;
-                    end
+                        %plot the projections
+                        proj_plot=p.projs{idim,ira};
+                        for dproj=1:idim
+                            proj_rescale=max(abs(proj_plot(:,dproj)));
+                            color=colors{mod(dproj-1,length(colors))+1};
+                            xplot_off=dim_off*(dproj-0.5*(idim+1));
+                            for istim=1:results.nstims
+                                plot(repmat(xplot_off+istim,2,1),yplot_off+[0 proj_plot(istim,dproj)/proj_rescale],'Color',color);
+                            end %stim
+                        end %dproj (projection dimension)
+                    end %idim_ptr
                     set(gca,'XLim',[1 results.nstims]+[-0.5 0.5]);
                     set(gca,'XTick',[1:results.nstims]);
                     set(gca,'XTickLabel',results.stimulus_names_display);
-                    set(gca,'YLim',[1 max(dimlist)]+[-0.5 0.5]);
-                    set(gca,'YTick',[1:max(dimlist)]);
+                    set(gca,'YLim',[0 2*max(dimlist)+1]);
+                    set(gca,'YTick',[1:2:2*max(dimlist)-1]);
+                    set(gca,'YTickLabel',[1:max(dimlist)]);
                     ylabel(sprintf('%s dim',ra_text{ira}));
                     title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
                 end %ipreproc
             end %isub
-        end %iar
+        end %ira
         hlid_geom_transform_stats_label;
     end %iembed
 end %imodel
