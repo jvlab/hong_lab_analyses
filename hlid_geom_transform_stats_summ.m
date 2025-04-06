@@ -8,6 +8,10 @@
 % mixent_frac can be set to less than 1 to only inclucde shuffles with a minimum amount of mixing entropies
 % if_flip_projs can be set to 0 to disable flipping of projections so that largest projection is positive
 %   (boostrapped projections are aligned b dot-product to unbootstrapped versions)
+% display_order_spec can be used to specify the order of stimuli in the display
+%   defaults to display_orders.kcmerge from hlid_setup
+%   display_order_spec=[] to for native order
+%   display_oreer_spec='kcmerge','kctnt', or 'kcclust' to use one of the lists in display_orders, from hlid_setup.
 %
 %   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
 %   HLID_GEOM_TRANSFORM_STATS_LABEL.
@@ -20,6 +24,14 @@ if ~exist('boot_quantiles') boot_quantiles=[0.025 0.975]; end %make empty to omi
 nbq=length(boot_quantiles);
 if ~exist('if_flip_projs') if_flip_projs=1; end
 %plotting params
+ hlid_setup;
+if ~exist('display_order_spec')
+    display_order=display_orders.kcmerge;
+elseif isempty(display_order_spec)
+    display_order=results.stimulus_names_display;
+elseif ~iscell(display_order_spec)
+    display_order=display_orders.(display_order_spec);
+end
 if ~exist('ebw') ebw=0.1; end %error bar width
 if ~exist('colors') colors={'k','b','c','r','g','y'}; end
 if ~exist('dim_off') dim_off=0.1; end %offset for each dimension in projection plot
@@ -263,17 +275,20 @@ for imodel=1:results.nmodels
                         %plot the projections
                         proj_plot=p.projs{idim,ira};
                         for dproj=1:idim
-                            proj_rescale=max(abs(proj_plot(:,dproj)));
+                            proj_max=max(abs(proj_plot(:,dproj))); %rescale by maximum projection size
                             color=colors{mod(dproj-1,length(colors))+1};
                             xplot_off=dim_off*(dproj-0.5*(idim+1));
-                            for istim=1:results.nstims
-                                plot(repmat(xplot_off+istim,2,1),yplot_off+[0 proj_plot(istim,dproj)/proj_rescale],'Color',color);
-                            end %stim
+                            for istim_name=1:length(display_order)
+                                istim=strmatch(display_order{istim_name},results.stimulus_names_display,'exact');
+                                if ~isempty(istim)
+                                    plot(repmat(xplot_off+istim_name,2,1),yplot_off+[0 proj_plot(istim,dproj)/proj_max],'Color',color);
+                                end %isempty
+                            end %stim_name
                         end %dproj (projection dimension)
                     end %idim_ptr
                     set(gca,'XLim',[1 results.nstims]+[-0.5 0.5]);
                     set(gca,'XTick',[1:results.nstims]);
-                    set(gca,'XTickLabel',results.stimulus_names_display);
+                    set(gca,'XTickLabel',display_order);
                     set(gca,'YLim',[0 2*max(dimlist)]);
                     set(gca,'YTick',[1:2:2*max(dimlist)-1]);
                     set(gca,'YTickLabel',[1:max(dimlist)]);
