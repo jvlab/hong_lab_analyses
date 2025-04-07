@@ -3,7 +3,10 @@
 % runs on results structure from hlid_geom_transform_stats
 % to plot and tabulate major axis ratios, for adj dim = ref dim
 %
-% ratio_quantiles can be customized for significance levelsalues
+% projections are plotted after normalization so that max projection = 1
+% and are optoinally flipped (by if_flip_projs) so that largest projection is positive
+%
+% ratio_quantiles can be customized for significance levels
 % if_show_max can be set to 1 to also show max axis ratio
 % mixent_frac can be set to less than 1 to only inclucde shuffles with a minimum amount of mixing entropies
 % if_flip_projs can be set to 0 to disable flipping of projections so that largest projection is positive
@@ -34,7 +37,8 @@ elseif ~iscell(display_order_spec)
 end
 if ~exist('ebw') ebw=0.1; end %error bar width
 if ~exist('colors') colors={'k','b','c','r','g','y'}; end
-if ~exist('dim_off') dim_off=0.1; end %offset for each dimension in projection plot
+if ~exist('dim_off_withinproj') dim_off_withinproj=0.12; end %offset for each dimension within the rows of the projection plot
+if ~exist('proj_lw') proj_lw=1; end
 %
 ra_text={'ref','adj'};
 %
@@ -277,11 +281,16 @@ for imodel=1:results.nmodels
                         for dproj=1:idim
                             proj_max=max(abs(proj_plot(:,dproj))); %rescale by maximum projection size
                             color=colors{mod(dproj-1,length(colors))+1};
-                            xplot_off=dim_off*(dproj-0.5*(idim+1));
-                            for istim_name=1:length(display_order)
+                            xplot_off=dim_off_withinproj*(dproj-0.5*(idim+1));
+                            for istim_name=1:length(display_order) %stim_name determines position to plot
                                 istim=strmatch(display_order{istim_name},results.stimulus_names_display,'exact');
                                 if ~isempty(istim)
-                                    plot(repmat(xplot_off+istim_name,2,1),yplot_off+[0 proj_plot(istim,dproj)/proj_max],'Color',color);
+                                    plot(repmat(xplot_off+istim_name,2,1),yplot_off+[0 proj_plot(istim,dproj)/proj_max],'Color',color,'LineWidth',proj_lw);
+                                    for ib=1:nbq
+                                        plot(repmat(xplot_off+istim_name,1,2)+dim_off_withinproj*[-0.5 0.5],...
+                                            yplot_off+repmat(quantile(squeeze(p.projs_boot{idim,ira}(istim,dproj,:)),boot_quantiles(ib))/proj_max,1,2),...
+                                            'Color',color,'LineWidth',1);
+                                    end %ibq
                                 end %isempty
                             end %stim_name
                         end %dproj (projection dimension)
