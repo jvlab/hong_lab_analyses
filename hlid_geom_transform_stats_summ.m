@@ -36,9 +36,12 @@ elseif ~iscell(display_order_spec)
     display_order=display_orders.(display_order_spec);
 end
 if ~exist('ebw') ebw=0.1; end %error bar width
-if ~exist('colors') colors={'k','b','c','r','g','y'}; end
-if ~exist('dim_off_withinproj') dim_off_withinproj=0.12; end %offset for each dimension within the rows of the projection plot
+if ~exist('colors') colors={'k','b','m','r',[.75 .75 0],[0 .5 0]}; end
+if ~exist('hoff_withinproj') hoff_withinproj=0.12; end %horiz offset for each dimension within the rows of the projection plot
+if ~exist('voff_withinproj') voff_withinproj=.14; end %vertical offset for each dimension in histogram plots
 if ~exist('proj_lw') proj_lw=1; end
+if ~exist('hist_bins') hist_bins=25; end
+if ~exist('magnif_hist_range') magnif_hist_range=[.15 1.5]; end
 %
 ra_text={'ref','adj'};
 %
@@ -281,13 +284,13 @@ for imodel=1:results.nmodels
                         for dproj=1:idim
                             proj_max=max(abs(proj_plot(:,dproj))); %rescale by maximum projection size
                             color=colors{mod(dproj-1,length(colors))+1};
-                            xplot_off=dim_off_withinproj*(dproj-0.5*(idim+1));
+                            xplot_off=hoff_withinproj*(dproj-0.5*(idim+1));
                             for istim_name=1:length(display_order) %stim_name determines position to plot
                                 istim=strmatch(display_order{istim_name},results.stimulus_names_display,'exact');
                                 if ~isempty(istim)
                                     plot(repmat(xplot_off+istim_name,2,1),yplot_off+[0 proj_plot(istim,dproj)/proj_max],'Color',color,'LineWidth',proj_lw);
                                     for ib=1:nbq
-                                        plot(repmat(xplot_off+istim_name,1,2)+dim_off_withinproj*[-0.5 0.5],...
+                                        plot(repmat(xplot_off+istim_name,1,2)+hoff_withinproj*[-0.5 0.5],...
                                             yplot_off+repmat(quantile(squeeze(p.projs_boot{idim,ira}(istim,dproj,:)),boot_quantiles(ib))/proj_max,1,2),...
                                             'Color',color,'LineWidth',1);
                                     end %ibq
@@ -310,6 +313,90 @@ for imodel=1:results.nmodels
             text(0,0,sprintf('flip projections so max is >0: %1.0f',if_flip_projs));
             axis off
         end %ira
+        %
+        %plots of magnif ratio distributions and cosine distributions
+        %
+        figure;
+        set(gcf,'Position',[100 50 1600 950]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',cat(2,'ratio and cosine distribs for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
+        for isub=1:results.nsubs
+            for ipreproc=1:results.npreprocs
+                m=results.magnif_summ{isub,ipreproc,iembed,imodel};
+                p=results.projs_summ{isub,ipreproc,iembed,imodel};
+                %three plots: dot prod in ref space, dot prod in adj space, magnif ratio
+                nsp=3;
+                for isp=1:nsp
+                    subplot(results.nsubs,results.npreprocs*nsp,isp+nsp*(isub+(ipreproc-1)*results.nsubs-1));
+                    for idim_ptr=1:length(dimlist)
+                        idim=dimlist(idim_ptr);
+                        yplot_off=idim-1;
+                        switch isp
+                            case {1,2} %dot products
+                                xlims=[0 1];
+                                if_semilogx=0;
+                                xlabel_string=cat(2,'cosine ',ra_text{isp});
+                                bin_edges_plot=[0:hist_bins]*(1/hist_bins);
+                            case 3 %magnif factor
+                                xlims=magnif_hist_range;
+                                xlabel_string='magnif factor';
+                                if_semilogx=1;
+                                bin_edges_plot=magnif_hist_range(1)*(magnif_hist_range(2)/magnif_hist_range(1)).^([0:hist_bins]/hist_bins);
+                        end
+                        bin_edges=[-Inf bin_edges_plot(1:end-1) Inf];
+                        plot(xlims,repmat(yplot_off,1,2),'k:');
+                        hold on;
+                        for dproj=1:idim
+                            color=colors{mod(dproj-1,length(colors))+1};
+                            switch isp
+                                case {1,2} %norm dot products
+                                    proj_exp=p.projs{idim,isp}(:,dproj);
+                                    proj_boot=reshape(p.projs_boot{idim,isp}(:,dproj,:),size(p.projs_boot{idim,isp},1),results.nboots_within);
+                                    data_exp=1;
+                                    data_boot=(proj_exp'*proj_boot)./sqrt(sum(proj_exp.^2))./sqrt(sum(proj_boot.^2,1));
+                                case 3 %magnif factor
+                                    data_exp=m.magnif_all(dproj,dproj);
+                                    data_boot=squeeze(m.magnif_all_boot(dproj,dproj,:));
+                            end
+                            %plot histogram "by hand", so we can control offset
+                            hist_data_raw=histc(data_boot,bin_edges)';
+                            hist_data=zeros(hist_bins,1);
+                            hist_data(1)=hist_data_raw(1)+hist_data_raw(2);
+                            hist_data(2:hist_bins)=hist_data_raw(3:end-1);
+                            hist_data=hist_data/max(hist_data(:));
+                            hist_xvals=reshape(repmat(bin_edges_plot,2,1),2*hist_bins+2,1);
+                            hist_yvals=reshape(repmat(hist_data(:)',2,1),2*hist_bins,1);
+                            hist_yvals=[0;hist_yvals;0];
+                            plot(hist_xvals,yplot_off+hist_yvals*0.8,'Color',color,'LineWidth',1);
+                            plot(data_exp,yplot_off+voff_withinproj*dproj,'*','Color',color); %plot actual value from data
+                            plot(quantile(data_boot,boot_quantiles([1 end])),repmat(yplot_off+voff_withinproj*dproj,1,2),'Color',color); %show the inter-quantile range
+                            for ibq=1:nbq
+                                plot(repmat(quantile(data_boot,boot_quantiles(ibq)),1,2),yplot_off+voff_withinproj*(dproj+[-0.5 0.5]),'Color',color);
+                            end
+                        end %dproj (projection dimension)
+                    end %idim_ptr
+                    set(gca,'YLim',[0 max(dimlist)]);
+                    set(gca,'YTick',[0:max(dimlist)-1]);
+                    set(gca,'YTickLabel',[1:max(dimlist)]);
+                    ylabel('dim');
+                    if if_semilogx
+                        set(gca,'XScale','log');
+                        set(gca,'XTick',unique([xlims 1]));
+                    else
+                        set(gca,'XTick',unique([xlims mean(xlims)]));
+                    end
+                    set(gca,'XLim',xlims);
+                    xlabel(xlabel_string);
+                    if isp==2
+                        title(sprintf('%s %s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
+                    end
+                end %isp
+            end %ipreproc
+        end %isub
+        hlid_geom_transform_stats_label;
+        axes('Position',[0.75,0.05,0.01,0.01]);
+        text(0,0,sprintf('flip projections so max is >0: %1.0f',if_flip_projs));
+        axis off
     end %iembed
 end %imodel
 %
