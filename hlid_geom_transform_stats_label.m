@@ -14,7 +14,7 @@ axes('Position',[0.5,0.05,0.01,0.01]);
 text(0,0,sprintf('allow scale in consensus: %1.0f',results.opts_pcon.allow_scale));
 axis off
 axes('Position',[0.5,0.03,0.01,0.01]);
-text(0,0,cat(2,'quantiles:',sprintf(' %6.4f',ratio_quantiles),' error bars:',sprintf(' %6.4f',boot_quantiles)));
+text(0,0,cat(2,'shuffle quantiles:',sprintf(' %6.4f',ratio_quantiles),sprintf('; bootstrap error bars (%4.0f boots):',results.nboots_within),sprintf(' %6.4f',boot_quantiles)));
 axis off
 axes('Position',[0.5,0.01,0.01,0.01]);
 text(0,0,sprintf('shuffles selected: %5.0f of %5.0f (frac: %5.3f), nrelabeled: %2.0f to %2.0f',...
