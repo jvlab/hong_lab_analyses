@@ -1,12 +1,17 @@
-function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean)
-% [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean)
+function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan)
+% [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan)
 % is a utility to create coordinates by svd, and metadata fields for a coordinate file
+%
+% assumes that stimuli without responses have already been eliminated from resps_use
+% and installs NaN's in u(stims_nan,:)
 %
 % f: starting structure of fields to save
 % resps_use: response array, each row is a stimulus, each column is a roi or similar
 % maxdim: maximum dimension of coords to be created
 % maxdim_use: maximum number of dimensions available from data
 % if_submean: 1 to subtract the mean, otherwise 0
+% stims_nonan: list of stimuli from original set that have responses, defaults to [1:size(resps_use,1)]
+% stims_nan: complement of stims_nan in [1:size(resps_use,1)]
 %
 % fnew: f, with additional fields added
 % s_diag_all:  diagonal of S in resps_use=U*S*V', up to maxdim_use
@@ -16,10 +21,15 @@ function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,res
 % coords_all: all coords written
 %
 % 19Dec24: fix display bug: s needs to be squared to compute variance
+% 06May25: include stims_nan and stims_nonan
 %
 %   See also:  HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO.
 %
 dim_text='dim'; %leadin for fields of d
+if (nargin<=5)
+    stims_nonan=[1:size(resps_use,1)];
+    stims_nan=setdiff([1:size(resps_use,1)],stims_nonan);
+end
 %
 [u,s,v]=svd(resps_use); %resps_use=u*s*v', with u and v both orthogonal, so u*s=resps_use*v
 s_diag_all=diag(s(1:maxdim_use,1:maxdim_use));
@@ -38,7 +48,6 @@ if maxdim_use<maxdim %add zero eigenveectors and eigenvalues, should only happen
     u(:,maxdim_use+1:maxdim)=0;
     v(:,maxdim_use+1:maxdim)=0;
 end
-
 %
 s_diag=diag(s);
 disp('fraction of variance explained with each component')

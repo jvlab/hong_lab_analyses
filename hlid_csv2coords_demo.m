@@ -90,7 +90,7 @@ f.coord_opts.if_alphabetize=if_alphabetize;
 %
 %create coords by SVD and add metadata
 %
-[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean);
+[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean); %assume all stimuli are present
 %
 if getinp('1 if ok to write a coordinate file','d',[0 1])
     data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',dsid);

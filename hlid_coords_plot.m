@@ -2,11 +2,12 @@
 %in regions of interest
 %
 %30Oct24: add a plot with coords forced to have a positive average
+%06May25: fix variance plot so that it is s^2, not s
 % (can be eliminated by defining if_show_force_pos=0
 %
 %   See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL.
 %
-var_total=sum(s_diag_all);
+var_total=sum(s_diag_all.^2);
 figname_raw=sprintf('raw responses: %s',dsid_show);
 if if_submean
     figname_raw=cat(2,figname_raw,' mean subtracted');
@@ -42,9 +43,9 @@ end
 colorbar;
 %
 subplot(3,3,7)
-plot([1:length(s_diag_all)],s_diag_all/var_total,'k');
+plot([1:length(s_diag_all)],s_diag_all.^2/var_total,'k');
 hold on;
-plot([1:length(s_diag_all)],s_diag_all/var_total,'k*');
+plot([1:length(s_diag_all)],s_diag_all.^2/var_total,'k*');
 set(gca,'XLim',[0 maxdim_allowed+if_submean+0.5]);
 set(gca,'XTick',[1:maxdim_allowed+if_submean]);
 set(gca,'YLim',[0 1]);

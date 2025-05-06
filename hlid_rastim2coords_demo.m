@@ -7,6 +7,7 @@
 % Number of ROIs without NaNs must be at least as large as number of stimuli.
 % 21May24: add removal of columns of NaN's from responses
 % 15Sep24: modularize svd and partial creation of metadata; modularize plotting (in script)
+% 06May25: pass stims_nan and stims_nonan to hlid_coords_svd
 % 
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, SVD, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO,
 %  HLID_COORDS_SVD, HLID_COORDS_PLOT.
@@ -83,7 +84,7 @@ f.coord_opts.resp_type='response_amplitude_stim'; %original field for responses 
 %
 %create coords by SVD and add metadata
 %
-[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean);
+[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan);
 %
 if getinp('1 if ok to write a coordinate file','d',[0 1])
     data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',dsid);

@@ -12,6 +12,7 @@
 % 02Jun24: added nresps_each, number of responses in each dataset, to coord_opts.aux
 % 15Sep24: modularize svd and partial creation of metadata; modularize plotting (in script); fix plot label
 % 30Oct24: use dialog box
+% 06May25: pass stims_nan and stims_nonan to hlid_coords_svd
 %
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, SVD, HLID_RASTIM2COORDS_DEMO, HLID_POOL_PCACONTRIB, 
 %  HLID_COORDS_SVD, HLID_COORDS_PLOT.
@@ -41,6 +42,9 @@ while (if_ok==0)
         if (npool_signed>0)
             HongLab_fn=getinp(sprintf('Hong Lab file name for file %2.0f to be pooled',ipool),'s',[],HongLab_fn);
         else
+            if ~iscell(filenames_short)
+                filenames_short=cellstr(filenames_short);
+            end
             disp(sprintf(' file %2.0f: %s',ipool,filenames_short{ipool}));
             HongLab_fn=cat(2,pathname,filesep,filenames_short{ipool});
         end
@@ -136,7 +140,7 @@ f.coord_opts.resp_type='response_amplitude_stim'; %original field for responses 
 %
 %create coords by SVD and add metadata
 %
-[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean);
+[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan);
 f.coord_opts.aux.nresps_each=nresps_each; %number of responses from each dataset
 %
 if getinp('1 if ok to write a coordinate file','d',[0 1])
