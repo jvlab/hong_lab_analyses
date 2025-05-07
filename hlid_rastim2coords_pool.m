@@ -13,13 +13,17 @@
 % 15Sep24: modularize svd and partial creation of metadata; modularize plotting (in script); fix plot label
 % 30Oct24: use dialog box
 % 06May25: pass stims_nan and stims_nonan to hlid_coords_svd
+% 07May25: include a call to hlid_da_stimselect, to select stimuli and responses
 %
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, SVD, HLID_RASTIM2COORDS_DEMO, HLID_POOL_PCACONTRIB, 
-%  HLID_COORDS_SVD, HLID_COORDS_PLOT.
+%  HLID_COORDS_SVD, HLID_COORDS_PLOT, HLID_DA_STIMSELECT.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
 %
 if ~exist('HongLab_fn') HongLab_fn='C:/Users/jdvicto/Dropbox/From_HongLab/HongLabOrig_for_jdv/data/kc_soma_nls/2022-10-10__fly01__megamat0.mat'; end
+if ~exist('opts_dasel')
+    opts_dasel=struct;
+end
 npool_signed=0;
 while npool_signed==0
     npool_signed=getinp('number of files to pool (<0 for dialog box)','d',[-Inf Inf]);
@@ -49,6 +53,7 @@ while (if_ok==0)
             HongLab_fn=cat(2,pathname,filesep,filenames_short{ipool});
         end
         da=load(HongLab_fn);
+        [da,optsused_dasel]=hlid_da_stimselect(da);
         metadata{ipool}=da.meta;
         stimulus_names_this=strvcat(da.response_amplitude_stim.stim');
         dsid_this=da.meta.title;

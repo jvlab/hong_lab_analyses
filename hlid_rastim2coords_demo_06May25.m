@@ -8,23 +8,17 @@
 % 21May24: add removal of columns of NaN's from responses
 % 15Sep24: modularize svd and partial creation of metadata; modularize plotting (in script)
 % 06May25: pass stims_nan and stims_nonan to hlid_coords_svd
-% 07May25: include a call to hlid_da_stimselect, to select stimuli and responses
-%
+% 
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, SVD, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO,
-%  HLID_COORDS_SVD, HLID_COORDS_PLOT, HLID_DA_STIMSELECT.
+%  HLID_COORDS_SVD, HLID_COORDS_PLOT.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
-if ~exist('opts_dasel')
-    opts_dasel=struct;
-end
 %
 if ~exist('HongLab_fn') HongLab_fn='C:/Users/jdvicto/Dropbox/From_HongLab/HongLabOrig_for_jdv/data/kc_soma_nls/2022-10-10__fly01__megamat0.mat'; end
 %
 HongLab_fn=getinp('Hong Lab file name','s',[],HongLab_fn);
 %
 da=load(HongLab_fn);
-[da,optsused_dasel]=hlid_da_stimselect(da);
-%
 stimulus_names=da.response_amplitude_stim.stim';
 dsid=da.meta.title;
 %'-'can be used within fields of file name
