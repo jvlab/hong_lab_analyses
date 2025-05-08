@@ -1,9 +1,9 @@
 %hlid_coords_plot: script to plot coordinates derived by svd from signals
 %in regions of interest
 %
-%30Oct24: add a plot with coords forced to have a positive average
+%30Oct24: add a plot with coords forced to have a positive average (can be eliminated by defining if_show_force_pos=0)
 %06May25: fix variance plot so that it is s^2, not s
-% (can be eliminated by defining if_show_force_pos=0
+%07May25: forceed-positive plot also works with NaN's
 %
 %   See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL.
 %
@@ -67,7 +67,7 @@ end
 if (if_show_force_pos)
     % plot coordinates forcing avg to be positive
     subplot(3,3,8);
-    imagesc(coords_all.*repmat(sign(sum(coords_all,1)),[size(coords_all,1) 1]),[-1 1]*max(abs(coords_all(:))));
+    imagesc(coords_all.*repmat(sign(sum(coords_all,1,'omitnan')),[size(coords_all,1) 1]),[-1 1]*max(abs(coords_all(:)))); %omitnan added 07May25
     set(gca,'XTick',[1:maxdim]);
     set(gca,'YTick',[1:nstims]);
     set(gca,'YTickLabel',stim_labels);
