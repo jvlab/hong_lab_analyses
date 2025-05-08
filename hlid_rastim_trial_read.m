@@ -1,9 +1,13 @@
 %hlid_rastim_trial_read script to red read calcium imaging data from Hong Lab at single-trial level
 %
-% 23Feb255: add if_log, can set to 0 to suppress most output
+% 23Feb25: add if_log, can set to 0 to suppress most output
+% 07May25: include a call to hlid_da_stimselect, to select stimuli and responses, bug fixes
 %
-%  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM_TRIAL_PCA, HLID_RASTIM_TRIAL_VIS.
-% 
+%  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM_TRIAL_PCA, HLID_RASTIM_TRIAL_VIS, HLID_DA_STIMSELECT.
+%
+if ~exist('opts_dasel')
+    opts_dasel=struct;
+end
 if ~exist('HongLab_fn') HongLab_fn='C:/Users/jdvicto/Dropbox/From_HongLab/HongLabOrig_for_jdv/data/kc_soma_nls/2022-10-10__fly01__megamat0.mat'; end
 if ~exist('if_log') if_log=1; end
 nfiles_signed=0;
@@ -46,6 +50,7 @@ while (if_ok==0)
             HongLab_fn=cat(2,pathname,filesep,filenames_short{ifile});
         end
         das{ifile}=load(HongLab_fn);
+        [das{ifile},optsused_dasel]=hlid_da_stimselect(das{ifile},opts_dasel);
         metadata{ifile}=das{ifile}.meta;
         if isfield(das{ifile},'rois')
             rois{ifile}=das{ifile}.rois;
@@ -61,7 +66,7 @@ while (if_ok==0)
         end
         %
         dsids{ifile}=dsid_this;
-        nstims_this=length(stimulus_names_this);
+        nstims_this=size(stimulus_names_this,1); %07May25: was length(stimulus_names_this
         if ifile==1
             nstims=nstims_this;
             stimulus_names=stimulus_names_this;
@@ -80,7 +85,7 @@ while (if_ok==0)
         else %file has compatible stimuli; now check dimensions
             resps_mean{ifile}=das{ifile}.response_amplitude_stim.mean_peak;
             if size(resps_mean{ifile},1)~=nstims
-                warning(sprintf('number of responses (%2.0f) is not equal to number of stimuli (%2.0f)',size(resps,1),nstims));
+                warning(sprintf('number of responses (%2.0f) is not equal to number of stimuli (%2.0f)',size(resps_mean{ifile},1),nstims)); %07May25: was resps, not resps_mean
             end
             %
             trial_sequence{ifile}=das{ifile}.trial_info.stim;

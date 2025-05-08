@@ -38,7 +38,7 @@ function [da_new,opts_used]=hlid_da_stimselect(da,opts)
 % da=load('C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\data\kc_tnt_singletrial\2024-07-10__fly01__TNTin_nolabel__20240710_2FLfun1.mat');
 % [da_new,ou]=hlid_da_stimselect(da,setfields([],{'if_log','targets'},{1,{'1-6ol @ -3.0','ms @ -3.0'}}))
 %
-% See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL.
+% See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_ORN_MERGE, HLID_RASTIM_TRIAL_READ.
 %
 if (nargin<=1)
     opts=struct;

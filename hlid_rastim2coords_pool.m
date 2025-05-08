@@ -53,7 +53,7 @@ while (if_ok==0)
             HongLab_fn=cat(2,pathname,filesep,filenames_short{ipool});
         end
         da=load(HongLab_fn);
-        [da,optsused_dasel]=hlid_da_stimselect(da);
+        [da,optsused_dasel]=hlid_da_stimselect(da,opts_dasel);
         metadata{ipool}=da.meta;
         stimulus_names_this=strvcat(da.response_amplitude_stim.stim');
         dsid_this=da.meta.title;
