@@ -10,6 +10,7 @@
 % or concatenation of ORN responses (as in hlad_rastim2coords_pool).
 %
 % 07May25: include a call to hlid_da_stimselect, to select stimuli and responses
+% 07May25: allow for input of just one file
 %
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
 %   HLID_DA_STIMSELECT.
@@ -19,12 +20,15 @@ if ~exist('opts_dasel')
     opts_dasel=struct;
 end
 [filenames_short,pathname]=uigetfile('*fly*.mat','Select raw ORN data files','Multiselect','on');
+if ~iscell(filenames_short)
+    filenames_short=cellstr(filenames_short);
+end
 nfiles=length(filenames_short);
 s=cell(nfiles,1);
 files_use=[];
 nancols=cell(nfiles,1);
 nanrows=cell(nfiles,1);
-dsid=[]
+dsid=[];
 %
 %verify consistency of names and numbers of glomeruli and stimuli
 %
