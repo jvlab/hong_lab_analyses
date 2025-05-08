@@ -23,7 +23,7 @@ if ~exist('HongLab_fn') HongLab_fn='C:/Users/jdvicto/Dropbox/From_HongLab/HongLa
 HongLab_fn=getinp('Hong Lab file name','s',[],HongLab_fn);
 %
 da=load(HongLab_fn);
-[da,optsused_dasel]=hlid_da_stimselect(da,opts_dase);
+[da,optsused_dasel]=hlid_da_stimselect(da,opts_dasel);
 %
 stimulus_names=da.response_amplitude_stim.stim';
 dsid=da.meta.title;
