@@ -9,8 +9,15 @@
 % ORN's (as opposed to merging by Procrustes rotations of responses from individual datasets,
 % or concatenation of ORN responses (as in hlad_rastim2coords_pool).
 %
-%   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS.
+% 07May25: include a call to hlid_da_stimselect, to select stimuli and responses
+%
+%   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
+%   HLID_DA_STIMSELECT.
+%
 hlid_setup;
+if ~exist('opts_dasel')
+    opts_dasel=struct;
+end
 [filenames_short,pathname]=uigetfile('*fly*.mat','Select raw ORN data files','Multiselect','on');
 nfiles=length(filenames_short);
 s=cell(nfiles,1);
@@ -23,6 +30,7 @@ dsid=[]
 %
 for ifile=1:nfiles
     s{ifile}=load(cat(2,pathname,filenames_short{ifile}));
+    [s{ifile},optsused_dasel]=hlid_da_stimselect(s{ifile},opts_dasel);
     dsid_this=s{ifile}.meta.title;
     %'-'can be used within fields of file name
     dsid_this=strrep(dsid_this,'/','-');
