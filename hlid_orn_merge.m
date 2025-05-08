@@ -11,6 +11,7 @@
 %
 % 07May25: include a call to hlid_da_stimselect, to select stimuli and responses
 % 07May25: allow for input of just one file
+% 08May25: add plotting of histogram of responses
 %
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
 %   HLID_DA_STIMSELECT.
@@ -19,6 +20,8 @@ hlid_setup;
 if ~exist('opts_dasel')
     opts_dasel=struct;
 end
+if ~exist('hist_bins')  hist_bins=50; end
+if ~exist('hist_quantiles') hist_quantiles=[.05 .25 .5 .75 .95]; end
 [filenames_short,pathname]=uigetfile('*fly*.mat','Select raw ORN data files','Multiselect','on');
 if ~iscell(filenames_short)
     filenames_short=cellstr(filenames_short);
@@ -222,4 +225,23 @@ else
     end
     roi_names=f.roi_names;
     hlid_coords_plot;
+    %
+    %overall response histogram and quantiles
+    %
+    figure;
+    set(gcf,'Position',[50 100 800 800]);
+    set(gcf,'NumberTitle','off');
+    set(gcf,'Name','histogram');
+    subplot(2,1,1);
+    hist(resps(:),hist_bins);
+    xlabel('response')
+    ylabel('counts');
+    quantiles=quantile(resps(:),hist_quantiles);
+    for k=1:length(hist_quantiles)
+        axes('Position',[0.01,0.02+0.04*k,0.01,0.01]); %for text
+        qt=sprintf(' quantile %5.3f: %7.3f',hist_quantiles(k),quantiles(k));
+        disp(qt)
+        text(0,0,qt,'Interpreter','none');
+        axis off;
+    end
 end
