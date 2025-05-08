@@ -118,7 +118,6 @@ if isfield(da.response_amplitude_stim,'panel')
         resps_exclude=[resps_exclude,strmatch(opts.exclude_panels{k},da.response_amplitude_stim.panel,'exact')];
     end
 end
-
 for istim=1:length(targets_use)
     resp_ptr=strmatch(targets_use{istim},da.response_amplitude_stim.stim,'exact');
     resp_ptr=setdiff(resp_ptr,resps_exclude);
@@ -151,7 +150,9 @@ ras.description=da.response_amplitude_stim.description;
 ras.mean_peak=NaN(length(targets_use),size(da.response_amplitude_stim.mean_peak,2));
 ras.stim=cell(1,length(targets_use));
 for istim=1:length(targets_use)
-    ras.mean_peak(istim,:)=da.response_amplitude_stim.mean_peak(resp_ptrs(istim),:);
+    if resp_ptrs(istim)>0
+        ras.mean_peak(istim,:)=da.response_amplitude_stim.mean_peak(resp_ptrs(istim),:);
+    end
     ras.stim{istim}=targets_use{istim};
 end
 da_new.response_amplitude_stim=ras;
