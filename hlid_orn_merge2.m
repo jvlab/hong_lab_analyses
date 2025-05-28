@@ -6,10 +6,15 @@
 %
 % the rois.glomeurli fields must match across sets
 %
-% Built on hlid_orn_merge, which only handles a single set of stimuli; missing data are 
-% filled in based on keeping track of ORN's, and finding a multiplicate and additive constant for 
-% each dataset
-%s
+% Built on hlid_orn_merge
+% 
+% * many quantities of hlid_orn_merge are here arrays or cell arrays of size (1,nsets)
+% * each set of files must have non-overlapping stimuli
+% * merges across sets of files (sets of odor panels) by either an intersection (glomeruli present in all) or
+%     union (glomeruli present in any,, with missing glomeruli set to zero
+% * defaults to restoring responses to match overall size of original data (hlid_orn_merge does not)
+% * merged coordinate sets always go up to largest possible dimension (hlid_orn_merge allows choice)
+%
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
 %   HLID_DA_STIMSELECT, HLID_ORN_MERGE.
 %
@@ -20,7 +25,7 @@ end
 if ~exist('hist_bins')  hist_bins=50; end
 if ~exist('hist_quantiles') hist_quantiles=[.05 .25 .5 .75 .95]; end
 nsets=getinp('number of sets of stimuli','d',[1 100]);
-if_restore_size=getinp('1 to restore responses to match overall size of original data (0: legacy)','d',[0 1]);
+if_restore_size=getinp('1 to restore responses to match overall size of original data (0: legacy)','d',[0 1],1);
 if_submean=getinp('1 to subtract mean across responses before creating coordinates','d',[0 1],0);
 %
 filenames_short=cell(1,nsets);
@@ -228,7 +233,7 @@ for iset=1:nsets
     resp_range(1)=min(resp_range(1),min(resps_set{iset}(:)));
     resp_range(2)=max(resp_range(2),max(resps_set{iset}(:)));
 end
-dsid_show=sprintf('affine merging %2.0f files: %s,...,%s',sum(nfiles),deblank(dsid{1}(files_use{1}(1),:)),deblank(dsid(files_use{nsets}(nfiles_use(nsets)),:)));
+dsid_show=sprintf('affine merging %2.0f files: %s,...,%s',sum(nfiles),deblank(dsid{1}(files_use{1}(1),:)),deblank(dsid{nsets}(files_use{nsets}(nfiles_use(nsets)),:)));
 %
 %overall response histogram and quantiles
 %
@@ -259,12 +264,10 @@ axis off;
 %
 %quantities calculated from all sets
 %
-maxdim_allowed=Inf;
 stimulus_names=cell(0);
 stim_labels=cell(0);
 resp_range=[Inf -Inf];
 for iset=1:nsets
-    maxdim_allowed=min(maxdim_allowed,min(size(resps_set{iset}))-if_submean);
     stimulus_names=[stimulus_names;stimulus_names_set{iset}];
     stim_labels=[stim_labels;stim_labels_set{iset}];
     resp_range=[min(resp_range(1),min(resps_set{iset}(:))) max(resp_range(2),max(resps_set{iset}(:)))];
@@ -275,8 +278,6 @@ end
 if length(unique(stim_labels))~=sum(nstims)
     warning('Not all stim labels are unique');
 end
-maxdim=getinp('maximum number of dimensions for coordinate file','d',[1 maxdim_allowed],maxdim_allowed);
-maxdim_use=maxdim_allowed;
 %
 %initialize the quantities to save
 %
@@ -310,6 +311,7 @@ for icombm=1:2
     switch icombm
         case 1             
             comb_label='intersection';
+            comb_label_short='inter';
             glomeruli_combined=[1:nglomeruli];
             for iset=1:nsets
                 glomeruli_combined=intersect(glomeruli_combined,glomeruli_use{iset});
@@ -321,6 +323,7 @@ for icombm=1:2
             end
         case 2
             comb_label='union, missing set to 0';
+            comb_label_short='union';
             glomeruli_combined=[];
             for iset=1:nsets
                 glomeruli_combined=union(glomeruli_combined,glomeruli_use{iset});
@@ -331,7 +334,11 @@ for icombm=1:2
                 stims_sofar=stims_sofar+nstims(iset);
             end
     end
-    disp(sprintf(' combination method %20s: responses from %2.0f glomeruli',comb_label,length(glomeruli_combined)))
+    maxdim=min(sum(nstims),length(glomeruli_combined))-if_submean;
+    disp(sprintf(' combination method %20s: %3.0f responses from %2.0f glomeruli, max dim %2.0f',...
+        comb_label,sum(nstims),length(glomeruli_combined),maxdim))
+    maxdim_use=maxdim;
+    maxdim_allowed=maxdim;
     %
     %create coords by SVD and add metadata and plot
     %
@@ -345,8 +352,9 @@ for icombm=1:2
     coords_all__combm{icombm}=coords_all;
     %
     if getinp(sprintf('1 if ok to write a coordinate file for %s',comb_label),'d',[0 1])
-        data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid','merged');
+        data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',cat(2,'merged_',comb_label_short));
         data_fullname_write_def=strrep(data_fullname_write_def,'kc_soma_nls','orn_merged');
+        data_fullname_write_def=strrep(data_fullname_write_def,'odor17',cat(2,'odor',zpad(sum(nstims),3)));
         data_fullname_write=getinp('coordinate file name to write','s',[],data_fullname_write_def);
         save(data_fullname_write,'-struct','f');
         disp(sprintf('wrote %s',data_fullname_write));
@@ -354,6 +362,9 @@ for icombm=1:2
     resps=resps_combined{icombm};
     roi_names=glomeruli(glomeruli_combined);
     hlid_coords_plot;
+    axes('Position',[0.5,0.02,0.01,0.01]); %for text
+    text(0,0,comb_label,'Interpreter','none');
+    axis off;
     %
     %special plots for combining datasets
     %
@@ -377,8 +388,4 @@ for icombm=1:2
     set(gca,'YTick',[1:sum(nstims)]);
     set(gca,'YTickLabel',stim_labels);
     colorbar;
-    % axes('Position',[0.01,0.02,0.01,0.01]); %for text
-    % text(0,0,figname,'Interpreter','none');
-    % axis off;
-    %
-end %icombm
+ end %icombm
