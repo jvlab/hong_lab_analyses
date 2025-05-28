@@ -23,7 +23,7 @@ function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,res
 % 19Dec24: fix display bug: s needs to be squared to compute variance
 % 06May25: include stims_nan and stims_nonan
 %
-%   See also:  HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO.
+%   See also:  HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO, HLID_ORN_MERGE, HLID_ORN_MERGE2.
 %
 dim_text='dim'; %leadin for fields of d
 if (nargin<=5)

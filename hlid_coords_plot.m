@@ -4,8 +4,9 @@
 %30Oct24: add a plot with coords forced to have a positive average (can be eliminated by defining if_show_force_pos=0)
 %06May25: fix variance plot so that it is s^2, not s
 %07May25: forceed-positive plot also works with NaN's
+%27May25: chang nstims to sum(nstims) for compatibility with hlid_orn_merge2
 %
-%   See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL.
+%   See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_ORN_MERGE, HLID_ORN_MERGE2.
 %
 var_total=sum(s_diag_all.^2);
 figname_raw=sprintf('raw responses: %s',dsid_show);
@@ -23,7 +24,7 @@ subplot(3,1,1)
 imagesc(resps);
 xlabel('roi')
 ylabel('stimulus labels');
-set(gca,'YTick',[1:nstims]);
+set(gca,'YTick',[1:sum(nstims)]);
 set(gca,'YTickLabel',stim_labels);
 if exist('roi_names')
     set(gca,'XTick',[1:length(roi_names)]);
@@ -56,7 +57,7 @@ title('variance explained by each component');
 subplot(3,3,9);
 imagesc(coords_all,[-1 1]*max(abs(coords_all(:))));
 set(gca,'XTick',[1:maxdim]);
-set(gca,'YTick',[1:nstims]);
+set(gca,'YTick',[1:sum(nstims)]);
 set(gca,'YTickLabel',stim_labels);
 title('coordinates')
 colorbar;
@@ -69,7 +70,7 @@ if (if_show_force_pos)
     subplot(3,3,8);
     imagesc(coords_all.*repmat(sign(sum(coords_all,1,'omitnan')),[size(coords_all,1) 1]),[-1 1]*max(abs(coords_all(:)))); %omitnan added 07May25
     set(gca,'XTick',[1:maxdim]);
-    set(gca,'YTick',[1:nstims]);
+    set(gca,'YTick',[1:sum(nstims)]);
     set(gca,'YTickLabel',stim_labels);
     title('coordinates, net pos pcs')
     colorbar;

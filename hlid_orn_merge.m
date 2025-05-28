@@ -12,9 +12,12 @@
 % 07May25: include a call to hlid_da_stimselect, to select stimuli and responses
 % 07May25: allow for input of just one file
 % 08May25: add plotting of histogram of responses
+% 09May25: add option to restore overall response size in output
+%   if_restore_size=0: (legacy): the merged responses are afalwt_fit.x_true, and may be rescaled from original data
+%   if_restore_size=1: merged responses are multiplied by geomean(afalwt_fit.b_norm), so they match the size of the original data
 %
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
-%   HLID_DA_STIMSELECT.
+%   HLID_DA_STIMSELECT, HLID_ORN_MERGE2.
 %
 hlid_setup;
 if ~exist('opts_dasel')
@@ -180,7 +183,12 @@ end %ifig
 if any(isnan(resps_gu_filled(:)))
     disp('Cannot proceed. Not all NaNs have been filled in.')
 else
+    if_restore_size=getinp('1 to restore responses to match overall size of original data (0: legacy)','d',[0 1]);
     resps=reshape(afalwt_fit.x_true,[nstims nglomeruli_use]); %use regression slope as response measure
+    if if_restore_size
+        resps=resps*geomean(afalwt_fit.b_norm);;
+    end
+    %
     if_submean=getinp('1 to subtract mean across responses before creating coordinates','d',[0 1],0);
     maxdim_allowed=min(size(resps))-if_submean;
     maxdim=getinp('maximum number of dimensions for coordinate file','d',[1 maxdim_allowed],maxdim_allowed);
@@ -208,7 +216,11 @@ else
     f.dsid=dsid(files_use,:); %data set ID, with special chars turned into -
     f.stim_labels=strvcat(stim_labels); %shortened names for plotting
     f.resps=resps; %original responses
-    f.coord_opts.resp_type='response_amplitude_stim, after affine filling in'; %original field for responses from Hong Lab
+    if if_restore_size==0
+        f.coord_opts.resp_type='response_amplitude_stim, after affine filling in'; %original field for responses from Hong Lab
+    else
+        f.coord_opts.resp_type='response_amplitude_stim, after affine filling in and restoring to original size';
+    end
     f.roi_names=glomeruli_check(glomeruli_use);
     %
     %create coords by SVD and add metadata
@@ -238,10 +250,13 @@ else
     ylabel('counts');
     quantiles=quantile(resps(:),hist_quantiles);
     for k=1:length(hist_quantiles)
-        axes('Position',[0.01,0.02+0.04*k,0.01,0.01]); %for text
+        axes('Position',[0.01,0.06+0.04*k,0.01,0.01]); %for text
         qt=sprintf(' quantile %5.3f: %7.3f',hist_quantiles(k),quantiles(k));
         disp(qt)
         text(0,0,qt,'Interpreter','none');
         axis off;
     end
+    axes('Position',[0.01,0.02,0.01,0.01]);
+    text(0,0,sprintf('restore size=%2.0f, subtract mean=%2.0f',if_restore_size,if_submean));
+    axis off;
 end
