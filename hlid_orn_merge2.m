@@ -306,6 +306,11 @@ v_full_combm=cell(1,ncombm);
 s_full_combm=cell(1,ncombm);
 coords_all_combm=cell(1,ncombm);
 %
+s_diag_set=cell(nsets,ncombm);
+u_full_set=cell(nsets,ncombm);
+v_full_set=cell(nsets,ncombm);
+s_full_set=cell(nsets,ncombm);
+%
 for icombm=1:2
     stims_sofar=0;
     switch icombm
@@ -349,7 +354,18 @@ for icombm=1:2
     u_full_combm{icombm}=u_full;
     v_full_combm{icombm}=v_full;
     s_full_combm{icombm}=s_full;
-    coords_all__combm{icombm}=coords_all;
+    coords_all_combm{icombm}=coords_all;
+    %
+    %create coords by SVD for each set
+    %
+    stims_sofar=0;
+    for iset=1:nsets
+        resps_combined_set=resps_combined{icombm}(stims_sofar+[1:nstims(iset)],:);
+        maxdim_set=min(size(resps_combined_set))-if_submean;
+        [fset,s_diag_set{iset,icombm},u_full_set{iset,icombm},v_full_set{iset,icombm},s_full_set{iset,icombm}]=...
+            hlid_coords_svd(struct(),resps_combined_set,maxdim_set,maxdim_set,if_submean);
+        stims_sofar=stims_sofar+nstims(iset);
+    end
     %
     if getinp(sprintf('1 if ok to write a coordinate file for %s',comb_label),'d',[0 1])
         data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',cat(2,'merged_',comb_label_short));
@@ -388,4 +404,4 @@ for icombm=1:2
     set(gca,'YTick',[1:sum(nstims)]);
     set(gca,'YTickLabel',stim_labels);
     colorbar;
- end %icombm
+end %icombm
