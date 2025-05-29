@@ -422,6 +422,7 @@ for icombm=1:2
         ylabel('combined eivec');
         axis equal;
         axis tight;
+        title('|dots|');
     end
     %
     %compare PCs in individual sets with each other
@@ -439,6 +440,7 @@ for icombm=1:2
             ylabel(sprintf('eivec, set %1.0f',jset));
             axis equal;
             axis tight;
+            title('|dots|');
         end
     end
     %
