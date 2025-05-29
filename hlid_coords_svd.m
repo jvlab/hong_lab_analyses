@@ -40,7 +40,7 @@ var_total=sum(s_diag_all.^2); %^2 added 19Dec24
 s=s(1:maxdim_use,1:maxdim_use);
 u=u(:,1:maxdim_use);
 v=v(:,1:maxdim_use);
-if maxdim_use<maxdim %add zero eigenveectors and eigenvalues, should only happen if there are NaN stimuli
+if maxdim_use<maxdim %add zero eigenvectors and eigenvalues, should only happen if there are NaN stimuli
     u(stims_nonan,:)=u;
     u(stims_nan,:)=NaN;
     s(:,maxdim_use+1:maxdim)=0; %higher eigenvals and eigenvecs are zero
