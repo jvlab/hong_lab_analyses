@@ -347,6 +347,7 @@ for icombm=1:2
     %
     %create coords by SVD and add metadata and plot
     %
+    disp(sprintf('datasets merged by %s',comb_label));
     [f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f_base,resps_combined{icombm},maxdim,maxdim_use,if_submean);
     %save combined variables
     f_combm{icombm}=f;
@@ -362,6 +363,7 @@ for icombm=1:2
     for iset=1:nsets
         resps_combined_set=resps_combined{icombm}(stims_sofar+[1:nstims(iset)],:);
         maxdim_set=min(size(resps_combined_set))-if_submean;
+        disp(sprintf('component set %1.0f for merge by %s',iset,comb_label))
         [fset,s_diag_set{iset,icombm},u_full_set{iset,icombm},v_full_set{iset,icombm},s_full_set{iset,icombm}]=...
             hlid_coords_svd(struct(),resps_combined_set,maxdim_set,maxdim_set,if_submean);
         stims_sofar=stims_sofar+nstims(iset);
@@ -389,19 +391,61 @@ for icombm=1:2
     set(gcf,'Position',[50 100 1800 800]);
     set(gcf,'NumberTitle','off');
     set(gcf,'Name',figname);
+    %full array of merged responses
     subplot(1,2,1)
     imagesc(resps_combined{icombm},resp_range);
+    axis equal;
+    axis tight;
     hold on;
     for iset=1:nsets-1
         stimct=sum(nstims(1:iset));
         plot([0 length(glomeruli_combined)]+[0.5 0.5],stimct+[0.5 0.5],'k','LineWidth',2);
     end
     title_string=figname;
-    title(title_string,'Interpreter','none');
     set(gca,'FontSize',7);
     set(gca,'XTick',[1:length(glomeruli_combined)]);
     set(gca,'XTickLabel',glomeruli(glomeruli_combined));
     set(gca,'YTick',[1:sum(nstims)]);
     set(gca,'YTickLabel',stim_labels);
+    title(title_string,'Interpreter','none','FontSize',10);
     colorbar;
+    %
+    %compare PCs in individual sets and full set
+    %
+    ncols=2*nsets;
+    nrows=2;
+    for iset=1:nsets
+        subplot(nrows,ncols,ncols/2+iset);
+        dots=v_full_combm{icombm}'*v_full_set{iset,icombm};
+        imagesc(abs(dots),[0 1]);
+        xlabel(sprintf('eivec, set %1.0f',iset));
+        ylabel('combined eivec');
+        axis equal;
+        axis tight;
+    end
+    %
+    %compare PCs in individual sets with each other
+    %
+    nset_pairs=nsets*(nsets-1)/2;
+    ncols=2*max(2,nset_pairs);
+    ipair=0;
+    for jset=2:nsets
+        for iset=1:jset-1
+            ipair=ipair+1;
+            subplot(2,ncols,ncols+ncols/2+ipair);
+            dots=v_full_set{jset,icombm}'*v_full_set{iset,icombm};
+            imagesc(abs(dots),[0 1]);
+            xlabel(sprintf('eivec, set %1.0f',iset));
+            ylabel(sprintf('eivec, set %1.0f',jset));
+            axis equal;
+            axis tight;
+        end
+    end
+    %
+    axes('Position',[0.01,0.02,0.01,0.01]); %for text
+    text(0,0,figname_raw,'Interpreter','none');
+    axis off;
+    axes('Position',[0.5,0.02,0.01,0.01]); %for text
+    text(0,0,title_string,'Interpreter','none');
+    axis off;
 end %icombm

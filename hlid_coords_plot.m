@@ -75,7 +75,7 @@ if (if_show_force_pos)
     title('coordinates, net pos pcs')
     colorbar;
 end
-    axes('Position',[0.01,0.02,0.01,0.01]); %for text
-    text(0,0,figname_raw,'Interpreter','none');
-    axis off;
+axes('Position',[0.01,0.02,0.01,0.01]); %for text
+text(0,0,figname_raw,'Interpreter','none');
+axis off;
 %

@@ -68,5 +68,3 @@ fnew=f;
 %
 return
 end
-
-
