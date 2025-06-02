@@ -1,15 +1,10 @@
 %hlid_orn_merge2: read multiple sets of raw orn data files with non-overlapping stimuli
-% This handles missing data, merges the orn reponses, and writes a coordinate file.
-%
-% Note that its inputs are raw data files, not coordinate files -- so it
-% does not use the psg library for file input, and cannot use psg_align_coordsets to align.
+% handle missing data, merge the orn reponses, and write a coordinate file
 %
 % Missing data within a set are filled in as in hlid_orn_merge,
-% but then the sets are combined, using corresponding ORNs.
-% 
-% If the sets are non-overlapping, they are appended.  If there are responses in common, they are averaged.
+% but then the sets (with non-overlapping stimuli) are appended, using corresponding ORNs
 %
-% rois.glomeurli fields must match across sets
+% the rois.glomeurli fields must match across sets
 %
 % Built on hlid_orn_merge
 % 
@@ -19,8 +14,6 @@
 %     union (glomeruli present in any,, with missing glomeruli set to zero
 % * defaults to restoring responses to match overall size of original data (hlid_orn_merge does not)
 % * merged coordinate sets always go up to largest possible dimension (hlid_orn_merge allows choice)
-%
-% 02Jun25: allow for the sets to have overlapping stimuli.
 %
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
 %   HLID_DA_STIMSELECT, HLID_ORN_MERGE.
@@ -279,40 +272,11 @@ for iset=1:nsets
     stim_labels=[stim_labels;stim_labels_set{iset}];
     resp_range=[min(resp_range(1),min(resps_set{iset}(:))) max(resp_range(2),max(resps_set{iset}(:)))];
 end
-% 
-% stimulus_names_unique is a list of unique stimulus names, but in order of first occurrence in sets
-% stim_labels_unique are the corresponding stim_labels, but does not contain concentration info
-% (this is so that if the sets have non-overlapping names, then they will
-% appear in the merged set in the original "stacked" order, rather than a merged alphabetical order
-%
-stimulus_names_unique=cell(0);
-stim_labels_unique=cell(0);
-for iset=1:nsets
-    for istim=1:length(stimulus_names_set{iset})
-        imatch=strmatch(stimulus_names_set{iset}(istim),stimulus_names_unique,'exact');
-        if isempty(imatch)
-            stimulus_names_unique{end+1,1}=stimulus_names_set{iset}{istim};
-            stim_labels_unique{end+1,1}=stim_labels_set{iset}{istim};
-        end
-    end
-end
-if length(unique(stimulus_names))~=sum(nstims) | length(stimulus_names_unique)~=sum(nstims)
+if length(unique(stim_labels))~=sum(nstims)
     warning('Not all stimulus names are unique');
 end
-if length(unique(stim_labels))~=sum(nstims) | length(stim_labels_unique)~=sum(nstims)
+if length(unique(stim_labels))~=sum(nstims)
     warning('Not all stim labels are unique');
-end
-%
-% determine contributions based on stimulus_names, since this also contains concentration
-%
-contribs=zeros(length(stimulus_names_unique),nsets);
-for iset=1:nsets
-    for istim=1:length(stimulus_names_set{iset})
-        imatch=strmatch(stimulus_names_set{iset}{istim},stimulus_names_unique,'exact');
-        if length(imatch)==1
-            contribs(imatch,iset)=istim;
-        end
-    end
 end
 %
 %initialize the quantities to save
@@ -322,8 +286,8 @@ for iset=1:nsets
     f_base.metadata{iset}=s{iset}{files_use{iset}(1)}.meta; %original metadata from Hong Lab
     f_base.dsid{iset}=dsid{iset}(files_use{iset},:); %data set ID, with special chars turned into -
 end
-f_base.stimulus_names=strvcat(stimulus_names_unique); %original stimulus names
-f_base.stim_labels=strvcat(stim_labels_unique); %shortened names for plotting
+f_base.stimulus_names=strvcat(stimulus_names); %original stimulus names
+f_base.stim_labels=strvcat(stim_labels); %shortened names for plotting
 f_base.resps=resps_set; %original responses
 if if_restore_size==0
     f_base.coord_opts.resp_type='response_amplitude_stim, after affine filling in'; %original field for responses from Hong Lab
@@ -334,8 +298,7 @@ end
 %combined set either has intersection of glomeruli in components, or glomeruli in union, with missing responses set to 0
 %
 ncombm=2; %number of combination modes: 1: intersection, 2: union, set missing to 0
-resps_combined=cell(1,ncombm); %combined responses, for saving
-resps_concat=cell(1,ncombm); %concatenated responses, for plotting
+resps_combs=cell(1,ncombm);
 f_combm=cell(1,ncombm);
 s_diag_all_combm=cell(1,ncombm);
 u_full_combm=cell(1,ncombm);
@@ -358,12 +321,11 @@ for icombm=1:2
             for iset=1:nsets
                 glomeruli_combined=intersect(glomeruli_combined,glomeruli_use{iset});
             end
-            resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined));
+            resps_combined{icombm}=zeros(sum(nstims),length(glomeruli_combined));
             for iset=1:nsets
-                resps_concat{icombm}(stims_sofar+[1:nstims(iset)],:)=resps_set{iset}(:,find(ismember(glomeruli_use{iset},glomeruli_combined)));
+                resps_combined{icombm}(stims_sofar+[1:nstims(iset)],:)=resps_set{iset}(:,find(ismember(glomeruli_use{iset},glomeruli_combined)));
                 stims_sofar=stims_sofar+nstims(iset);
             end
-            resps_combined{icombm}=resps_concat{icombm}; %will need to fix
         case 2
             comb_label='union, missing set to 0';
             comb_label_short='union';
@@ -371,12 +333,11 @@ for icombm=1:2
             for iset=1:nsets
                 glomeruli_combined=union(glomeruli_combined,glomeruli_use{iset});
             end
-            resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined));
+            resps_combined{icombm}=zeros(sum(nstims),length(glomeruli_combined));
             for iset=1:nsets
-                resps_concat{icombm}(stims_sofar+[1:nstims(iset)],ismember(glomeruli_combined,glomeruli_use{iset}))=resps_set{iset};
+                resps_combined{icombm}(stims_sofar+[1:nstims(iset)],ismember(glomeruli_combined,glomeruli_use{iset}))=resps_set{iset};
                 stims_sofar=stims_sofar+nstims(iset);
             end
-            resps_combined{icombm}=resps_concat{icombm}; %will need to fix
     end
     maxdim=min(sum(nstims),length(glomeruli_combined))-if_submean;
     disp(sprintf(' combination method %20s: %3.0f responses from %2.0f glomeruli, max dim %2.0f',...
@@ -432,7 +393,7 @@ for icombm=1:2
     set(gcf,'Name',figname);
     %full array of merged responses
     subplot(1,2,1)
-    imagesc(resps_concat{icombm},resp_range);
+    imagesc(resps_combined{icombm},resp_range);
     axis equal;
     axis tight;
     hold on;

@@ -1,5 +1,8 @@
 %hlid_orn_merge: read raw orn data files, handle missing data, merge the
-%orn reponses, and write a coordinate file
+%orn reponses, and write a coordinate file.
+%
+% Note that its inputs are raw data files, not coordinate files -- so it
+% does not use the psg library for file input, and cannot use psg_align_coordsets to align.
 %
 % In contrast to hlid_rastim2coords_demo, hlid_rastim2coords_pool:
 %  * this keeps track of responses of each ORN.
