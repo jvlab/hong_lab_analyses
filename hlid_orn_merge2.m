@@ -20,7 +20,7 @@
 % * defaults to restoring responses to match overall size of original data (hlid_orn_merge does not)
 % * merged coordinate sets always go up to largest possible dimension (hlid_orn_merge allows choice)
 %
-% 02Jun25: allow for the sets to have overlapping stimuli.
+% 03Jun25: allow for the sets to have overlapping stimuli. Logic changed: responses are added in rather than concatenated.
 %
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
 %   HLID_DA_STIMSELECT, HLID_ORN_MERGE.
@@ -348,39 +348,50 @@ u_full_set=cell(nsets,ncombm);
 v_full_set=cell(nsets,ncombm);
 s_full_set=cell(nsets,ncombm);
 %
+%glomeruli_combined via intersection {1} and union {2}
+glomeruli_combined=cell(1,ncombm);
+glomeruli_combined{1}=[1:nglomeruli];
+glomeruli_combined{2}=[];
+for iset=1:nsets
+    glomeruli_combined{1}=intersect(glomeruli_combined{1},glomeruli_use{iset});
+    glomeruli_combined{2}=union(glomeruli_combined{2},glomeruli_use{iset});
+end
+%
+%create concatenated datasets (stacked stimuli, just for display) and concatenated datasets 
+%with multiple examples of each response averaged
+%
 for icombm=1:2
     stims_sofar=0;
-    switch icombm
+    resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined{icombm}));
+    resps_combined{icombm}=zeros(length(stimulus_names_unique),length(glomeruli_combined{icombm}));
+    switch icombm %separate logic for intersection and union
         case 1             
             comb_label='intersection';
             comb_label_short='inter';
-            glomeruli_combined=[1:nglomeruli];
             for iset=1:nsets
-                glomeruli_combined=intersect(glomeruli_combined,glomeruli_use{iset});
-            end
-            resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined));
-            for iset=1:nsets
-                resps_concat{icombm}(stims_sofar+[1:nstims(iset)],:)=resps_set{iset}(:,find(ismember(glomeruli_use{iset},glomeruli_combined)));
+                g_target=[1:length(glomeruli_combined{icombm})];
+                g_source=find(ismember(glomeruli_use{iset},glomeruli_combined{icombm}));
+                resps_concat{icombm}(stims_sofar+[1:nstims(iset)],g_target)=resps_set{iset}(:,g_source);
                 stims_sofar=stims_sofar+nstims(iset);
+                contribs_inds=find(contribs(:,iset)>0);
+                resps_combined{icombm}(contribs_inds,g_target)=resps_combined{icombm}(contribs_inds,g_target)+resps_set{iset}(contribs(contribs_inds,iset),g_source);
             end
-            resps_combined{icombm}=resps_concat{icombm}; %will need to fix
         case 2
             comb_label='union, missing set to 0';
             comb_label_short='union';
-            glomeruli_combined=[];
             for iset=1:nsets
-                glomeruli_combined=union(glomeruli_combined,glomeruli_use{iset});
-            end
-            resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined));
-            for iset=1:nsets
-                resps_concat{icombm}(stims_sofar+[1:nstims(iset)],ismember(glomeruli_combined,glomeruli_use{iset}))=resps_set{iset};
+                g_target=find(ismember(glomeruli_combined{icombm},glomeruli_use{iset}));
+                g_source=[1:length(glomeruli_use{iset})];
+                resps_concat{icombm}(stims_sofar+[1:nstims(iset)],g_target)=resps_set{iset}(:,g_source);
                 stims_sofar=stims_sofar+nstims(iset);
+                contribs_inds=find(contribs(:,iset)>0);
+                resps_combined{icombm}(contribs_inds,g_target)=resps_combined{icombm}(contribs_inds,g_target)+resps_set{iset}(contribs(contribs_inds,iset),g_source);
             end
-            resps_combined{icombm}=resps_concat{icombm}; %will need to fix
     end
-    maxdim=min(sum(nstims),length(glomeruli_combined))-if_submean;
+    resps_combined{icombm}=resps_combined{icombm}./repmat(sum(contribs>0,2),1,length(glomeruli_combined{icombm})); %average responses according to number of sets in which they occur
+    maxdim=min(length(stimulus_names_unique),length(glomeruli_combined{icombm}))-if_submean;
     disp(sprintf(' combination method %20s: %3.0f responses from %2.0f glomeruli, max dim %2.0f',...
-        comb_label,sum(nstims),length(glomeruli_combined),maxdim))
+        comb_label,sum(nstims),length(glomeruli_combined{icombm}),maxdim))
     maxdim_use=maxdim;
     maxdim_allowed=maxdim;
     %
@@ -400,7 +411,7 @@ for icombm=1:2
     %
     stims_sofar=0;
     for iset=1:nsets
-        resps_combined_set=resps_combined{icombm}(stims_sofar+[1:nstims(iset)],:);
+        resps_combined_set=resps_concat{icombm}(stims_sofar+[1:nstims(iset)],:);
         maxdim_set=min(size(resps_combined_set))-if_submean;
         disp(sprintf('component set %1.0f for merge by %s',iset,comb_label))
         [fset,s_diag_set{iset,icombm},u_full_set{iset,icombm},v_full_set{iset,icombm},s_full_set{iset,icombm}]=...
@@ -417,7 +428,7 @@ for icombm=1:2
         disp(sprintf('wrote %s',data_fullname_write));
     end
     resps=resps_combined{icombm};
-    roi_names=glomeruli(glomeruli_combined);
+    roi_names=glomeruli(glomeruli_combined{icombm});
     hlid_coords_plot;
     axes('Position',[0.5,0.02,0.01,0.01]); %for text
     text(0,0,comb_label,'Interpreter','none');
@@ -438,12 +449,12 @@ for icombm=1:2
     hold on;
     for iset=1:nsets-1
         stimct=sum(nstims(1:iset));
-        plot([0 length(glomeruli_combined)]+[0.5 0.5],stimct+[0.5 0.5],'k','LineWidth',2);
+        plot([0 length(glomeruli_combined{icombm})]+[0.5 0.5],stimct+[0.5 0.5],'k','LineWidth',2);
     end
     title_string=figname;
     set(gca,'FontSize',7);
-    set(gca,'XTick',[1:length(glomeruli_combined)]);
-    set(gca,'XTickLabel',glomeruli(glomeruli_combined));
+    set(gca,'XTick',[1:length(glomeruli_combined{icombm})]);
+    set(gca,'XTickLabel',glomeruli(glomeruli_combined{icombm}));
     set(gca,'YTick',[1:sum(nstims)]);
     set(gca,'YTickLabel',stim_labels);
     title(title_string,'Interpreter','none','FontSize',10);
