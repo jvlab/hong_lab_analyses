@@ -9,7 +9,7 @@
 % 
 % If the sets are non-overlapping, they are appended.  If there are responses in common, they are averaged.
 %
-% rois.glomeurli fields must match across sets
+% rois.glomeruli fields must match across sets
 %
 % Built on hlid_orn_merge
 % 
