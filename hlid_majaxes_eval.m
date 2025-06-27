@@ -17,6 +17,9 @@ end
 if ~exist('adj_ref_pairs')
     adj_ref_pairs=repmat(adj_ref_dims',1,2);
 end
+if ~exist('tol')
+    tol=10^-5;
+end
 %
 if ~exist('opts_read') opts_read=struct;end
 opts_read=filldefault(opts_read,'if_log',1);
@@ -142,19 +145,31 @@ for iap=1:n_pairs
                          disp(cat(2,sprintf('   pc %3.0f: ',k),sprintf('%8.4f',corrs(k,:))));
                      end
                 end %iar
+                disp(' ');
                 for iar=1:2
                      lab=adj_ref_labels{iar};
-                     disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by  pcs: ',lab),sprintf('%8.4f ',pccs_stdexp{iap}{im_ptr,ipw}.(lab))));
+                     v=pccs_stdexp{iap}{im_ptr,ipw}.(lab);
+                     disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by  pcs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
                 end
+                disp(' ');
                 for iar=1:2
                     lab=adj_ref_labels{iar};
-                    disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by prjs: ',lab),sprintf('%8.4f ',prjs_stdexp{iap}{im_ptr,ipw}.(lab))));
+                    v=prjs_stdexp{iap}{im_ptr,ipw}.(lab);
+                    disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by prjs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
                 end
-                for iar=1:2
-                     lab=adj_ref_labels{iar};
-                     disp(cat(2,sprintf('%s:             magnification factor on prjs: ',lab),sprintf('%8.4f ',magnifs{iap}{im_ptr,ipw}.(lab))));
+                v=prjs_stdexp{iap}{im_ptr,ipw}.ref./prjs_stdexp{iap}{im_ptr,ipw}.adj;
+                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
+                disp(' ');
+                if max(magnifs{iap}{im_ptr,ipw}.ref-magnifs{iap}{im_ptr,ipw}.adj)>tol
+                    disp('warning: disagreement of magnif factors');
+                    for iar=1:2
+                        lab=adj_ref_labels{iar};
+                        disp(cat(2,sprintf('%s:              magnification factor on prjs: ',lab),sprintf('%8.4f ',magnifs{iap}{im_ptr,ipw}.(lab))));
+                    end
+                else
+                    v=magnifs{iap}{im_ptr,ipw}.(lab);
+                    disp(cat(2,sprintf('                  magnification factor on prjs: '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
                 end
-
              end %ipw
         end %im_ptr
     end %isempty
