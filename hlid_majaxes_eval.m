@@ -105,6 +105,8 @@ for iap=1:n_pairs
                 magnifs{iap}{im_ptr,ipw}=struct;
                 pccs{iap}{im_ptr,ipw}=struct;
                 prjs{iap}{im_ptr,ipw}=struct;
+                pccs_stdexp0{iap}{im_ptr,ipw}=struct;
+                prjs_stdexp0{iap}{im_ptr,ipw}=struct;
                 pccs_stdexp{iap}{im_ptr,ipw}=struct;
                 prjs_stdexp{iap}{im_ptr,ipw}=struct;
                 for iar=1:2
@@ -134,6 +136,9 @@ for iap=1:n_pairs
                      end
                      pccs{iap}{im_ptr,ipw}.(lab)=psg_majaxes_reorder(z_pcc,plot_order,z_pcc_order);
                      prjs{iap}{im_ptr,ipw}.(lab)=psg_majaxes_reorder(z_prj,plot_order,results_axes{id_ref,id_adj}.(lab).typenames);
+                     %
+                     pccs_stdexp0{iap}{im_ptr,ipw}.(lab)=sqrt(mean(pccs{iap}{im_ptr,ipw}.(lab).^2,1)); %stdv around 0
+                     prjs_stdexp0{iap}{im_ptr,ipw}.(lab)=sqrt(mean(prjs{iap}{im_ptr,ipw}.(lab).^2,1)); %stdv around 0
                      %                    
                      pccs_stdexp{iap}{im_ptr,ipw}.(lab)=sqrt(var(pccs{iap}{im_ptr,ipw}.(lab),1,1)); %first 1 is to divide by N, second 1 is dimension
                      prjs_stdexp{iap}{im_ptr,ipw}.(lab)=sqrt(var(prjs{iap}{im_ptr,ipw}.(lab),1,1)); %first 1 is to divide by N, second 1 is dimension
@@ -148,17 +153,23 @@ for iap=1:n_pairs
                 disp(' ');
                 for iar=1:2
                      lab=adj_ref_labels{iar};
+                     v0=pccs_stdexp0{iap}{im_ptr,ipw}.(lab);
+                     disp(cat(2,sprintf('%s: sqrt(var (around zero) explained by  pcs): ',lab),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
                      v=pccs_stdexp{iap}{im_ptr,ipw}.(lab);
-                     disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by  pcs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
+                     disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by  pcs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 end
+                v=pccs_stdexp{iap}{im_ptr,ipw}.ref./pccs_stdexp{iap}{im_ptr,ipw}.adj;
+                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 disp(' ');
                 for iar=1:2
                     lab=adj_ref_labels{iar};
+                    v0=prjs_stdexp0{iap}{im_ptr,ipw}.(lab);
+                    disp(cat(2,sprintf('%s: sqrt(var (around zero) explained by prjs): ',lab),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
                     v=prjs_stdexp{iap}{im_ptr,ipw}.(lab);
-                    disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by prjs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
+                    disp(cat(2,sprintf('%s: sqrt(var (around mean) explained by prjs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 end
                 v=prjs_stdexp{iap}{im_ptr,ipw}.ref./prjs_stdexp{iap}{im_ptr,ipw}.adj;
-                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
+                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 disp(' ');
                 if max(magnifs{iap}{im_ptr,ipw}.ref-magnifs{iap}{im_ptr,ipw}.adj)>tol
                     disp('warning: disagreement of magnif factors');
@@ -168,9 +179,9 @@ for iap=1:n_pairs
                     end
                 else
                     v=magnifs{iap}{im_ptr,ipw}.(lab);
-                    disp(cat(2,sprintf('                  magnification factor on prjs: '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f',max(v)/min(v))));
+                    disp(cat(2,sprintf('                  magnification factor on prjs: '),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 end
              end %ipw
         end %im_ptr
     end %isempty
-end %iap
+end %iap:
