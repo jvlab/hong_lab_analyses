@@ -36,7 +36,7 @@ opts_majaxes=filldefault(opts_majaxes,'plot_order',display_orders.kcclust);
 %
 fn_geo=getinp('file name containing results of psg_geomodels_run','s',[]);
 results_geo=getfield(load(fn_geo),'results');
-%j
+%
 fn_ref=[];
 fn_adj=[];
 for k=1:size(results_geo,1)
