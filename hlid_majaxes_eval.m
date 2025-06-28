@@ -36,7 +36,7 @@ opts_majaxes=filldefault(opts_majaxes,'plot_order',display_orders.kcclust);
 %
 fn_geo=getinp('file name containing results of psg_geomodels_run','s',[]);
 results_geo=getfield(load(fn_geo),'results');
-%
+%j
 fn_ref=[];
 fn_adj=[];
 for k=1:size(results_geo,1)
@@ -55,7 +55,6 @@ fn_ref=getinp('file name for dataset that is the reference','s',[],fn_ref);
 [d_ref,sa_ref]=psg_read_coorddata(fn_ref,[],opts_read);
 %
 fn_adj=getinp('file name for dataset that is adjusted','s',[],fn_adj);
-ds_adj=load(fn_adj);
 [d_adj,sa_adj]=psg_read_coorddata(fn_adj,[],opts_read);
 %
 [results_axes,opts_majaxes_used]=psg_majaxes(d_ref,sa_ref,d_adj,sa_adj,results_geo,opts_majaxes);

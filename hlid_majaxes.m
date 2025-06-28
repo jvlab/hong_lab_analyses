@@ -45,7 +45,6 @@ if (legacy_inputs==1)
     [d_ref,sa_ref]=psg_read_coorddata(fn_ref,[],opts_read);
     %
     fn_adj=getinp('file name for dataset that is adjusted','s',[],fn_adj);
-    ds_adj=load(fn_adj);
     [d_adj,sa_adj]=psg_read_coorddata(fn_adj,[],opts_read);
     %
     fn_geo=getinp('file name containing results of psg_geomodels_run','s',[],fn_geo);
@@ -73,7 +72,6 @@ else
     [d_ref,sa_ref]=psg_read_coorddata(fn_ref,[],opts_read);
     %
     fn_adj=getinp('file name for dataset that is adjusted','s',[],fn_adj);
-    ds_adj=load(fn_adj);
     [d_adj,sa_adj]=psg_read_coorddata(fn_adj,[],opts_read);
 end
 %
