@@ -29,6 +29,7 @@
 % hlid_majaxes: examine axes identified in a transformation
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity
 % hlid_majaxes_eval: compare axes identified in a transformation with principal components
+% hlid_orn_kc_check: check on variances, etc, from coordinates for orn and kc for overlapping stimuli
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
 % nlid_rastim_trial_decode: single-trial decoding of raw data

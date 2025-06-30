@@ -1,13 +1,14 @@
 %hlid_majaxes_eval: further anlaysis of transformations of an affine geometric model to determine major axes
 % for Hong Lab data
 %
-% derived from hlid_majaxes, designed to look at transformatoin between ORN
-% space and KC space, 
+% derived from hlid_majaxes, designed to look at transformation between ORN space and KC space, 
 %   compare the major axes of the transformation with the PC's of the space
 %   compare the sqrt(variance) on each PC or principal axis with the magnif factors 
 %
 %   See also: PSG_GEOMODELS_RUN, PSG_GEOMODELS_DEFINE, HLID_SETUP, PSG_MAJAXES, HLID_MAJAXES_COMPARE,
 %   PSG_MAJAXES_REORDER.
+%
+% 30Jun25: fix bug: only consider stimuli in common to both ref and adj in computing statistics
 %
 hlid_setup;
 %
@@ -75,6 +76,14 @@ disp(sprintf('adj set has %3.0f stimuli, %3.0f in common with ref',sa_adj.nstims
 %
 typenames_ovlps=sa_ref.typenames(ref_ovlps>0); %typenames that overlap
 %
+stim_select=cell(0);
+plot_order=opts_majaxes_used.plot_order;
+for istim=1:length(plot_order)
+    if strmatch(plot_order{istim},sa_adj.typenames,'exact')>0 & strmatch(plot_order{istim},sa_ref.typenames,'exact')>0
+        stim_select{end+1}=plot_order{istim};
+    end
+end
+%
 adj_ref_labels={'adj','ref'};
 nar=length(adj_ref_labels);
 %
@@ -110,7 +119,6 @@ for iap=1:n_pairs
                 prjs_stdexp{iap}{im_ptr,ipw}=struct;
                 for iar=1:2
                      lab=adj_ref_labels{iar};
-                     plot_order=opts_majaxes_used.(cat(2,'plot_order_',lab)); %plot order in psg_majaxes
                      %
                      magnifs{iap}{im_ptr,ipw}.(lab)=results_axes{id_ref,id_adj}.(lab).magnifs{im_ptr}(:,ipw);
                      %
@@ -133,8 +141,8 @@ for iap=1:n_pairs
                              z_pcc_order{istim}='';
                          end
                      end
-                     pccs{iap}{im_ptr,ipw}.(lab)=psg_majaxes_reorder(z_pcc,plot_order,z_pcc_order);
-                     prjs{iap}{im_ptr,ipw}.(lab)=psg_majaxes_reorder(z_prj,plot_order,results_axes{id_ref,id_adj}.(lab).typenames);
+                     pccs{iap}{im_ptr,ipw}.(lab)=psg_majaxes_reorder(z_pcc,stim_select,z_pcc_order);
+                     prjs{iap}{im_ptr,ipw}.(lab)=psg_majaxes_reorder(z_prj,stim_select,results_axes{id_ref,id_adj}.(lab).typenames);
                      %
                      pccs_stdexp0{iap}{im_ptr,ipw}.(lab)=sqrt(mean(pccs{iap}{im_ptr,ipw}.(lab).^2,1)); %stdv around 0
                      prjs_stdexp0{iap}{im_ptr,ipw}.(lab)=sqrt(mean(prjs{iap}{im_ptr,ipw}.(lab).^2,1)); %stdv around 0
