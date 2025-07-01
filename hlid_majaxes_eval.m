@@ -62,15 +62,14 @@ fn_adj=getinp('file name for dataset that is adjusted','s',[],fn_adj);
 %
 %find overlap set, and remove non-overlaps
 %
-typenames_ovlps=cell(0);
 ref_ovlps=zeros(sa_ref.nstims,1);
 for istim=1:sa_ref.nstims
-    ref_ovlps(istim)=double(length(strmatch(sa_ref.typenames{istim},sa_adj.typenames,'exact')==1));
+    ref_ovlps(istim)=double(length(strmatch(sa_ref.typenames{istim},sa_adj.typenames,'exact'))==1);
 end
 disp(sprintf('ref set has %3.0f stimuli, %3.0f in common with adj',sa_ref.nstims,sum(ref_ovlps)));
 adj_ovlps=zeros(sa_adj.nstims,1);
 for istim=1:sa_adj.nstims
-    adj_ovlps(istim)=double(length(strmatch(sa_adj.typenames{istim},sa_ref.typenames,'exact')==1));
+    adj_ovlps(istim)=double(length(strmatch(sa_adj.typenames{istim},sa_ref.typenames,'exact'))==1);
 end
 disp(sprintf('adj set has %3.0f stimuli, %3.0f in common with ref',sa_adj.nstims,sum(adj_ovlps)));
 %

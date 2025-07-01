@@ -371,7 +371,7 @@ while (if_ok==0)
         disp('**********');
         stims_combined_keep=[];
         for istim=1:length(stim_labels_unique)
-            if length(strmatch(stim_labels_unique{istim},subset_typenames,'exact')==1)
+            if length(strmatch(stim_labels_unique{istim},subset_typenames,'exact'))==1
                 stims_combined_keep(end+1)=istim;
             end
         end   

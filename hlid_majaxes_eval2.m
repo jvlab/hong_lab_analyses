@@ -68,15 +68,14 @@ fn_adj=getinp('file name for dataset that is adjusted','s',[],fn_adj);
 %
 %find overlap set, and remove non-overlaps
 %
-typenames_ovlps=cell(0);
 ref_ovlps=zeros(sa_ref.nstims,1);
 for istim=1:sa_ref.nstims
-    ref_ovlps(istim)=double(length(strmatch(sa_ref.typenames{istim},sa_adj.typenames,'exact')==1));
+    ref_ovlps(istim)=double(length(strmatch(sa_ref.typenames{istim},sa_adj.typenames,'exact'))==1);
 end
 disp(sprintf('ref set has %3.0f stimuli, %3.0f in common with adj',sa_ref.nstims,sum(ref_ovlps)));
 adj_ovlps=zeros(sa_adj.nstims,1);
 for istim=1:sa_adj.nstims
-    adj_ovlps(istim)=double(length(strmatch(sa_adj.typenames{istim},sa_ref.typenames,'exact')==1));
+    adj_ovlps(istim)=double(length(strmatch(sa_adj.typenames{istim},sa_ref.typenames,'exact'))==1);
 end
 disp(sprintf('adj set has %3.0f stimuli, %3.0f in common with ref',sa_adj.nstims,sum(adj_ovlps)));
 %
@@ -275,9 +274,9 @@ for iap=1:n_pairs
             pamc_stdexp0{iap}{im_ptr}=sqrt(mean(pamc{iap}{im_ptr}.^2,1)); %stdv around 0
             pamc_stdexp{iap}{im_ptr}=sqrt(var(pamc{iap}{im_ptr},1,1)); %first 1 is to divide by N, second 1 is dimension
             v0=pamc_stdexp0{iap}{im_ptr}(1:min(id_adj,id_ref));
-            disp(cat(2,sprintf('modeled ref:  sqrt(var (around zero) of transformed adj: ',lab),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
+            disp(cat(2,sprintf('modeled ref:  sqrt(var (around zero) of transformed adj: '),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
             v=pamc_stdexp{iap}{im_ptr}(1:min(id_adj,id_ref));
-            disp(cat(2,sprintf('modeled ref:       var (around mean) of transformed adj: ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+            disp(cat(2,sprintf('modeled ref:       var (around mean) of transformed adj: '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
         end %im_ptr
     end %isempty
 end %iap
