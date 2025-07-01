@@ -214,7 +214,7 @@ for iap=1:n_pairs
                 end
                 %
                 disp(' ');
-                disp(' projections onto principal axes of transform');
+                disp(sprintf(' projections onto principal axes of transform, model component %2.0f',ipw));
                 for iar=1:2
                     lab=adj_ref_labels{iar};
                     v0=prjs_stdexp0{iap}{im_ptr,ipw}.(lab);
@@ -238,6 +238,14 @@ for iap=1:n_pairs
                     lab=adj_ref_labels{iar};
                     disp(cat(2,sprintf('%s:                       magnification factor on prjs: ',lab),sprintf('%8.4f ',magnifs{iap}{im_ptr,ipw}.(lab))));
                 end
+                disp(' ');
+                disp('comparing axes in adj and ref space as cosines');
+                disp(' projections onto principal components derived from data');
+                hlid_majaxes_arc(pccs{iap}{im_ptr});
+                disp(' projections onto principal components recomputed after centering orn and kc responses');
+                hlid_majaxes_arc(pcen{iap}{im_ptr});
+                disp(sprintf(' projections onto principal axes of transform, model component %2.0f',ipw));
+                hlid_majaxes_arc(prjs{iap}{im_ptr,ipw});
                 disp(' ');
              end %ipw            
              %
@@ -266,9 +274,9 @@ for iap=1:n_pairs
             pamc{iap}{im_ptr}=psg_pcaoffset(adj_model_geo-repmat(mean(adj_model_geo,1),size(adj_model_geo,1),1)); %pcs of modeled transformation,  after centering
             pamc_stdexp0{iap}{im_ptr}=sqrt(mean(pamc{iap}{im_ptr}.^2,1)); %stdv around 0
             pamc_stdexp{iap}{im_ptr}=sqrt(var(pamc{iap}{im_ptr},1,1)); %first 1 is to divide by N, second 1 is dimension
-            v0=pamc_stdexp0{iap}{im_ptr};
+            v0=pamc_stdexp0{iap}{im_ptr}(1:min(id_adj,id_ref));
             disp(cat(2,sprintf('modeled ref:  sqrt(var (around zero) of transformed adj: ',lab),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
-            v=pamc_stdexp{iap}{im_ptr};
+            v=pamc_stdexp{iap}{im_ptr}(1:min(id_adj,id_ref));
             disp(cat(2,sprintf('modeled ref:       var (around mean) of transformed adj: ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
         end %im_ptr
     end %isempty
@@ -277,7 +285,18 @@ end %iap
 function hlid_majaxes_stats(v)
 disp(cat(2,sprintf('%57s','skewness: '),sprintf('%8.4f ',skewness(v,0,1)))); %first ar is 0 not to debias, second arg is dimension
 disp(cat(2,sprintf('%57s','excess kurtosis: '),sprintf('%8.4f ',kurtosis(v,0,1)-3))); %first ar is 0 not to debias, second arg is dimension
-
 return
 end
+
+function hlid_majaxes_arc(vecs)
+disp(cat(2,'adj/ref',sprintf('%5.0f   ',[1:size(vecs.ref,2)])));
+vec_a=vecs.adj./repmat(sqrt(sum(vecs.adj.^2,1)),size(vecs.adj,1),1);
+vec_r=vecs.ref./repmat(sqrt(sum(vecs.ref.^2,1)),size(vecs.ref,1),1);
+dots=vec_a'*vec_r;
+for k=1:size(dots,1)
+    disp(cat(2,sprintf('adj %1.0f',k),sprintf('%8.4f',dots(k,:))));
+end
+return
+end
+
 

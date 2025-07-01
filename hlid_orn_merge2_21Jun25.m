@@ -21,7 +21,6 @@
 % * merged coordinate sets always go up to largest possible dimension (hlid_orn_merge allows choice)
 %
 % 03Jun25: allow for the sets to have overlapping stimuli. Logic changed: responses are added in rather than concatenated.
-% 01Jul25: add roi_names and glomerulus labels to outputs
 %
 %   See also:  HLID_SETUP, HLID_RASTM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, AFALWT, HLID_SVD_COORDS, HLID_PLOT_COORDS,
 %   HLID_DA_STIMSELECT, HLID_ORN_MERGE.
@@ -47,6 +46,7 @@ nstims=zeros(1,nsets);
 glomeruli_use=cell(1,nsets); %pointers to glomeruli used in each set
 nglomeruli_use=zeros(1,nsets); %number of glomeruli used in each set
 resps_raw=cell(1,nsets); %responses within each dataset prior to fill-in merge
+resps=cell(1,nsets); %responses after fill-in merge within each set
 files_use=cell(1,nsets); %files used within each set
 dsid=cell(1,nsets);
 %
@@ -272,11 +272,11 @@ axis off;
 %quantities calculated from all sets
 %
 stimulus_names=cell(0);
-stim_labels_in=cell(0);
+stim_labels=cell(0);
 resp_range=[Inf -Inf];
 for iset=1:nsets
     stimulus_names=[stimulus_names;stimulus_names_set{iset}];
-    stim_labels_in=[stim_labels_in;stim_labels_set{iset}];
+    stim_labels=[stim_labels;stim_labels_set{iset}];
     resp_range=[min(resp_range(1),min(resps_set{iset}(:))) max(resp_range(2),max(resps_set{iset}(:)))];
 end
 % 
@@ -299,7 +299,7 @@ end
 if length(unique(stimulus_names))~=sum(nstims) | length(stimulus_names_unique)~=sum(nstims)
     warning('Not all stimulus names are unique');
 end
-if length(unique(stim_labels_in))~=sum(nstims) | length(stim_labels_unique)~=sum(nstims)
+if length(unique(stim_labels))~=sum(nstims) | length(stim_labels_unique)~=sum(nstims)
     warning('Not all stim labels are unique');
 end
 %
@@ -322,6 +322,8 @@ for iset=1:nsets
     f_base.metadata{iset}=s{iset}{files_use{iset}(1)}.meta; %original metadata from Hong Lab
     f_base.dsid{iset}=dsid{iset}(files_use{iset},:); %data set ID, with special chars turned into -
 end
+f_base.stimulus_names=strvcat(stimulus_names_unique); %original stimulus names
+f_base.stim_labels=strvcat(stim_labels_unique); %shortened names for plotting
 f_base.resps=resps_set; %original responses
 if if_restore_size==0
     f_base.coord_opts.resp_type='response_amplitude_stim, after affine filling in'; %original field for responses from Hong Lab
@@ -358,36 +360,6 @@ end
 %create concatenated datasets (stacked stimuli, just for display) and concatenated datasets 
 %with multiple examples of each response averaged
 %
-if_ok=0;
-while (if_ok==0)
-    if_restrict_stims=getinp('1 to restrict stimuli to a subset before computing pcs of combined sets','d',[0 1]);
-    if if_restrict_stims
-        disp('**********'); %code from psg_coord_pipe_proc
-        disp('Enter a file for the purposes of defining a stimulus set.')
-        [sets_tn,ds_tn,sas_tn]=psg_get_coordsets(opts_read,[],[],1);
-        subset_typenames=sas_tn{1}.typenames;
-        disp('Stimulus set retrieved.');
-        disp(subset_typenames');
-        disp('**********');
-        stims_combined_keep=[];
-        for istim=1:length(stim_labels_unique)
-            if length(strmatch(stim_labels_unique{istim},subset_typenames,'exact')==1)
-                stims_combined_keep(end+1)=istim;
-            end
-        end   
-        disp(sprintf('%3.0f stimuli of the original %3.0f in the combined files will be kept in the merged output',...
-            length(stims_combined_keep),length(stim_labels_unique)));
-        if_ok=getinp('1 if ok','d',[0 1]);
-    else
-        stims_combined_keep=[1:length(stim_labels_unique)];
-        if_ok=1;
-    end
-end %if_ok
-f_base.stimulus_names_orig=strvcat(stimulus_names_unique); %original stimulus names
-f_base.stim_labels_orig=strvcat(stim_labels_unique); %shortened names for plotting
-f_base.stimulus_names=f_base.stimulus_names_orig(stims_combined_keep,:);
-f_base.stim_labels=f_base.stim_labels_orig(stims_combined_keep,:);
-%
 for icombm=1:2
     stims_sofar=0;
     resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined{icombm}));
@@ -417,8 +389,7 @@ for icombm=1:2
             end
     end
     resps_combined{icombm}=resps_combined{icombm}./repmat(sum(contribs>0,2),1,length(glomeruli_combined{icombm})); %average responses according to number of sets in which they occur
-%    maxdim=min(length(stimulus_names_unique),length(glomeruli_combined{icombm}))-if_submean;
-    maxdim=min(length(stims_combined_keep),length(glomeruli_combined{icombm}))-if_submean;
+    maxdim=min(length(stimulus_names_unique),length(glomeruli_combined{icombm}))-if_submean;
     disp(sprintf(' combination method %20s: %3.0f responses from %2.0f glomeruli, max dim %2.0f',...
         comb_label,sum(nstims),length(glomeruli_combined{icombm}),maxdim))
     maxdim_use=maxdim;
@@ -427,7 +398,7 @@ for icombm=1:2
     %create coords by SVD and add metadata and plot
     %
     disp(sprintf('datasets merged by %s',comb_label));
-    [f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f_base,resps_combined{icombm}(stims_combined_keep,:),maxdim,maxdim_use,if_submean);
+    [f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f_base,resps_combined{icombm},maxdim,maxdim_use,if_submean);
     %save combined variables
     f_combm{icombm}=f;
     s_diag_all_combm{icombm}=s_diag_all;
@@ -436,12 +407,7 @@ for icombm=1:2
     s_full_combm{icombm}=s_full;
     coords_all_combm{icombm}=coords_all;
     %
-    f.glomeruli_names=glomeruli; %names of glomeruli in each dataset
-    f.glomeruli_subset_use=glomeruli_use; %glomeruli used in each subset
-    f.glomeruli_combined=glomeruli_combined{icombm};
-    f.roi_names=glomeruli(glomeruli_use{icombm}); %for compatibilty with hlid_majaxes
-    %
-    %create coords by SVD for each subset, keeping all stimuli
+    %create coords by SVD for each set
     %
     stims_sofar=0;
     for iset=1:nsets
@@ -461,9 +427,8 @@ for icombm=1:2
         save(data_fullname_write,'-struct','f');
         disp(sprintf('wrote %s',data_fullname_write));
     end
-    resps=resps_combined{icombm}(stims_combined_keep,:);
+    resps=resps_combined{icombm};
     roi_names=glomeruli(glomeruli_combined{icombm});
-    stim_labels=f_base.stim_labels_orig(stims_combined_keep,:); %label only the stimuli we keep
     hlid_coords_plot;
     axes('Position',[0.5,0.02,0.01,0.01]); %for text
     text(0,0,comb_label,'Interpreter','none');
@@ -491,7 +456,7 @@ for icombm=1:2
     set(gca,'XTick',[1:length(glomeruli_combined{icombm})]);
     set(gca,'XTickLabel',glomeruli(glomeruli_combined{icombm}));
     set(gca,'YTick',[1:sum(nstims)]);
-    set(gca,'YTickLabel',stim_labels_unique);
+    set(gca,'YTickLabel',stim_labels);
     title(title_string,'Interpreter','none','FontSize',10);
     colorbar;
     %
