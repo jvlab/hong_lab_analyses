@@ -6,8 +6,9 @@
 %   compare the sqrt(variance) on each PC or principal axis with the magnif factors 
 %
 % compared to hlid_majaxes_eval:
-%    Also computes stats on modeled transformation of adjusted dataset
-%    Some outputs reorganized
+%    *pccs and pcen don't have an ipw argument (but still are recomputed)
+%    *computes stats on modeled transformation of adjusted dataset
+%    *Some outputs reformatted
 %
 %   See also: PSG_GEOMODELS_RUN, PSG_GEOMODELS_DEFINE, HLID_SETUP, PSG_MAJAXES, HLID_MAJAXES_COMPARE,
 %   PSG_MAJAXES_REORDER, PSG_PCA_OFFSET, PSG_GEOMODELS_APPLY, PSG_GEOMODELS_DEFINE.
@@ -206,23 +207,27 @@ for iap=1:n_pairs
                 disp(' ');
                 for iar=1:2
                      lab=adj_ref_labels{iar};
-                     v0=pccs_stdexp0{iap}{im_ptr,ipw}.(lab);
+                     v0=pccs_stdexp0{iap}{im_ptr}.(lab);
                      disp(cat(2,sprintf('%s: sqrt(var (around zero)     explained by  data pcs): ',lab),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
-                     v=pccs_stdexp{iap}{im_ptr,ipw}.(lab);
+                     v=pccs_stdexp{iap}{im_ptr}.(lab);
                      disp(cat(2,sprintf('%s: sqrt(var (around mean)     explained by  data pcs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                     hlid_majaxes_stats(pccs{iap}{im_ptr}.(lab));
                 end
                 v=pccs_stdexp{iap}{im_ptr,ipw}.ref./pccs_stdexp{iap}{im_ptr,ipw}.adj;
-                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                disp(cat(2,sprintf('          sqrt(var (around mean))       ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                %
                 disp(' ');
                 for iar=1:2
                      lab=adj_ref_labels{iar};
-                     v0=pcen_stdexp0{iap}{im_ptr,ipw}.(lab);
+                     v0=pcen_stdexp0{iap}{im_ptr}.(lab);
                      disp(cat(2,sprintf('%s: sqrt(var (around zero) pcs recomputed p centering): ',lab),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
-                     v=pcen_stdexp{iap}{im_ptr,ipw}.(lab);
+                     v=pcen_stdexp{iap}{im_ptr}.(lab);
                      disp(cat(2,sprintf('%s: sqrt(var (around mean) pcs recomputed p centering): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                     hlid_majaxes_stats(pcen{iap}{im_ptr}.(lab));
                 end
                 v=pcen_stdexp{iap}{im_ptr,ipw}.ref./pcen_stdexp{iap}{im_ptr,ipw}.adj;
-                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                disp(cat(2,sprintf('          sqrt(var (around mean))       ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                %
                 disp(' ');
                 for iar=1:2
                     lab=adj_ref_labels{iar};
@@ -232,19 +237,21 @@ for iap=1:n_pairs
                     disp(cat(2,sprintf('%s: sqrt(var (around mean)    explained by xform prjs): ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 end
                 v=prjs_stdexp{iap}{im_ptr,ipw}.ref./prjs_stdexp{iap}{im_ptr,ipw}.adj;
-                disp(cat(2,sprintf('                               ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                disp(cat(2,sprintf('          sqrt(var (around mean))       ratio (ref/adj): '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                hlid_majaxes_stats(prjs{iap}{im_ptr,ipw}.(lab));
                 disp(' ');
                 if max(magnifs{iap}{im_ptr,ipw}.ref-magnifs{iap}{im_ptr,ipw}.adj)>tol
                     disp('warning: disagreement of magnif factors');
                     for iar=1:2
                         lab=adj_ref_labels{iar};
-                        disp(cat(2,sprintf('%s:              magnification factor on prjs: ',lab),sprintf('%8.4f ',magnifs{iap}{im_ptr,ipw}.(lab))));
+                        disp(cat(2,sprintf('%s:                       magnification factor on prjs: ',lab),sprintf('%8.4f ',magnifs{iap}{im_ptr,ipw}.(lab))));
                     end
-                else
-                    v=magnifs{iap}{im_ptr,ipw}.(lab);
-                    disp(cat(2,sprintf('                  magnification factor on prjs: '),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
                 end
+                v=magnifs{iap}{im_ptr,ipw}.(lab);
+                disp(cat(2,sprintf('                           magnification factor on prjs: '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+                disp(' ');
              end %ipw
+             
              %
              disp('calculations based on model transformation from adj space')
             %compute transformation of adj to ref
@@ -277,4 +284,12 @@ for iap=1:n_pairs
             disp(cat(2,sprintf('modeled ref:       var (around mean) of transformed adj: ',lab),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
         end %im_ptr
     end %isempty
-end %iap:
+end %iap
+
+function hlid_majaxes_stats(v)
+disp(cat(2,sprintf('%57s','skewness: '),sprintf('%8.4f ',skewness(v,0,1)))); %first ar is 0 not to debias, second arg is dimension
+disp(cat(2,sprintf('%57s','excess kurtosis: '),sprintf('%8.4f ',kurtosis(v,0,1)-3))); %first ar is 0 not to debias, second arg is dimension
+
+return
+end
+
