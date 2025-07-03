@@ -1,9 +1,21 @@
 %hlid_majaxes: analyze the transformations of an affine geometric model to determine major axes
 % for Hong Lab data
 %
-% needs two data files (one as reference, one to be adjusted), and the results of psg_geomodels_run that
+% Legacy inputs: needs two data files (one as reference, one to be adjusted), and the results of psg_geomodels_run that
 % determined geometric models between adjusted and reference dataset
+% Otherwise, uses results of psg_geomodels_run to prompt for adjusted and reference datasets
 %
+% Note: This does not check that stimuli are in the same order as used for the geometric modeling in psg_geomodels_run,
+% which identifies the stimuli in common and then analyzes them in alphabetical order.
+% For most purposes, the stimulus order needs to be set as follows:
+% hlid_setup
+% opts_read, opts_plot, opts_multim_def initialized for hlid data
+% opts_majaxes.plot_order=display_orders.kcmerge
+% opts_majaxes = 
+%  struct with fields:
+%    plot_order: {'2h'  'IaA'  'pa'  '2-but'  'eb'  'ep'  '6al'  't2h'  '1-8ol'  '1-5ol'  '1-6ol'  'PAA'  'ms'  'B-myr'  'euc'  '-aPine'  'pfo'}
+%    plot_pairs: []
+
 % 17Sep24: change defaults for plot_pairs
 % 17Sep24: add options to transform principal directions to ORN space, if
 %   adj data file has a field roi_names (typically from hlid_orn_merge.m), as

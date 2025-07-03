@@ -5,6 +5,17 @@
 %   compare the major axes of the transformation with the PC's of the space
 %   compare the sqrt(variance) on each PC or principal axis with the magnif factors 
 %
+% Note: This does not check that stimuli are in the same order as used for the geometric modeling in psg_geomodels_run,
+% which identifies the stimuli in common and then analyzes them in alphabetical order.
+% For most purposes, the stimulus order needs to be set as follows:
+% hlid_setup
+% opts_read, opts_plot, opts_multim_def initialized for hlid data
+% opts_majaxes.plot_order=display_orders.kcmerge
+% opts_majaxes = 
+%  struct with fields:
+%    plot_order: {'2h'  'IaA'  'pa'  '2-but'  'eb'  'ep'  '6al'  't2h'  '1-8ol'  '1-5ol'  '1-6ol'  'PAA'  'ms'  'B-myr'  'euc'  '-aPine'  'pfo'}
+%    plot_pairs: []
+%
 %   See also: PSG_GEOMODELS_RUN, PSG_GEOMODELS_DEFINE, HLID_SETUP, PSG_MAJAXES, HLID_MAJAXES_COMPARE,
 %   PSG_MAJAXES_REORDER.
 %

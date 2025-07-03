@@ -5,6 +5,17 @@
 %   compare the major axes of the transformation with the PC's of the space
 %   compare the sqrt(variance) on each PC or principal axis with the magnif factors 
 %
+% Note: This does not check that stimuli are in the same order as used for the geometric modeling in psg_geomodels_run,
+% which identifies the stimuli in common and then analyzes them in alphabetical order.
+% For most purposes, the stimulus order needs to be set as follows:
+% hlid_setup
+% opts_read, opts_plot, opts_multim_def initialized for hlid data
+% opts_majaxes.plot_order=display_orders.kcmerge
+% opts_majaxes = 
+%  struct with fields:
+%    plot_order: {'2h'  'IaA'  'pa'  '2-but'  'eb'  'ep'  '6al'  't2h'  '1-8ol'  '1-5ol'  '1-6ol'  'PAA'  'ms'  'B-myr'  'euc'  '-aPine'  'pfo'}
+%    plot_pairs: []
+%
 % compared to hlid_majaxes_eval:
 %    *pccs and pcen don't have an ipw argument (but still are recomputed)
 %    *computes stats on modeled transformation of adjusted dataset
@@ -265,7 +276,7 @@ for iap=1:n_pairs
             %if model type is affine_offset, check that a further affine offset model will not improve
             if strcmp(model_type,'affine_offset')
                 [d,adj_model_check,transform_check,opts_used]=psg_geo_affine(ref,adj_model_geo);
-                disp('checking whether the affine offset model can be improved');
+                disp('checking whether the affine offset model can be improved (centering ignored)');
                 disp(transform_check);
                 disp(transform_check.T);
             end
@@ -274,9 +285,9 @@ for iap=1:n_pairs
             pamc_stdexp0{iap}{im_ptr}=sqrt(mean(pamc{iap}{im_ptr}.^2,1)); %stdv around 0
             pamc_stdexp{iap}{im_ptr}=sqrt(var(pamc{iap}{im_ptr},1,1)); %first 1 is to divide by N, second 1 is dimension
             v0=pamc_stdexp0{iap}{im_ptr}(1:min(id_adj,id_ref));
-            disp(cat(2,sprintf('modeled ref:  sqrt(var (around zero) of transformed adj: '),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
+            disp(cat(2,sprintf('modeled ref: sqrt(var (around zero)) of transformed adj: '),sprintf('%8.4f ',v0),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v0)/min(v0),geomean(v0)/mean(v0))));
             v=pamc_stdexp{iap}{im_ptr}(1:min(id_adj,id_ref));
-            disp(cat(2,sprintf('modeled ref:       var (around mean) of transformed adj: '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
+            disp(cat(2,sprintf('modeled ref: sqrt(var (around mean)) of transformed adj: '),sprintf('%8.4f ',v),sprintf(' max/min: %8.4f gm/am: %8.4f',max(v)/min(v),geomean(v)/mean(v))));
         end %im_ptr
     end %isempty
 end %iap
