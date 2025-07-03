@@ -31,6 +31,7 @@
 % hlid_majaxes_eval:  compare axes identified in a transformation with principal components
 % hlid_majaxes_eval2: as in hlid_majazxes_eval, but add analysis of fitted transformation, other params
 % hlid_orn_kc_check: check on variances, etc, from coordinates for orn and kc for overlapping stimuli
+% hlid_orn_kc_mdlsum: basic goodness of fit via Procrustes for orn->kc transformation
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
 % nlid_rastim_trial_decode: single-trial decoding of raw data
