@@ -26,6 +26,7 @@
 % hlid_geom_transform_stats: analysis of transformations between datasets, with shuffle statistics
 % hlid_geom_transform_stats_3dplot: plot of representational spaces for hlid_geom_transform_stats
 % hlid_geom_transform_stats_summ: summary plot for hli_geom_transform_stats
+% hlid_kc_mdlcomp: compare kc space constructed via nested or non-nested pipeline
 % hlid_majaxes: examine axes identified in a transformation
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity
 % hlid_majaxes_eval:  compare axes identified in a transformation with principal components
