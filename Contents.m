@@ -13,6 +13,7 @@
 % hlid_read_coorddata_demo: demo reading of a coordinate file
 % hlid_remove_stims: script to remove stimuli from a coordinate file (mostly for debugging)
 % hlid_setup: set up options for Hong Lab imaging data, to run psg_visualize_demo, psg_consensus_demo, _psg_coord_pipe_proc
+% hlid_setup_func: function called by hlid_setup
 %
 %  Analysis
 %
