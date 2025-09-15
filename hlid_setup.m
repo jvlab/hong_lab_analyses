@@ -37,4 +37,5 @@ disp('opts_read, opts_plot, opts_multm_def initialized for hlid data');
 if ~exist('display_orders')
     display_orders=h.display_orders;
 end
-clear h
+clear h ifn fns
+
