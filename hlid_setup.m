@@ -16,10 +16,6 @@
 h=hlid_setup_func;
 hlid_opts=h.hlid_opts;
 if ~exist('opts_read') opts_read=struct;end
-fns=fieldnames(h.opts_read);
-for ifn=1:length(fns)
-    opts_read=filldefault(opts_read,fns{ifn},h.opts_read.(fns{ifn}));
-end
 %
 if ~exist('opts_plot') opts_plot=struct; end
 fns=fieldnames(h.opts_plot);
