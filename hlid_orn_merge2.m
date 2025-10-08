@@ -87,7 +87,7 @@ for iset=1:nsets
         end
         glomeruli_check=s{iset}{ifile}.rois.glomeruli;
         stimulus_names_check=s{iset}{ifile}.response_amplitude_stim.stim';
-        resps_read=s{iset}{ifile}.response_amplitude_stim.mean_peak;
+        resps_read=s{iset}{ifile}.response_amplitude_stim.(optsused_dasel.numbersname);
         nancols{ifile}=find(all(isnan(resps_read),1));
         nanrows{ifile}=find(all(isnan(resps_read),2));
         %
@@ -131,7 +131,7 @@ for iset=1:nsets
     for ifile_ptr=1:nfiles_use(iset)
         ifile=files_use{iset}(ifile_ptr);
         glomeruli_missing(nancols{ifile},ifile_ptr)=1;
-        resps_raw{iset}(:,:,ifile_ptr)=s{iset}{ifile}.response_amplitude_stim.mean_peak;
+        resps_raw{iset}(:,:,ifile_ptr)=s{iset}{ifile}.response_amplitude_stim.(optsused_dasel.numbersname);
     end
     for ipresent=0:nfiles_use(iset)
         disp(sprintf('number of glomeruli present in at least %2.0f datasets: %3.0f (missing in %2.0f or less)',...
@@ -157,12 +157,14 @@ for iset=1:nsets
         if_canfill=0;
     end
     if if_canfill
+        %error('At canfill')
         [afalwt_fit,afalwt_b_change,afalwt_optsused]=afalwt(resps_gur,1-resps_tofill,afalwt_opts);
         resps_gur_fitted=(afalwt_fit.x_true*afalwt_fit.b_norm+repmat(afalwt_fit.a,size(resps_gur,1),1)); %interpolated data
         resps_gur_filled=resps_gur;
         resps_gur_filled(resps_tofill)=resps_gur_fitted(resps_tofill);
         resps_gu_filled=reshape(resps_gur_filled,[nstims(iset) nglomeruli_use(iset) nfiles_use(iset)]);
     else
+        %error('not canfill')
         resps_gu_filled=resps_gu;
     end
     %

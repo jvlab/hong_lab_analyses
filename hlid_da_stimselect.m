@@ -47,6 +47,20 @@ opts=filldefault(opts,'if_log',0);
 opts=filldefault(opts,'targets',cell(0));
 opts=filldefault(opts,'exclude_panels',{'glomeruli_diagnostics'});
 %
+% JDD, make an opt for this, so the correct field name gets returned for
+% future use.
+if(isfield(da.response_amplitude_stim,'mean_peak'))
+    opts.numbersname='mean_peak';
+
+elseif(isfield(da.response_amplitude_stim,'max_peak'))
+    opts.numbersname='max_peak';
+
+else
+    % This could read off of a list, to which new items can be added and
+    % avoid wiritng new code to add an eligible field name.
+    error('Novel field name, was looking for either max_peak or mean_peak');
+end
+
 opts_used=opts;
 opts_used.warnings=[];
 targets_opts=opts.targets;
@@ -147,11 +161,11 @@ da_new=da;
 %response amplitudes
 ras=struct();
 ras.description=da.response_amplitude_stim.description;
-ras.mean_peak=NaN(length(targets_use),size(da.response_amplitude_stim.mean_peak,2));
+ras.(opts.numbersname)=NaN(length(targets_use),size(da.response_amplitude_stim.(opts.numbersname),2));
 ras.stim=cell(1,length(targets_use));
 for istim=1:length(targets_use)
     if resp_ptrs(istim)>0
-        ras.mean_peak(istim,:)=da.response_amplitude_stim.mean_peak(resp_ptrs(istim),:);
+        ras.(opts.numbersname)(istim,:)=da.response_amplitude_stim.(opts.numbersname)(resp_ptrs(istim),:);
     end
     ras.stim{istim}=targets_use{istim};
 end
@@ -162,14 +176,14 @@ if isfield(da,'trial_info')
     rat.description=da.response_amplitude_trials.description;
     rat.baseline_win=da.response_amplitude_trials.baseline_win;
     rat.peak_win=da.response_amplitude_trials.peak_win;
-    rat.mean_peak=NaN(sum(trial_counts),size(da.response_amplitude_trials.mean_peak,2));
+    rat.(opts.numbersname)=NaN(sum(trial_counts),size(da.response_amplitude_trials.(opts.numbersname),2));
     ti=struct;
     ti.stim=cell(1,sum(trial_counts));
     itrial=0;
     for istim=1:length(targets_use)
         for k=1:trial_counts(istim)
             itrial=itrial+1;
-            rat.mean_peak(itrial,:)=da.response_amplitude_trials.mean_peak(trial_ptrs{istim}(k),:);
+            rat.(opts.numbersname)(itrial,:)=da.response_amplitude_trials.(opts.numbersname)(trial_ptrs{istim}(k),:);
             ti.stim{itrial}=targets_use{istim};
         end
     end
