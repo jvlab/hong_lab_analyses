@@ -148,11 +148,11 @@ for iset=1:nsets
     if ~exist('afalwt_opts') afalwt_opts=struct;end
     resps_tofill=isnan(resps_gur);
     if_canfill=1;
-    if any(all(resps_tofill==1,1))
+    if any(all(resps_tofill==1,1)) % JDD 10/8 some file has no data.
         disp('cannot fill in missing data, no stimuli present for some (glomerulus,file) pair')
         if_canfill=0;
     end
-    if any(all(resps_tofill==1,2))
+    if any(all(resps_tofill==1,2)) % some stim/glom pair is never present.
         disp('cannot fill in missing data, no (glomerulus,file) pair present for some stimulus')
         if_canfill=0;
     end
@@ -212,7 +212,7 @@ for iset=1:nsets
     end %ifig
     %
     if any(isnan(resps_gu_filled(:)))
-        disp('Cannot proceed. Not all NaNs have been filled in.')
+        error('Cannot proceed. Not all NaNs have been filled in.')
     end
     stim_labels_set{iset}=stimulus_names_set{iset};
     resps_set{iset}=reshape(afalwt_fit.x_true,[nstims(iset) nglomeruli_use(iset)]); %use regression slope as response measure
