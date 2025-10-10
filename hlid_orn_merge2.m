@@ -53,7 +53,7 @@ dsid=cell(1,nsets);
 for iset=1:nsets
     disp(sprintf('Enter set %1.0f',iset))
     [filenames_short{iset},pathname{iset}]=uigetfile('*fly*.mat',sprintf('Select raw ORN data files for set %1.0f',iset),'Multiselect','on');
-    if ~iscell(filenames_short{iset})
+    if ~iscell(filenames_short{iset}) % Why is this necessary? When would this happen? Does it happen every time?
         filenames_short{iset}=cellstr(filenames_short{iset});
     end
     nfiles(iset)=length(filenames_short{iset});
