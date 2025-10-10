@@ -71,8 +71,27 @@ targets_trials=cell(0);
 targets_infile=unique(da.response_amplitude_stim.stim);
 
 
+% JDD 8/10/25 
+% Check for rows of NaN in the raw data. Turn off the is_target flag for
+% these rows.
+
+rowsAllNaN = all(isnan(da.response_amplitude_stim.(opts.numbersname)),2);
+targets_off = da.response_amplitude_stim.is_target.*rowsAllNaN';
+
+da.response_amplitude_stim.is_target = logical(da.response_amplitude_stim.is_target - targets_off);
+da.response_amplitude_stim.is_target
+%prod = rowsAllNaN.*da.response_amplitude_stim.is_target
+
+rowsAllNaN = all(isnan(da.response_amplitude_trials.(opts.numbersname)),2);
+targets_off = da.trial_info.is_target.*rowsAllNaN';
+
+da.trial_info.is_target = logical(da.trial_info.is_target-targets_off);
+
+
+
+
 if isfield(da.response_amplitude_stim,'is_target')
-    stim_temp=da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target);
+    stim_temp=da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target)
     targets_responses=unique(stim_temp);
     if length(stim_temp)>length(targets_responses)
         disp(' multiple occurrences of a target stimulus detected in stim list');
@@ -90,7 +109,7 @@ if isfield(da.response_amplitude_stim,'is_target')
 end
 if isfield(da,'trial_info') %need to detect subsequent occurrences of the same target
     if isfield(da.trial_info,'is_target')
-        trial_temp=da.trial_info.stim(da.trial_info.is_target);
+        trial_temp=da.trial_info.stim(da.trial_info.is_target)
         targets_trials=unique(trial_temp);
         if length(trial_temp)>nrps*length(targets_trials)
             disp(' multiple occurrences of a target stimulus detected in trial list');
