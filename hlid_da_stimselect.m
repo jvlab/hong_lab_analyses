@@ -61,21 +61,62 @@ else
     error('Novel field name, was looking for either max_peak or mean_peak');
 end
 
+nrps = 3;
+
 opts_used=opts;
 opts_used.warnings=[];
 targets_opts=opts.targets;
 targets_responses=cell(0);
 targets_trials=cell(0);
 targets_infile=unique(da.response_amplitude_stim.stim);
-%
+
+
 if isfield(da.response_amplitude_stim,'is_target')
-    targets_responses=unique(da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target));
-end
-if isfield(da,'trial_info')
-    if isfield(da.trial_info,'is_target')
-        targets_trials=unique(da.trial_info.stim(da.trial_info.is_target));
+    stim_temp=da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target);
+    targets_responses=unique(stim_temp);
+    if length(stim_temp)>length(targets_responses)
+        disp(' multiple occurrences of a target stimulus detected in stim list');
+        for k=1:length(targets_responses)
+            dup_ptr=strmatch(targets_responses{k},stim_temp,'exact');
+            for id=2:length(dup_ptr)
+                addpos=min(find(cat(2,stim_temp{dup_ptr(id)},' ')==' '));
+                addstr=repmat('+',1,id-1);
+                stim_temp{dup_ptr(id)}=cat(2,stim_temp{dup_ptr(id)}(1:addpos-1),addstr,stim_temp{dup_ptr(id)}(addpos:end));
+            end
+        end
+        da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target)=stim_temp;
+        targets_responses=unique(stim_temp);
     end
 end
+if isfield(da,'trial_info') %need to detect subsequent occurrences of the same target
+    if isfield(da.trial_info,'is_target')
+        trial_temp=da.trial_info.stim(da.trial_info.is_target);
+        targets_trials=unique(trial_temp);
+        if length(trial_temp)>nrps*length(targets_trials)
+            disp(' multiple occurrences of a target stimulus detected in trial list');
+            for k=1:length(targets_trials)
+                dup_ptr=strmatch(targets_trials{k},trial_temp,'exact');
+                for id=nrps+1:length(dup_ptr)
+                    addpos=min(find(cat(2,trial_temp{dup_ptr(id)},' ')==' '));
+                    addstr=repmat('+',1,ceil(id/nrps)-1);
+                    trial_temp{dup_ptr(id)}=cat(2,trial_temp{dup_ptr(id)}(1:addpos-1),addstr,trial_temp{dup_ptr(id)}(addpos:end));
+                end
+            end
+            da.trial_info.stim(da.trial_info.is_target)=trial_temp;
+            targets_trials=unique(trial_temp);
+        end
+
+    end
+end
+%
+%if isfield(da.response_amplitude_stim,'is_target')
+%    targets_responses=unique(da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target));
+%end
+%if isfield(da,'trial_info')
+%    if isfield(da.trial_info,'is_target')
+%        targets_trials=unique(da.trial_info.stim(da.trial_info.is_target));
+%    end
+%end
 %check that targets_responses and targets_trials match if both are present;
 %if one is present, then use it
 %if neither are present, use all stimuli
