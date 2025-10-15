@@ -53,19 +53,19 @@ dsid=cell(1,nsets);
 for iset=1:nsets
     disp(sprintf('Enter set %1.0f',iset))
     [filenames_short{iset},pathname{iset}]=uigetfile('*fly*.mat',sprintf('Select raw ORN data files for set %1.0f',iset),'Multiselect','on');
-    if ~iscell(filenames_short{iset}) % Why is this necessary? When would this happen? Does it happen every time?
+    if ~iscell(filenames_short{iset}) % Why is this necessary? When would this happen? Does it happen every time? Does it matter?
         filenames_short{iset}=cellstr(filenames_short{iset});
     end
-    nfiles(iset)=length(filenames_short{iset});
-    files_use{iset}=[];
-    nancols=cell(nfiles(iset),1);
+    nfiles(iset)=length(filenames_short{iset}); % The number of files that comprise this set
+    files_use{iset}=[]; % Don't know what this is for yet.
+    nancols=cell(nfiles(iset),1); % I can guess, but I won't
     nanrows=cell(nfiles(iset),1);
-    dsid{iset}=[];
+    dsid{iset}=[]; % I am guessing (d)ata (s)et (id)entification
     %
     %verify consistency of names and numbers of glomeruli and stimuli
     %
     for ifile=1:nfiles(iset)
-        s{iset}{ifile}=load(cat(2,pathname{iset},filenames_short{iset}{ifile}));
+        s{iset}{ifile}=load(cat(2,pathname{iset},filenames_short{iset}{ifile})); % Loads the data from the file. S holds the familiar data structure.
         [s{iset}{ifile},optsused_dasel]=hlid_da_stimselect(s{iset}{ifile},opts_dasel);
         dsid_this=s{iset}{ifile}.meta.title;
         %'-'can be used within fields of file name
@@ -77,8 +77,8 @@ for iset=1:nsets
         end
         %
         dsid{iset}=strvcat(dsid{iset},dsid_this);
-        if (ifile==1)
-            if (iset==1)
+        if (ifile==1)     % Why is this here? One of two things needs to be done.
+            if (iset==1)  % Either lose this requirement - why do we care if the sets are consistent?
                 glomeruli=s{iset}{ifile}.rois.glomeruli;
                 nglomeruli=length(glomeruli);
             end
@@ -89,7 +89,7 @@ for iset=1:nsets
         stimulus_names_check=s{iset}{ifile}.response_amplitude_stim.stim';
         resps_read=s{iset}{ifile}.response_amplitude_stim.(optsused_dasel.numbersname);
         nancols{ifile}=find(all(isnan(resps_read),1));
-        nanrows{ifile}=find(all(isnan(resps_read),2));
+        nanrows{ifile}=find(all(isnan(resps_read),2));% The NaN situation is addressed here, though there doesn't seem to be anything done about it below.
         %
         disp(sprintf('file %2.0f (%20s) read, %3.0f glomeruli (%3.0f all NaN), %3.0f stimuli (%3.0f all NaN)',ifile,filenames_short{iset}{ifile},...
             length(glomeruli_check),length(nancols{ifile}),...

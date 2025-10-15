@@ -43,9 +43,10 @@ function [da_new,opts_used]=hlid_da_stimselect(da,opts)
 if (nargin<=1)
     opts=struct;
 end
-opts=filldefault(opts,'if_log',0);
+opts=filldefault(opts,'if_log',1);
 opts=filldefault(opts,'targets',cell(0));
 opts=filldefault(opts,'exclude_panels',{'glomeruli_diagnostics'});
+opts=filldefault(opts,'repeat_character','+');
 %
 % JDD, make an opt for this, so the correct field name gets returned for
 % future use.
@@ -61,7 +62,9 @@ else
     error('Novel field name, was looking for either max_peak or mean_peak');
 end
 
-nrps = 3;
+nrps = 3; % This probably won't change, as this seems to be how they do it,
+%   Having said that, it should be changeable without finding line 64 on a
+%   sheet of code.
 
 opts_used=opts;
 opts_used.warnings=[];
@@ -74,32 +77,31 @@ targets_infile=unique(da.response_amplitude_stim.stim);
 % JDD 8/10/25 
 % Check for rows of NaN in the raw data. Turn off the is_target flag for
 % these rows.
-
+% Whether we want to remove this from the list or not is not completely
+% clear to me. 
 rowsAllNaN = all(isnan(da.response_amplitude_stim.(opts.numbersname)),2);
 targets_off = da.response_amplitude_stim.is_target.*rowsAllNaN';
 
 da.response_amplitude_stim.is_target = logical(da.response_amplitude_stim.is_target - targets_off);
-da.response_amplitude_stim.is_target
-%prod = rowsAllNaN.*da.response_amplitude_stim.is_target
 
 rowsAllNaN = all(isnan(da.response_amplitude_trials.(opts.numbersname)),2);
 targets_off = da.trial_info.is_target.*rowsAllNaN';
 
 da.trial_info.is_target = logical(da.trial_info.is_target-targets_off);
+% 
 
-
-
-
+% These assign unique names (via an added character) to repeated stimuli.
 if isfield(da.response_amplitude_stim,'is_target')
-    stim_temp=da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target)
+    stim_temp=da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target);
     targets_responses=unique(stim_temp);
     if length(stim_temp)>length(targets_responses)
         disp(' multiple occurrences of a target stimulus detected in stim list');
         for k=1:length(targets_responses)
+            %disp(targets_responses{k});
             dup_ptr=strmatch(targets_responses{k},stim_temp,'exact');
             for id=2:length(dup_ptr)
                 addpos=min(find(cat(2,stim_temp{dup_ptr(id)},' ')==' '));
-                addstr=repmat('+',1,id-1);
+                addstr=repmat(opts_used.repeat_character,1,id-1);
                 stim_temp{dup_ptr(id)}=cat(2,stim_temp{dup_ptr(id)}(1:addpos-1),addstr,stim_temp{dup_ptr(id)}(addpos:end));
             end
         end
@@ -109,7 +111,7 @@ if isfield(da.response_amplitude_stim,'is_target')
 end
 if isfield(da,'trial_info') %need to detect subsequent occurrences of the same target
     if isfield(da.trial_info,'is_target')
-        trial_temp=da.trial_info.stim(da.trial_info.is_target)
+        trial_temp=da.trial_info.stim(da.trial_info.is_target);
         targets_trials=unique(trial_temp);
         if length(trial_temp)>nrps*length(targets_trials)
             disp(' multiple occurrences of a target stimulus detected in trial list');
@@ -117,7 +119,7 @@ if isfield(da,'trial_info') %need to detect subsequent occurrences of the same t
                 dup_ptr=strmatch(targets_trials{k},trial_temp,'exact');
                 for id=nrps+1:length(dup_ptr)
                     addpos=min(find(cat(2,trial_temp{dup_ptr(id)},' ')==' '));
-                    addstr=repmat('+',1,ceil(id/nrps)-1);
+                    addstr=repmat(opts_used.repeat_character,1,ceil(id/nrps)-1);
                     trial_temp{dup_ptr(id)}=cat(2,trial_temp{dup_ptr(id)}(1:addpos-1),addstr,trial_temp{dup_ptr(id)}(addpos:end));
                 end
             end
@@ -127,19 +129,15 @@ if isfield(da,'trial_info') %need to detect subsequent occurrences of the same t
 
     end
 end
-%
-%if isfield(da.response_amplitude_stim,'is_target')
-%    targets_responses=unique(da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target));
-%end
-%if isfield(da,'trial_info')
-%    if isfield(da.trial_info,'is_target')
-%        targets_trials=unique(da.trial_info.stim(da.trial_info.is_target));
-%    end
-%end
+
 %check that targets_responses and targets_trials match if both are present;
 %if one is present, then use it
 %if neither are present, use all stimuli
-if_match=1;
+
+
+% When is this ever going to be a problem? Wouldn't a mismatch here
+% indicate something is wrong wit hthe data?
+if_match=1; % We are assuming a match, prove me wrong.
 targets_use=cell(0); %trials specified within file, or if not availble, then all stimuli in the file
 if length(targets_responses)>0 & length(targets_trials)>0
     targets_use=unique([targets_responses,targets_trials]);
@@ -173,7 +171,7 @@ end
 %for each target in target_use, determine how many occurrences in
 %response_amplitude_stim.stim trial_info.stim, and in which trials
 % but exclude diagnostics
-resp_ptrs=zeros(1,length(targets_use));
+resp_ptrs=zeros(1,length(targets_use)); % Response "pointers" (I will call them iterators)
 trial_ptrs=cell(1,length(targets_use));
 trial_counts=zeros(1,length(targets_use));
 %
