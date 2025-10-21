@@ -1,4 +1,5 @@
 %hlid_orn_merge2: read multiple sets of raw orn data files with non-overlapping stimuli
+%
 % This handles missing data, merges the orn reponses, and writes a coordinate file.
 %
 % Note that its inputs are raw data files, not coordinate files -- so it
