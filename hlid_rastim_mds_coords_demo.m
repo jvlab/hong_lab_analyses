@@ -16,7 +16,7 @@
 %
 % results saved in r
 %
-%  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS.
+%  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
 %
@@ -58,10 +58,12 @@ if ~exist('meths')
     meths{8}.xform='sqrt(2)*sqrt(1-dp)';
 end
 nmeths=length(meths);
+meths_allnames=cell(1,nmeths);
 for imeth=1:nmeths
     if ~isfield(meths{imeth},'dimred')
         meths{imeth}.dimred='mds';
     end
+    meths_allnames{imeth}=meths{imeth}.name_short;
 end
 %
 if ~exist('HongLab_fn') HongLab_fn='C:/Users/jdvicto/Dropbox/From_HongLab/HongLabOrig_for_jdv/data/kc_soma_nls/2022-10-10__fly01__megamat0.mat'; end
@@ -281,9 +283,6 @@ for submean=0:if_submean
         end
         plot([1:neiv],mean(eiv_plot,2,'OmitNan'),'k','LineWidth',2);
         plot([1:neiv],median(eiv_plot,2,'OmitNan'),'k:','LineWidth',2);
-        if imeth==nmeths
-            legend(labels_short,'FontSize',6,'Interpreter','none','Location','NorthEast');
-        end
         set(gca,'XLim',[1 neigs_show]);
         set(gca,'XTick',[1:neigs_show]);
         xlabel('eiv');
@@ -302,12 +301,27 @@ for submean=0:if_submean
                 vname='participation ratio';
                 v=r.part_ratio(:,:,1+submean);
         end
-
-        pp_plot=r
+        subplot(2,2,2+ipp);
+        for ifile=1:nfiles
+            hp=plot([1:nmeths],v(ifile,:),'k','LineWidth',1);
+            set(hp,'Color',colors(ifile,:));
+            hold on;
+        end
+        plot([1:nmeths],mean(v,1),'k','LineWidth',2);
+        plot([1:nmeths],median(v,1),'k:','LineWidth',2);
+        set(gca,'XTick',[1:nmeths]);
+        set(gca,'XTickLabel',meths_allnames);
+        if (ipp==1)
+            set(gca,'YLim',[0.5 1]);
+            legend(labels_short,'FontSize',6,'Interpreter','none','Location','SouthWest');
+        else
+            set(gca,'YLim',[0 max(get(gca,'YLim'))]);
+        end
+        title(vname);
     end
     axes('Position',[0.01,0.04,0.01,0.01]); %for text
     text(0,0,tstring,'Interpreter','none','FontSize',8);
     axis off;
 end
-%could write a file via method of hlid_rastim2coords
 %could do consensus, taking into account possible missing stimuli
+%could write a file of data or consensus via method of hlid_rastim2coords
