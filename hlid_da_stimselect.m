@@ -79,15 +79,15 @@ targets_infile=unique(da.response_amplitude_stim.stim);
 % these rows.
 % Whether we want to remove this from the list or not is not completely
 % clear to me. 
-rowsAllNaN = all(isnan(da.response_amplitude_stim.(opts.numbersname)),2);
-targets_off = da.response_amplitude_stim.is_target.*rowsAllNaN';
+%rowsAllNaN = all(isnan(da.response_amplitude_stim.(opts.numbersname)),2);
+%targets_off = da.response_amplitude_stim.is_target.*rowsAllNaN';
 
-da.response_amplitude_stim.is_target = logical(da.response_amplitude_stim.is_target - targets_off);
+%da.response_amplitude_stim.is_target = logical(da.response_amplitude_stim.is_target - targets_off);
 
-rowsAllNaN = all(isnan(da.response_amplitude_trials.(opts.numbersname)),2);
-targets_off = da.trial_info.is_target.*rowsAllNaN';
+%rowsAllNaN = all(isnan(da.response_amplitude_trials.(opts.numbersname)),2);
+%targets_off = da.trial_info.is_target.*rowsAllNaN';
 
-da.trial_info.is_target = logical(da.trial_info.is_target-targets_off);
+%da.trial_info.is_target = logical(da.trial_info.is_target-targets_off);
 % 
 
 % These assign unique names (via an added character) to repeated stimuli.
@@ -139,6 +139,8 @@ end
 % indicate something is wrong wit hthe data?
 if_match=1; % We are assuming a match, prove me wrong.
 targets_use=cell(0); %trials specified within file, or if not availble, then all stimuli in the file
+
+% Target responses 
 if length(targets_responses)>0 & length(targets_trials)>0
     targets_use=unique([targets_responses,targets_trials]);
     if length(targets_use)>min(length(targets_responses),length(targets_trials))

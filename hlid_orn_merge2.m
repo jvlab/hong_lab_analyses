@@ -95,6 +95,7 @@ for iset=1:nsets
             length(glomeruli_check),length(nancols{ifile}),...
             length(stimulus_names_check),length(nanrows{ifile})));
         ifok=1;
+        % should all of the ifok=0 terminate?
         if length(glomeruli_check)~=nglomeruli
             ifok=0;
             disp('number of glomeruli does not match')
@@ -110,7 +111,7 @@ for iset=1:nsets
             disp('names of stimuli do not match')
         end
         if (ifok==1)
-            files_use{iset}=[files_use{iset},ifile];
+            files_use{iset}=[files_use{iset},ifile]; % THIS APPENDS. NOTHING MORE.
         end
     end
     %shorten stimulus names
@@ -146,7 +147,7 @@ for iset=1:nsets
     % 
     resps_gur=reshape(resps_gu,[nstims(iset)*nglomeruli_use(iset),nfiles_use(iset)]);
     if ~exist('afalwt_opts') afalwt_opts=struct;end
-    resps_tofill=isnan(resps_gur);
+    resps_tofill=isnan(resps_gur)
     if_canfill=1;
     if any(all(resps_tofill==1,1)) % JDD 10/8 some file has no data.
         disp('cannot fill in missing data, no stimuli present for some (glomerulus,file) pair')
@@ -212,7 +213,7 @@ for iset=1:nsets
     end %ifig
     %
     if any(isnan(resps_gu_filled(:)))
-        error('Cannot proceed. Not all NaNs have been filled in.')
+        error('Cannot proceed. Not all NaNs have been filled in.')% THis is now an error
     end
     stim_labels_set{iset}=stimulus_names_set{iset};
     resps_set{iset}=reshape(afalwt_fit.x_true,[nstims(iset) nglomeruli_use(iset)]); %use regression slope as response measure

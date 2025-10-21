@@ -45,6 +45,7 @@ nr=size(d,2);
 % fill unused values with the column mean, so vector operations will work
 %
 dfilled=d;
+
 for r=1:nr
     wnz=find(w(:,r)==0);
     dfilled(wnz,r)=mean(d(find(w(:,r)>0),r));
@@ -52,7 +53,7 @@ end
 %
 if (min(sum(w,1)==0))
    optsused.termination='zero divide';
-   if ~opts.nowarnzdiv
+   if ~opts.nowarnzdiv % This seems like a reason to stop.
        disp(' warning: zero divide on initiation of afalwt');
    end
    return;
