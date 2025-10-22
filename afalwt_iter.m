@@ -37,13 +37,14 @@ zdiv=0;
 %
 % calculate new x from old b
 %
+
 x_den=sum(w.*repmat(p.b_norm.^2,nf,1),2);
 if (min(x_den)==0)
     if (opts.nowarnzdiv==0)
         disp(' warning: x_den=0 at indices')
         disp(find(x_den==0)');
     end
-    zdiv=1;
+    zdiv=1; % Can we just quit here?
 end
 x=sum(w.*dfilled.*repmat(p.b_norm,nf,1),2)./x_den;
 %

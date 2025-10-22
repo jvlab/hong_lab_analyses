@@ -58,24 +58,27 @@ if (min(sum(w,1)==0))
    end
    return;
 end
+%%% Weighted mean, by default we want to remove this.
 dm_dot=sum(w.*dfilled,1)./sum(w,1);
 if (opts.noconst)
     dm_centered_filled=dfilled;
 else
     dm_centered_filled=dfilled-repmat(dm_dot,nf,1);
 end
+%%%%%% INIT CALL %%%%%%%
 piter=afalwt_init(dm_centered_filled,ones(1,nr));
 niters=0;
 done=0;
 while (done==0) & (niters<opts.itermax)
     niters=niters+1;
+    %%%%%%% ITER CALL %%%%%%%%
     [piter,b_change(niters),zdiv]=afalwt_iter(piter,dm_centered_filled,w,opts);
     if (zdiv>0)
         optsused.termination='zero divide';
         if ~opts.nowarnzdiv
            disp(sprintf(' warning: zero divide on iteration %6.0f of afalwt',niters));
         end
-        return;
+        return; %% This returns, but doesn't terminate. Should it? Does it terminate in the caller?
     end
     if (b_change(niters)<opts.tol)
         p=piter;

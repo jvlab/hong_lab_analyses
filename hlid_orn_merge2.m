@@ -78,12 +78,12 @@ for iset=1:nsets
         end
         %
         dsid{iset}=strvcat(dsid{iset},dsid_this);
-        if (ifile==1)     % Why is this here? One of two things needs to be done.
-            if (iset==1)  % Either lose this requirement - why do we care if the sets are consistent?
+        if (ifile==1)     
+            if (iset==1) 
                 glomeruli=s{iset}{ifile}.rois.glomeruli;
                 nglomeruli=length(glomeruli);
             end
-            stimulus_names_set{iset}=s{iset}{ifile}.response_amplitude_stim.stim';
+            stimulus_names_set{iset}=s{iset}{ifile}.response_amplitude_stim.stim';            
             nstims(iset)=length(stimulus_names_set{iset});
         end
         glomeruli_check=s{iset}{ifile}.rois.glomeruli;
@@ -128,6 +128,7 @@ for iset=1:nsets
     %
     files_use{iset}=getinp('list of files to use','d',[1 nfiles(iset)],files_use{iset});
     nfiles_use(iset)=length(files_use{iset});
+    
     resps_raw{iset}=zeros(nstims(iset),nglomeruli,nfiles_use(iset));
     glomeruli_missing=zeros(nglomeruli,nfiles_use(iset));
     for ifile_ptr=1:nfiles_use(iset)
@@ -148,7 +149,7 @@ for iset=1:nsets
     % 
     resps_gur=reshape(resps_gu,[nstims(iset)*nglomeruli_use(iset),nfiles_use(iset)]);
     if ~exist('afalwt_opts') afalwt_opts=struct;end
-    resps_tofill=isnan(resps_gur)
+    resps_tofill=isnan(resps_gur);
     if_canfill=1;
     if any(all(resps_tofill==1,1)) % JDD 10/8 some file has no data.
         disp('cannot fill in missing data, no stimuli present for some (glomerulus,file) pair')
@@ -229,7 +230,7 @@ for iset=1:nsets
     end
     %
     for istim=1:nstims(iset)
-        if contains(stim_labels_set{iset}{istim},'@')
+        if contains(stim_labels_set{iset}{istim},'@') % Yes, this will cause some confusion. 
             stim_labels_set{iset}{istim}=stim_labels_set{iset}{istim}(1:min(find(stim_labels_set{iset}{istim}=='@')-1));
         end
         stim_labels_set{iset}{istim}=deblank(stim_labels_set{iset}{istim});
@@ -300,10 +301,23 @@ for iset=1:nsets
         end
     end
 end
-if length(unique(stimulus_names))~=sum(nstims) | length(stimulus_names_unique)~=sum(nstims)
+
+
+
+% What's happening here
+% These two sets have two stimuli in common: va @ -3.0 ms @ -3.0
+% To satisfy the uniqueness test below, this would have to be merged. 
+% Should nstims be 22+17 (as is) or 22+15 (which gives 37).
+stimulus_names
+[nnn,III]=unique(stimulus_names);
+size(III)
+III
+stimulus_names_unique
+nstims
+if length(unique(stimulus_names))~=sum(nstims) | length(stimulus_names_unique)~=sum(nstims) % This triggers on overlap.
     warning('Not all stimulus names are unique');
 end
-if length(unique(stim_labels_in))~=sum(nstims) | length(stim_labels_unique)~=sum(nstims)
+if length(unique(stim_labels_in))~=sum(nstims) | length(stim_labels_unique)~=sum(nstims) % This triggers because the short names are not unique.
     warning('Not all stim labels are unique');
 end
 %
