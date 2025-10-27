@@ -51,6 +51,10 @@ resps_raw=cell(1,nsets); %responses within each dataset prior to fill-in merge
 files_use=cell(1,nsets); %files used within each set
 dsid=cell(1,nsets);
 %
+
+
+
+
 for iset=1:nsets
     disp(sprintf('Enter set %1.0f',iset))
     [filenames_short{iset},pathname{iset}]=uigetfile('*fly*.mat',sprintf('Select raw ORN data files for set %1.0f',iset),'Multiselect','on');
@@ -59,14 +63,18 @@ for iset=1:nsets
     end
     nfiles(iset)=length(filenames_short{iset}); % The number of files that comprise this set
     files_use{iset}=[]; % Don't know what this is for yet.
-    nancols=cell(nfiles(iset),1); % I can guess, but I won't
+    nancols=cell(nfiles(iset),1); % 
     nanrows=cell(nfiles(iset),1);
     dsid{iset}=[]; % I am guessing (d)ata (s)et (id)entification
     %
     %verify consistency of names and numbers of glomeruli and stimuli
     %
+    
+    
+    
     for ifile=1:nfiles(iset)
         s{iset}{ifile}=load(cat(2,pathname{iset},filenames_short{iset}{ifile})); % Loads the data from the file. S holds the familiar data structure.
+        
         [s{iset}{ifile},optsused_dasel]=hlid_da_stimselect(s{iset}{ifile},opts_dasel);
         dsid_this=s{iset}{ifile}.meta.title;
         %'-'can be used within fields of file name
