@@ -2,6 +2,9 @@
 % Getting this working without going through the UI.
 % Going to open each of the files in the first two sets.
 
+opts = struct;
+opts.rep_char = '+';
+
 numSets = 2;
 numFiles = cell(numSets,1);
 
@@ -19,7 +22,7 @@ Stot{2} = s;
 numFiles{2} = length(s);
 
 % Check stimulus consistency across files within a set
-status = checkConsist(Stot);
+[status,S] = checkConsist(Stot);
 
 
     
