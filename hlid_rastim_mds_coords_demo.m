@@ -11,10 +11,12 @@
 %
 % Number of ROIs without NaNs must be at least as large as number of stimuli.
 %
-% Note that centering (subtraaction of mean across ROI's) is not the same as "subtract the mean"
+% Note that centering (subtraction of mean across ROI's) is not the same as "subtract the mean"
 %  option in hlid_rastim2coords, which subtracts the mean across stimuli
 %
 % results saved in r
+%
+% 25Oct25: begin saving sa, ds, sets so that a modularized version of psg_align_stats_demo, psg_align_vara_demo will run
 %
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO.
 %
@@ -155,18 +157,21 @@ for istim=1:nstims
     end
     stim_labels{istim}=deblank(stim_labels{istim});
 end
-if_submean=getinp('1 to also analyze with mean across stims subtracted','d',[0 1],1);
+%if_submean=getinp('1 to also analyze with mean across stims subtracted','d',[0 1],1);
+if_submean=1;
 %
 % analyze with and without subtracting the mean
 %
 nsubs=1+if_submean; 
 maxdim_all=min([min(nrois),min(nstims_each)])-if_submean;
+%
 r=struct;
 r.eivals=cell(nfiles,nmeths,nsubs); %files, methods, sub mean?
 r.coords=cell(nfiles,nmeths,nsubs);
 r.maxdim=zeros(nfiles,nsubs);
 r.pwr_ratio=zeros(nfiles,nmeths,nsubs);
 r.part_ratio=zeros(nfiles,nmeths,nsubs);
+%
 max_dev=zeros(nfiles,nsubs);
 svd_dev=zeros(nfiles);
 for ifile=1:nfiles
@@ -223,7 +228,7 @@ for ifile=1:nfiles
                    sdiag_sq=(diag(s)).^2; %square to match mds convention
                    [eivals_sort,ix]=sort(abs(sdiag_sq),'descend');
                    eivals=sdiag_sq(ix);
-                   coords=ru;
+                   coords=u*s;
            end
             r.eivals{ifile,imeth,1+submean}=eivals;
             r.coords{ifile,imeth,1+submean}=coords;
@@ -323,5 +328,87 @@ for submean=0:if_submean
     text(0,0,tstring,'Interpreter','none','FontSize',8);
     axis off;
 end
-%could do consensus, taking into account possible missing stimuli
-%could write a file of data or consensus via method of hlid_rastim2coords
+%save file names, convert to das, sas, sets structures
+r.nstims=nstims;
+r.nstims_each=nstims_each;
+r.nrois=nrois;
+r.meths=meths;
+r.filenames_short=filenames_short;
+r.data_desc='d1: method, d2: mean not subtracted, then mean subtracted';
+r.data=cell(nmeths,1+if_submean);
+nd_max=Inf; %to find max dimension available, across all methods
+for imeth=1:nmeths
+    for submean=0:if_submean
+        r.data{imeth,1+submean}.ds=cell(nfiles,1);
+        r.data{imeth,1+submean}.sas=cell(nfiles,1);
+        r.data{imeth,1+submean}.sets=cell(nfiles,1);
+        for ifile=1:nfiles
+            coords=r.coords{ifile,imeth,1+submean};
+            nd=min(nstims_each(ifile),size(coords,2));
+            nd_max=min(nd_max,nd);
+            r.data{imeth,1+submean}.ds{ifile}=cell(1,nd);
+            for k=1:nd
+                r.data{imeth,1+submean}.ds{ifile}{k}=coords(:,1:k);
+            end %dim
+            r.data{imeth,1+submean}.sas{ifile}=struct;
+            r.data{imeth,1+submean}.sas{ifile}.nstims=nstims_each(ifile);
+            r.data{imeth,1+submean}.sas{ifile}.btc_specoords=eye(nd);
+            %only keep the stimuli that are not NaN
+            r.data{imeth,1+submean}.sas{ifile}.typenames=das{ifile}.response_amplitude_stim.stim(stims_nonan{ifile})';
+            r.data{imeth,1+submean}.sets{ifile}=struct;
+            r.data{imeth,1+submean}.sets{ifile}.type='data';
+            r.data{imeth,1+submean}.sets{ifile}.dim_list=[1:nd];
+            r.data{imeth,1+submean}.sets{ifile}.nstims=nstims_each(ifile);
+            r.data{imeth,1+submean}.sets{ifile}.label_long=cat(2,pathname,filesep,filenames_short{ifile});
+            r.data{imeth,1+submean}.sets{ifile}.label=filenames_short{ifile};
+            r.data{imeth,1+submean}.sets{ifile}.pipeline.type='mds';
+            r.data{imeth,1+submean}.sets{ifile}.pipeline.opts=meths{imeth};
+            r.data{imeth,1+submean}.sets{ifile}.pipeline.opts.if_submean=submean;
+        end %ifile
+    end %submean
+end %imeth
+%align and knit with rs package
+aux=struct;
+aux.opts_align.if_log=0;
+aux.opts_knit.if_log=1;
+aux.opts_knit.allow_scale=0;
+aux.opts_knit.if_normscale=0;
+aux.opts_knit.keep_details=0; %non-default
+%
+r.data_knit=cell(nmeths,1+if_submean);
+r.aux_knit=cell(nmeths,1+if_submean);
+nshuffs=getinp('number of shuffles (0 for no stats)','d',[0 1000]);
+dmax=getinp('max dim for consensus statistics','d',[1 nd_max]);
+r.knit_stats=cell(nmeths,1+if_submean);
+%
+knit_stats_setup=struct;
+knit_stats_setup.nsets=nfiles;
+knit_stats_setup.dim_list_in_max=dmax;
+knit_stats_setup.dataset_labels=strrep(filenames_short,'.mat','');
+knit_stats_setup.stimulus_labels=stim_labels;
+knit_stats_setup.nshuffs=nshuffs;
+knit_stats_setup.nstims=nstims;
+%
+for imeth=1:nmeths
+    for submean=0:if_submean
+        meth_text=cat(2,meths{imeth}.name_short,sprintf(' submean=%1.0f',submean))
+        disp(' ');
+        disp(sprintf('processing %s',meth_text));
+        disp(' ');
+        data_in=r.data{imeth,1+submean};
+        [data_align,aux_align]=rs_align_coordsets(data_in,aux);
+        [data_knit,aux_knit]=rs_knit_coordsets(data_align,aux);
+        r.data_knit{imeth,1+submean}=data_knit;
+        %do stats if nshuffs>0
+        if (nshuffs>0)
+            opts_pcon=aux.opts_knit;
+            opts_pcon.nshuffs=nshuffs;
+            [r.knit_stats{imeth,1+submean},warnings]=psg_align_stats(data_align.ds,data_align.sas,[1:dmax],[1:dmax],opts_pcon);
+            psg_align_stats_plot(r.knit_stats{imeth,1+submean},knit_stats_setup);
+            axes('Position',[0.5,0.07,0.01,0.01]); %for text
+            text(0,0,meth_text,'Interpreter','none','FontSize',8);
+            axis off;
+            set(gcf,'Name',sprintf('consensus stats: %s',meth_text));
+        end
+    end %submean
+end %imeth
