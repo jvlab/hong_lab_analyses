@@ -16,9 +16,10 @@
 %
 % results saved in r
 %
-% 25Oct25: begin saving sa, ds, sets so that a modularized version of psg_align_stats_demo, psg_align_vara_demo will run
+% 25Oct25: begin saving sa, ds, sets so that a modularized version of psg_knit_stats_demo, psg_align_vara_demo will run
 %
-%  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO.
+%  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO
+%   PSG_KNIT_STATS.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
 %
@@ -367,27 +368,23 @@ for imeth=1:nmeths
         end %ifile
     end %submean
 end %imeth
+%
+nshuffs=getinp('number of shuffles (0 for no stats)','d',[0 1000]);
+dim_max_in=getinp('max dim for consensus statistics','d',[1 nd_max]);
 %align and knit with rs package
 aux=struct;
 aux.opts_align.if_log=0;
 aux.opts_knit.if_log=1;
 aux.opts_knit.allow_scale=0;
 aux.opts_knit.if_normscale=0;
-aux.opts_knit.keep_details=0; %non-default
+aux.opts_knit.keep_details=0; 
+aux.opts_knit.if_stats=double(nshuffs>0);
+aux.opts_knit.nshuffs=nshuffs;
+aux.opts_knit.if_plot=0; %plot it here
+aux.opts_knit.dim_max_in=dim_max_in;
 %
 r.data_knit=cell(nmeths,1+if_submean);
-r.aux_knit=cell(nmeths,1+if_submean);
-nshuffs=getinp('number of shuffles (0 for no stats)','d',[0 1000]);
-dmax=getinp('max dim for consensus statistics','d',[1 nd_max]);
 r.knit_stats=cell(nmeths,1+if_submean);
-%
-knit_stats_setup=struct;
-knit_stats_setup.nsets=nfiles;
-knit_stats_setup.dim_list_in_max=dmax;
-knit_stats_setup.dataset_labels=strrep(filenames_short,'.mat','');
-knit_stats_setup.stimulus_labels=stim_labels;
-knit_stats_setup.nshuffs=nshuffs;
-knit_stats_setup.nstims=nstims;
 %
 for imeth=1:nmeths
     for submean=0:if_submean
@@ -401,10 +398,11 @@ for imeth=1:nmeths
         r.data_knit{imeth,1+submean}=data_knit;
         %do stats if nshuffs>0
         if (nshuffs>0)
-            opts_pcon=aux.opts_knit;
-            opts_pcon.nshuffs=nshuffs;
-            [r.knit_stats{imeth,1+submean},warnings]=psg_align_stats(data_align.ds,data_align.sas,[1:dmax],[1:dmax],opts_pcon);
-            psg_align_stats_plot(r.knit_stats{imeth,1+submean},knit_stats_setup);
+            knit_stats{imeth,1+submean}=aux_knit.knit_stats;
+            knit_stats_setup=aux_knit.knit_stats_setup;
+            knit_stats_setup.dataset_labels=strrep(filenames_short,'.mat','');
+            knit_stats_setup.stimulus_labels=stim_labels;
+            psg_knit_stats_plot(knit_stats{imeth,1+submean},knit_stats_setup);
             axes('Position',[0.5,0.07,0.01,0.01]); %for text
             text(0,0,meth_text,'Interpreter','none','FontSize',8);
             axis off;
