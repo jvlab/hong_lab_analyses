@@ -14,6 +14,7 @@ function [da_new,opts_used]=hlid_da_stimselect(da,opts)
 % opts: options
 %   opts.targets: cell array of specified target stimuli, e.g., {'1-5ol @ -3.0'}    {'1-6ol @ -3.0'}
 %   opts.exclude_panels: panels to exclude, defaults to {'glomeruli_diagnostics'};
+%   opts.response_name: response name field, defaults to 'mean_peak'
 %   opts.if_log: 1 to log (defaults to 0)
 %
 % da_new: a structure with only the target stimuli kept.  The following fields are repopulated:
@@ -38,6 +39,8 @@ function [da_new,opts_used]=hlid_da_stimselect(da,opts)
 % da=load('C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\data\kc_tnt_singletrial\2024-07-10__fly01__TNTin_nolabel__20240710_2FLfun1.mat');
 % [da_new,ou]=hlid_da_stimselect(da,setfields([],{'if_log','targets'},{1,{'1-6ol @ -3.0','ms @ -3.0'}}))
 %
+% 06Oct25: add "+" after each duplicatoin of same target stimulus; optional name for resopnse field
+%
 % See also: HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_ORN_MERGE, HLID_RASTIM_TRIAL_READ, HLID_ORN_MERGE.
 %
 if (nargin<=1)
@@ -46,6 +49,9 @@ end
 opts=filldefault(opts,'if_log',0);
 opts=filldefault(opts,'targets',cell(0));
 opts=filldefault(opts,'exclude_panels',{'glomeruli_diagnostics'});
+opts=filldefault(opts,'response_name','mean_peak'); %default response field name
+%
+nrps=3; %repeats per stim
 %
 opts_used=opts;
 opts_used.warnings=[];
@@ -55,11 +61,40 @@ targets_trials=cell(0);
 targets_infile=unique(da.response_amplitude_stim.stim);
 %
 if isfield(da.response_amplitude_stim,'is_target')
-    targets_responses=unique(da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target));
+    stim_temp=da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target);
+    targets_responses=unique(stim_temp);
+    if length(stim_temp)>length(targets_responses)
+        disp(' multiple occurrences of a target stimulus detected in stim list');
+        for k=1:length(targets_responses)
+            dup_ptr=strmatch(targets_responses{k},stim_temp,'exact');
+            for id=2:length(dup_ptr)
+                addpos=min(find(cat(2,stim_temp{dup_ptr(id)},' ')==' '));
+                addstr=repmat('+',1,id-1);
+                stim_temp{dup_ptr(id)}=cat(2,stim_temp{dup_ptr(id)}(1:addpos-1),addstr,stim_temp{dup_ptr(id)}(addpos:end));
+            end
+        end
+        da.response_amplitude_stim.stim(da.response_amplitude_stim.is_target)=stim_temp;
+        targets_responses=unique(stim_temp);
+    end
 end
-if isfield(da,'trial_info')
+if isfield(da,'trial_info') %need to detect subsequent occurrences of the same target
     if isfield(da.trial_info,'is_target')
-        targets_trials=unique(da.trial_info.stim(da.trial_info.is_target));
+        trial_temp=da.trial_info.stim(da.trial_info.is_target);
+        targets_trials=unique(trial_temp);
+        if length(trial_temp)>nrps*length(targets_trials)
+            disp(' multiple occurrences of a target stimulus detected in trial list');
+            for k=1:length(targets_trials)
+                dup_ptr=strmatch(targets_trials{k},trial_temp,'exact');
+                for id=nrps+1:length(dup_ptr)
+                    addpos=min(find(cat(2,trial_temp{dup_ptr(id)},' ')==' '));
+                    addstr=repmat('+',1,ceil(id/nrps)-1);
+                    trial_temp{dup_ptr(id)}=cat(2,trial_temp{dup_ptr(id)}(1:addpos-1),addstr,trial_temp{dup_ptr(id)}(addpos:end));
+                end
+            end
+            da.trial_info.stim(da.trial_info.is_target)=trial_temp;
+            targets_trials=unique(trial_temp);
+        end
+
     end
 end
 %check that targets_responses and targets_trials match if both are present;
@@ -147,11 +182,11 @@ da_new=da;
 %response amplitudes
 ras=struct();
 ras.description=da.response_amplitude_stim.description;
-ras.mean_peak=NaN(length(targets_use),size(da.response_amplitude_stim.mean_peak,2));
+ras.(opts.response_name)=NaN(length(targets_use),size(da.response_amplitude_stim.(opts.response_name),2));
 ras.stim=cell(1,length(targets_use));
 for istim=1:length(targets_use)
     if resp_ptrs(istim)>0
-        ras.mean_peak(istim,:)=da.response_amplitude_stim.mean_peak(resp_ptrs(istim),:);
+        ras.(opts.response_name)(istim,:)=da.response_amplitude_stim.(opts.response_name)(resp_ptrs(istim),:);
     end
     ras.stim{istim}=targets_use{istim};
 end
@@ -162,14 +197,14 @@ if isfield(da,'trial_info')
     rat.description=da.response_amplitude_trials.description;
     rat.baseline_win=da.response_amplitude_trials.baseline_win;
     rat.peak_win=da.response_amplitude_trials.peak_win;
-    rat.mean_peak=NaN(sum(trial_counts),size(da.response_amplitude_trials.mean_peak,2));
+    rat.(opts.response_name)=NaN(sum(trial_counts),size(da.response_amplitude_trials.(opts.response_name),2));
     ti=struct;
     ti.stim=cell(1,sum(trial_counts));
     itrial=0;
     for istim=1:length(targets_use)
         for k=1:trial_counts(istim)
             itrial=itrial+1;
-            rat.mean_peak(itrial,:)=da.response_amplitude_trials.mean_peak(trial_ptrs{istim}(k),:);
+            rat.(opts.response_name)(itrial,:)=da.response_amplitude_trials.(opts.response_name)(trial_ptrs{istim}(k),:);
             ti.stim{itrial}=targets_use{istim};
         end
     end
