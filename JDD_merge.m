@@ -4,7 +4,7 @@
 
 opts = struct;
 opts.rep_char = '+';
-
+opts.trial_repeats = 3;
 numSets = 2;
 numFiles = cell(numSets,1);
 

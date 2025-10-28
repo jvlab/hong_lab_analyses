@@ -21,7 +21,7 @@ fileList = string(fileList);
 
 fileArray = split(fileList);
 
-fileArray(end) = [];
+fileArray(end) = [];% This is a product of split, it has always been there.
 
 numFiles = length(fileArray);
 
@@ -29,7 +29,9 @@ S = cell(numFiles,1);
 
 for file = 1:numFiles
     loadString = fileArray(file);
-    load(char(loadString));
+    load(char(loadString)); % I think matlab will throw if thisfails, I don't need to.
+    % Similarly, if any of these fields are not present upon loading,
+    % matlab will throw.
     S{file}.description = description;
     S{file}.meta = meta;
     S{file}.movie_timeseries = movie_timeseries;
