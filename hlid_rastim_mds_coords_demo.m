@@ -19,7 +19,7 @@
 % 25Oct25: begin saving sa, ds, sets so that a modularized version of psg_knit_stats_demo, psg_align_vara_demo will run
 %
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO
-%   PSG_KNIT_STATS.
+%   PSG_KNIT_STATS, HLID_RASTIM_MDS_COORDS_SUMM.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
 %
