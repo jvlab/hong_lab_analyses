@@ -1,10 +1,24 @@
 function [status,tableList,daout,optsout] = checkConsist(da,opts)
 % JDD - checks for redundancies and consistency across files in a set.
 % 10/27/25
+% Duplicate stimuli are renamed according to opt.rep_char and treated as
+% distinct.
+%
+% Checks that the glomeruli are the same across data sets.
+%
+% Checks that the stimuli are the same for files within a set.
+%
+% Checks that the trial stimuli are consistent.
+%
+% Outputs a data table with glomeruli columns and stimuli rows.
+% Outputs a data structure, very similar to the file structure. 
 if(nargin<=1)
     opts = struct;
 end
 
+if(~isfield(opts,'kdf'))
+    opts.kdf = {'max_peak','mean_peak'};
+end
 if(~isfield(opts,'rep_char'))
     opts.rep_char = '+';
 end
@@ -12,13 +26,16 @@ end
 optsout = opts;
 numSets = length(da);
 
+
+
+
 daout = da;
 
 status = string('beginning ');
 
 % Check that the trial stimuli are consistent with the averaged stimuli
 
-tableList = {};
+tableList = cell(numSets,1);
 
 % Need to check that the glomeruli are consistent.
 
@@ -26,7 +43,15 @@ glomeruli_base = da{1}{1}.rois.glomeruli;
 
 for setindx = 1:numSets
     numFiles = length(da{setindx});
+    tableList{setindx} = cell(numFiles,1);
     for fileindx = 1:numFiles
+        % Check to get the field name of the data.
+        for field_name = opts.kdf
+            if(isfield(da{setindx}{fileindx}.response_amplitude_stim,field_name{1}))
+                datafield = field_name{1};
+            end
+        end
+                
         % The dataset indicates which odorants were part of the experiment.
         isTarget = da{setindx}{fileindx}.response_amplitude_stim.is_target;
         stim = da{setindx}{fileindx}.response_amplitude_stim.stim(isTarget);
@@ -58,7 +83,7 @@ for setindx = 1:numSets
                     addpos = find(stim{matchLoc(repeat)} == ' ',1,'first');
                     stim{matchLoc(repeat)} = insertAfter(stim{matchLoc(repeat)},addpos-1,repmat(opts.rep_char,1,repeat-1));                    
                     for trial=1:opts.trial_repeats
-                        stim_trial{(matchLoc(repeat)-1)*opts.trial_repeats+trial} = insertAfter(stim{matchLoc(repeat)},addpos-1,repmat(opts.rep_char,1,repeat-1));
+                        stim_trial{(matchLoc(repeat)-1)*opts.trial_repeats+trial} = stim{matchLoc(repeat)};
                     end
                 
                 end
@@ -78,9 +103,9 @@ for setindx = 1:numSets
         daout{setindx}{fileindx}.trial_info.panel(~trialTarget) = [];
 
         % I haven't remove anything, nor have I added anything or moved anything. 
-        daout{setindx}{fileindx}.response_amplitude_stim.max_peak(~isTarget,:)=[];
-        daout{setindx}{fileindx}.response_amplitude_trials.max_peak(~trialTarget,:)=[];
-        T = array2table(daout{setindx}{fileindx}.response_amplitude_stim.max_peak);
+        daout{setindx}{fileindx}.response_amplitude_stim.(datafield)(~isTarget,:)=[];
+        daout{setindx}{fileindx}.response_amplitude_trials.(datafield)(~trialTarget,:)=[];
+        T = array2table(daout{setindx}{fileindx}.response_amplitude_stim.(datafield));
         glomeruli = daout{setindx}{fileindx}.rois.glomeruli;
         if(~isequal(glomeruli_base,glomeruli))
             errmsg = string('Mismatched glomeruli is set ') + string(setindx) + string(' and file ') + string(fileindx);
@@ -93,7 +118,7 @@ for setindx = 1:numSets
         T.Properties.VariableNames = glomeruli;
         T.Properties.RowNames = stim;
         
-        tableList{setindx,fileindx} = T;
+        tableList{setindx}{fileindx} = T;
     end
     
     % Compare the files' stimulus sets with one another.
@@ -135,9 +160,9 @@ for setindx = 1:numSets
         % tables.
        for fileindx = 1:numFiles
            daout{setindx}{fileindx}.response_amplitude_stim.stim = stimlist;
-           T = tableList{setindx,fileindx};
-           T.Properties.RowNames = stimlist;
-           tableList{setindx,fileindx} = T;
+           T = tableList{setindx}{fileindx};
+           T.Properties.RowNames = stimlist; % This seems to be the only way this works. 
+           tableList{setindx}{fileindx} = T;
        end
        
     end
