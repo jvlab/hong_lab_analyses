@@ -117,7 +117,9 @@ for setindx = 1:numSets
     
         T.Properties.VariableNames = glomeruli;
         T.Properties.RowNames = stim;
-        
+        %T.Properties.Description = da{setindx}{fileindx}.filename;
+        T.Properties.Description = char(da{setindx}{fileindx}.filename);
+        T.Properties.DimensionNames = {'Odor' 'Glomerulus'};
         tableList{setindx}{fileindx} = T;
     end
     

@@ -32,6 +32,7 @@ for file = 1:numFiles
     load(char(loadString)); % I think matlab will throw if thisfails, I don't need to.
     % Similarly, if any of these fields are not present upon loading,
     % matlab will throw.
+    S{file}.filename=fileArray(file);
     S{file}.description = description;
     S{file}.meta = meta;
     S{file}.movie_timeseries = movie_timeseries;

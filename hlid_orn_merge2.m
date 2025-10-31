@@ -225,6 +225,10 @@ for iset=1:nsets
     if any(isnan(resps_gu_filled(:)))
         error('Cannot proceed. Not all NaNs have been filled in.')% THis is now an error
     end
+    
+    
+    % Book mark - this is where I am friday at 3.
+    
     stim_labels_set{iset}=stimulus_names_set{iset};
     resps_set{iset}=reshape(afalwt_fit.x_true,[nstims(iset) nglomeruli_use(iset)]); %use regression slope as response measure
     if if_restore_size %restorr size if needed

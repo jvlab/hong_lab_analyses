@@ -35,9 +35,53 @@ Strimmed = lookForSetWideHoles(Sall,opts);
 % The calls the afalwt commands
 Sfilled = fillInNaNs(Strimmed,opts);
 
-imagesc(Sfilled{1}{1}{:,:})
-set(gca,'XTick',[1:length(Sfilled{1}{1}.Properties.VariableNames)]);
-set(gca,'XTickLabel',Sfilled{1}{1}.Properties.VariableNames)
+%imagesc(Sfilled{1}{1}{:,:})
+%set(gca,'XTick',[1:length(Sfilled{1}{1}.Properties.VariableNames)]);
+%set(gca,'XTickLabel',Sfilled{1}{1}.Properties.VariableNames)
+numSets = length(Sfilled);
+
+for setindx = 1:numSets
+    numFiles = length(Sfilled{setindx});
+    for ifig=1:3
+        switch ifig
+            case 1
+                figname = 'all raw data';
+                S_plot = Sall;
+            case 2
+                figname = 'raw data from selected glomeruli';
+                S_plot = Strimmed;
+            case 3
+                figname = 'raw data from selected glomeruli with missing dat filled in';
+                S_plot = Sfilled;
+        end
+        [numStim,numGlom] = size(S_plot{setindx}{1});
+        
+        figname=cat(2,sprintf('set %2.0f: ',setindx),figname);
+        
+        figure;
+        set(gcf,'Position',[50 100 1800 800]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',figname);
+        [nr,nc]=nicesubp(numFiles);
+        
+        for ifile_ptr=1:numFiles
+            filename = S_plot{setindx}{ifile_ptr}.Properties.Description;
+            filename = split(filename,'/');
+            filename = filename{end};
+            subplot(nr,nc,ifile_ptr);
+            imagesc(S_plot{setindx}{ifile_ptr}{:,:});
+            minmax=[min(min(S_plot{setindx}{ifile_ptr}{:,:},[],'omitnan')),max(max(S_plot{setindx}{ifile_ptr}{:,:},[],'omitnan'))];
+            title_string=sprintf('set %1.0f file %2.0f: %s  [%6.3f %6.3f]',setindx,ifile_ptr,filename,minmax);
+            title(title_string,'Interpreter','none');
+            set(gca,'FontSize',7);
+            set(gca,'XTick',[1:numGlom]);
+            set(gca,'XTickLabel',S_plot{setindx}{ifile_ptr}.Properties.VariableNames);
+            set(gca,'YTick',[1:numStim]);
+            set(gca,'YTickLabel',S_plot{setindx}{ifile_ptr}.Properties.RowNames);
+        end
+    end
+end
+
 
 
 % Generate the plots 
