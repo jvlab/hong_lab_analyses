@@ -1,7 +1,8 @@
 %hlid_rastim_mds_coords_summ: special-purpose script to summarize output
 %of several runs of hlid_rastim_mds_coords_demo, looking at consistency across shuffles
 %
-%   See also:  HLID_RASTIM_MDS_COORDS_DEMO, PSG_KNIT_STATS_PLOT, PSG_ALIGN_STATS_PLOT.
+%   See also:  HLID_RASTIM_MDS_COORDS_DEMO, PSG_KNIT_STATS_PLOT, PSG_ALIGN_STATS_PLOT
+%  HLID_RASTIM_MDS_COORDS_SUMM2.
 %
 if ~exist('runs')
     runs=cell(1,4);
