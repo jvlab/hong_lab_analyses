@@ -1,4 +1,4 @@
-function [p,b_change,optsused]=afalwt(d,w,opts);
+function [p,b_change,optsused]=afalwt(d,w,opts)
 % [p,b_change,optsused]=afalwt(d,w,opts) does affine alignment with missing data
 %
 % d(f,r)=a_r+b_norm_r*(x_true(f))+gau(sigma)(f,r), weighted by w(f,r) 

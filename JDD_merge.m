@@ -7,130 +7,49 @@
 opts = struct;
 opts.rep_char = '+';
 opts.trial_repeats = 3;
-opts.set_names = {'kiTC','meTC','moSK','vaTC'};
+opts.set_names = {'kiTC','meTC','vaTC'};
 opts.kdf = {'max_peak','mean_peak'}; % Known data fields.
-opts.suppressoutput = false;
+opts.suppressoutput = true;
 opts.interactive = false;
-% load the data into a structure
-% Set by set.
+opts.restore_size = true;
+opts.submean = false;
+opts.hist_quantiles = [0.05 .25 .5 .75 .96];
+opts.hist_bins = 50;
+
 % I am assuming that the files that are part of a set are in a separate
 % directory. There is not name checking, if a data file is in the folder
 % the code will attempt to load it into the set.
 Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
 Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
-Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
-Sraw{4} = fileToRaw('../orn_terminals_Oct25/validation2');
+%Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
+Sraw{3} = fileToRaw('../orn_terminals_Oct25/validation2');
 
 % Check stimulus consistency across files within a set,
 % and glomerus consistency across sets.
 [~,Sall] = checkConsist(Sraw,opts);
 
 % First, I want to check that each stimulus has a non-NaN value somewhere
-% within a set. If found, that stimulus is removed.
+% within a set. If an all NaN is found, that stimulus is removed.
 % The presence of the glomeruli across sets is determined. the glomeruli
 % used appear in a minimum number of files. 
 Strimmed = lookForSetWideHoles(Sall,opts);
 
 % Fill in the remaining holes.
-% The calls the afalwt commands
-Sfilled = fillInNaNs(Strimmed,opts);
+% The calls the afalwt interpolator.
+[Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
-%imagesc(Sfilled{1}{1}{:,:})
-%set(gca,'XTick',[1:length(Sfilled{1}{1}.Properties.VariableNames)]);
-%set(gca,'XTickLabel',Sfilled{1}{1}.Properties.VariableNames)
-numSets = length(Sfilled);
+% Generate the first set of plots (raw - trimmed - filled)
+makePlots_1(Sall,Strimmed,Sfilled);
 
-for setindx = 1:numSets
-    numFiles = length(Sfilled{setindx});
-    for ifig=1:3
-        switch ifig
-            case 1
-                figname = 'all raw data';
-                S_plot = Sall;
-            case 2
-                figname = 'raw data from selected glomeruli';
-                S_plot = Strimmed;
-            case 3
-                figname = 'raw data from selected glomeruli with missing dat filled in';
-                S_plot = Sfilled;
-        end
-        [numStim,numGlom] = size(S_plot{setindx}{1});
-        
-        figname=cat(2,sprintf('set %2.0f: ',setindx),figname);
-        
-        figure;
-        set(gcf,'Position',[50 100 1800 800]);
-        set(gcf,'NumberTitle','off');
-        set(gcf,'Name',figname);
-        [nr,nc]=nicesubp(numFiles);
-        
-        for ifile_ptr=1:numFiles
-            filename = S_plot{setindx}{ifile_ptr}.Properties.Description;
-            filename = split(filename,'/');
-            filename = filename{end};
-            subplot(nr,nc,ifile_ptr);
-            imagesc(S_plot{setindx}{ifile_ptr}{:,:});
-            minmax=[min(min(S_plot{setindx}{ifile_ptr}{:,:},[],'omitnan')),max(max(S_plot{setindx}{ifile_ptr}{:,:},[],'omitnan'))];
-            title_string=sprintf('set %1.0f file %2.0f: %s  [%6.3f %6.3f]',setindx,ifile_ptr,filename,minmax);
-            title(title_string,'Interpreter','none');
-            set(gca,'FontSize',7);
-            set(gca,'XTick',[1:numGlom]);
-            set(gca,'XTickLabel',S_plot{setindx}{ifile_ptr}.Properties.VariableNames);
-            set(gca,'YTick',[1:numStim]);
-            set(gca,'YTickLabel',S_plot{setindx}{ifile_ptr}.Properties.RowNames);
-        end
-    end
-end
+%
+% also create the resps_set cell array
+[resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
+% Generate the quantile plots
+makePlots_quantile(resps_set,resp_range,opts);
 
-
-% Generate the plots 
-%for setindx = 1:numSets
-%    numFiles = length(Sfilled{setindx});
-%    for ifig=1:3
-%        switch ifig
-%            case 1
-%                figname='all raw data';
-%                for fileindx = 1:numFiles
-%                    resps_plot(:,:,fileindx) = Sall{setindx}{fileindx}{:,:};
-                %glomeruli_plot=[1:nglomeruli];
-%            case 2
-%                figname='raw data from selected glomeruli';
-                %resps_plot=resps_gu;
-                %glomeruli_plot=glomeruli_use{iset};
-%            case 3
-%                figname='raw data from selected glomeruli with missing data filled in';
-                %resps_plot=resps_gu_filled;
-                %glomeruli_plot=glomeruli_use{iset};
-%        end
-%        figname=cat(2,sprintf('set %2.0f: ',iset),figname);
-%        figure;
-%        set(gcf,'Position',[50 100 1800 800]);
-%        set(gcf,'NumberTitle','off');
-%        set(gcf,'Name',figname);
-%        [nr,nc]=nicesubp(nfiles_use(iset));
-%        for ifile_ptr=1:nfiles_use(iset)
-%            ifile=files_use{iset}(ifile_ptr);
-%            subplot(nr,nc,ifile_ptr);
-%            imagesc(resps_plot(:,:,ifile_ptr));
-%            minmax=[min(min(resps_plot(:,:,ifile_ptr),[],'omitnan')),max(max(resps_plot(:,:,ifile_ptr),[],'omitnan'))];
-%            title_string=sprintf('set %1.0f file %2.0f: %s  [%6.3f %6.3f]',iset,ifile,strrep(filenames_short{iset}{ifile},'.mat',''),minmax);
-%            title(title_string,'Interpreter','none');
-%            set(gca,'FontSize',7);
-%            set(gca,'XTick',[1:length(glomeruli_plot)]);
-%            set(gca,'XTickLabel',glomeruli(glomeruli_plot));
-%            set(gca,'YTick',[1:nstims(iset)]);
-%            set(gca,'YTickLabel',stim_labels_set{iset});
-%        end
-%        axes('Position',[0.01,0.02,0.01,0.01]); %for text
-%        text(0,0,figname,'Interpreter','none');
-%        axis off;
-%    end %ifig
-
-
-
-
-
-
+% Since the odorants within a set are unique and each set is uniquely
+% tagged, we don't need to do all of the uniqueness checks on the stimuli.
+% I do need to assemble the odorants into a single usnique structure.
 
 

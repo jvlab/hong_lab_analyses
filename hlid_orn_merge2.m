@@ -224,6 +224,7 @@ for iset=1:nsets
     %
     if any(isnan(resps_gu_filled(:)))
         error('Cannot proceed. Not all NaNs have been filled in.')% THis is now an error
+        
     end
     
     
@@ -272,7 +273,7 @@ for iset=1:nsets
     xlabel('response')
     ylabel('counts');
     set(gca,'XLim',resp_range);
-    title(sprintf('set %1.0f',iset))
+    title(sprintf('set %3.0f',iset))
     quantiles=quantile(resps_set{iset}(:),hist_quantiles);
     for k=1:length(hist_quantiles)
         axes('Position',[0.01+(iset-1)/nsets,0.06+0.04*k,0.01,0.01]); %for text
@@ -294,6 +295,7 @@ resp_range=[Inf -Inf];
 for iset=1:nsets
     stimulus_names=[stimulus_names;stimulus_names_set{iset}];
     stim_labels_in=[stim_labels_in;stim_labels_set{iset}];
+    % I think this is a repeat, and unnecessary
     resp_range=[min(resp_range(1),min(resps_set{iset}(:))) max(resp_range(2),max(resps_set{iset}(:)))];
 end
 % 
@@ -335,6 +337,8 @@ end
 %
 % determine contributions based on stimulus_names, since this also contains concentration
 %
+
+% This is where I am now.
 contribs=zeros(length(stimulus_names_unique),nsets);
 for iset=1:nsets
     for istim=1:length(stimulus_names_set{iset})
