@@ -41,14 +41,14 @@ Strimmed = lookForSetWideHoles(Sall,opts);
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
 % Generate the first set of plots (raw - trimmed - filled)
-%makePlots_1(Sall,Strimmed,Sfilled);
+makePlots_1(Sall,Strimmed,Sfilled);
 
 %
 % create the resps_set table
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
 % Generate the quantile plots
-%makePlots_quantile(resps_set,resp_range,opts);
+makePlots_quantile(resps_set,resp_range,opts);
 
 % Since the odorants within a set are unique and each set is uniquely
 % tagged, we don't need to do all of the uniqueness checks on the stimuli.
