@@ -17,6 +17,7 @@
 % results saved in r
 %
 % 25Oct25: begin saving sa, ds, sets so that a modularized version of psg_knit_stats_demo, psg_align_vara_demo will run
+% 07Nov25: use rs modules, and move knit_stats to r
 %
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO
 %   PSG_KNIT_STATS, HLID_RASTIM_MDS_COORDS_SUMM.
@@ -437,6 +438,7 @@ for imeth=1:nmeths
             rs_write_coorddata(filenames_out{imeth,1+submean},data_knit);
         end
         r.data_knit{imeth,1+submean}=data_knit;
+        r.knit_stats{imeth,1+submean}=aux_knit.knit_stats;
         %do stats if nshuffs>0
         if (nshuffs>0)
             knit_stats{imeth,1+submean}=aux_knit.knit_stats;
