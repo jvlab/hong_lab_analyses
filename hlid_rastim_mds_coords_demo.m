@@ -426,7 +426,7 @@ r.knit_stats=cell(nmeths,1+if_submean);
 %
 for imeth=1:nmeths
     for submean=0:if_submean
-        meth_text=cat(2,meths{imeth}.name_short,sprintf(' submean=%1.0f',submean))
+        meth_text=cat(2,meths{imeth}.name_short,sprintf(' submean=%1.0f',submean));
         disp(' ');
         disp(sprintf('processing %s',meth_text));
         disp(' ');

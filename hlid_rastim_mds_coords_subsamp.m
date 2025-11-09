@@ -55,10 +55,16 @@ for isize=1:nsizes
     disp(sprintf('for subsample size %2.0f, %5.0f subsamples prepared',subsamp_size,size(subsamp_lists{isize},1)));
 end
 %
+r.nfiles=nfiles;
+r.nmeths=nmeths;
+r.subsamp_sizes=subsamp_sizes;
+r.nsizes=nsizes;
+r.exhaust_max=exhaust_max;
+r.dim_max_in=dim_max_in;
+r.subsamp_lists=subsamp_lists;
 %
 %align and knit with rs package
 %
-
 aux=struct;
 aux.opts_align.if_log=0;
 aux.opts_knit.if_log=0; %since we will be edoing a lot of subsamples
@@ -69,8 +75,25 @@ aux.opts_knit.if_stats=1; %need statistics of variance
 aux.opts_knit.nshuffs=0;
 aux.opts_knit.if_plot=0; %no plotting
 aux.opts_knit.dim_max_in=dim_max_in;
+%
+if_submean=1;
+for isize=1:nsizes
+    subsamp_size=subsamp_sizes(isize);
+    nsubsamps=size(subsamp_lists{isize},1);
+    disp(sprintf(' subsampling %2.0f files (%5.0f subsamples)',subsamp_size,nsubsamps));
+    if nsubsamps>0
+        for imeth=1:nmeths
+            for submean=0:if_submean
+                meth_text=cat(2,r.meths{imeth}.name_short,sprintf(' submean=%1.0f',submean));
+                disp(sprintf('processing %s',meth_text));
+                for isubsamp=1:nsubsamps
+                end
+            end %submean
+        end %imeth
+    end %nsubsamps>0
+end %isize
 
-if ~exist('neigs_show_max') neigs_show_max=10; end
+
 %
 % for imeth=1:nmeths
 %     for submean=0:if_submean
@@ -99,5 +122,3 @@ if ~exist('neigs_show_max') neigs_show_max=10; end
 %             axis off;
 %             set(gcf,'Name',sprintf('consensus stats: %s',meth_text));
 %         end
-%     end %submean
-% end %imeth
