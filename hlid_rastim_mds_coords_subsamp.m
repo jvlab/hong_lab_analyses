@@ -140,3 +140,4 @@ for isize=1:nsizes
         end %imeth
     end %nsubsamps>0
 end %isize
+disp('remember to save r_subsamp for further analysis')
