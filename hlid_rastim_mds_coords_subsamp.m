@@ -72,8 +72,9 @@ aux.opts_knit.if_stats=1; %need statistics of variance
 aux.opts_knit.nshuffs=0;
 aux.opts_knit.if_plot=0; %no plotting
 aux.opts_knit.dim_max_in=dim_max_in;
-aux_subsamp=aux;
-aux_subsamp.opts_check.if_warn=0; %no need to check the subsamples
+aux.opts_check.if_warn=0; %no need to check the subsamples
+aux_warn=aux;
+aux_warn.opts_check.if_warn=1;
 %
 if_submean=1;
 %
@@ -85,43 +86,56 @@ r_subsamp.nsizes=nsizes;
 r_subsamp.exhaust_max=exhaust_max;
 r_subsamp.dim_max_in=dim_max_in;
 r_subsamp.subsamp_lists=subsamp_lists;
-r_subsamp.sv=cell(nmeths,1+if_submean,nsizes);
-r_subsamp.sv_dims={'d1: methods, d2: submean, d3: size of subsample'};
+r_subsamp.stats=cell(nmeths,1+if_submean,nsizes);
+r_subsamp.stats_dims={'d1: methods, d2: submean, d3: size of subsample'};
 for isize=1:nsizes
     subsamp_size=subsamp_sizes(isize);
     nsubsamps=size(subsamp_lists{isize},1);
+    disp(' ')
     disp(sprintf(' subsampling %2.0f files (%5.0f subsamples)',subsamp_size,nsubsamps));
     if nsubsamps>0
         for imeth=1:nmeths
             for submean=0:if_submean
-                sv=struct;
-                sv.subsamp_rmsdev_setwise=zeros(dim_max_in,subsamp_size,nsubsamps);
-                sv.subsamp_rmsdev_stmwise=zeros(dim_max_in,nstims,nsubsamps);
-                sv.subsamp_rmsdev_overall=zeros(dim_max_in,1,nsubsamps);
-                sv.subsamp_rmsavail_setwise=zeros(dim_max_in,subsamp_size,nsubsamps);
-                sv.subsamp_rmsavail_stmwise=zeros(dim_max_in,nstims,nsubsamps);
-                sv.subsamp_rmsavail_overall=zeros(dim_max_in,1,nsubsamps);
-                sv_fields=fieldnames(sv);
+                data_in=r.data{imeth,1+submean}; %data from all files
+                %check consistency (first pass only)
+                if (imeth==1) & (submean==0)
+                    [data_align,aux_align]=rs_align_coordsets(data_in,aux_warn);
+                    [data_knit,aux_knit]=rs_knit_coordsets(data_align,aux_warn);
+                end
                 meth_text=cat(2,r.meths{imeth}.name_short,sprintf(' submean=%1.0f',submean));
                 disp(sprintf('processing %s',meth_text));
-                data_in=r.data{imeth,1+submean};
-                %look at all of the data, to check consistency
-                [data_align,aux_align]=rs_align_coordsets(data_in,aux);
-                [data_knit,aux_knit]=rs_knit_coordsets(data_align,aux);
+                sv=struct;
+                sv.rmsdev_setwise=NaN(dim_max_in,subsamp_size,nsubsamps); %number of files = size of subsample
+                sv.rmsdev_stmwise=NaN(dim_max_in,nstims,nsubsamps);
+                sv.rmsdev_overall=NaN(dim_max_in,1,nsubsamps);
+                sv.rmsavail_setwise=NaN(dim_max_in,subsamp_size,nsubsamps);
+                sv.rmsavail_stmwise=NaN(dim_max_in,nstims,nsubsamps);
+                sv.rmsavail_overall=NaN(dim_max_in,1,nsubsamps);
+                sv_fields=fieldnames(sv);
                 for isubsamp=1:nsubsamps
                     select=subsamp_lists{isize}(isubsamp,:);
                     data_in_sub.ds=data_in.ds(select);
                     data_in_sub.sas=data_in.sas(select);
                     data_in_sub.sets=data_in.sets(select);
-                    [data_align_sub,aux_align_sub]=rs_align_coordsets(data_in_sub,aux_subsamp);
-                    [data_knit_sub,aux_knit_sub]=rs_knit_coordsets(data_align_sub,aux_subsamp);
-                    %
+                    [data_align_sub,aux_align_sub]=rs_align_coordsets(data_in_sub,aux);
+                    [data_knit_sub,aux_knit_sub]=rs_knit_coordsets(data_align_sub,aux);
+                    %in the subsample, not all stimuli may have been present
+                    sub_typenames=data_knit_sub.sas{1}.typenames;
+                    typenames=data_knit.sas{1}.typenames;
+                    stm_ptrs=zeros(length(sub_typenames),1);
+                    for istim=1:length(sub_typenames)
+                        stm_ptrs(istim)=strmatch(sub_typenames{istim},typenames,'exact');
+                    end
                     for isv=1:length(sv_fields)
                         sv_field=sv_fields{isv};
-                        sv.(sv_field)(:,:,isubsamp)=aux_knit_sub.knit_stats.(strrep(sv_field,'subsamp_',''));
+                        if ~isempty(strfind(sv_field,'_stm')) %is  it a tally by stimuli?
+                            sv.(sv_field)(:,stm_ptrs,isubsamp)=aux_knit_sub.knit_stats.(sv_field);
+                        else
+                            sv.(sv_field)(:,:,isubsamp)=aux_knit_sub.knit_stats.(sv_field);
+                        end
                     end
                 end
-                r_subsamp.sv{imeth,1+submean,isize}=sv;
+                r_subsamp.stats{imeth,1+submean,isize}=sv;
             end %submean
         end %imeth
     end %nsubsamps>0

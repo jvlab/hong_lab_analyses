@@ -37,6 +37,7 @@
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
 % hlid_rastim_mds_coords_demo: examine transformations of z-scores, prior to computing coordinates
+% hlid_rastim_mds_coords_subsamp: calculations of hlid_rastim_coords_demo on subsamples of files
 % hlid_rastim_mds_coords_summ: summarize output statistics of hlid_rastim_mds_coords_demo
 % hlid_rastim_mds_coords_summ2: unexplained variance in hlid_rastim_mds_coords_demo: compare orn and kc
 % hlid_rastim_trial_decode: single-trial decoding of raw data
