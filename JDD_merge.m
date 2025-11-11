@@ -13,7 +13,7 @@ opts.kdf = {'max_peak','mean_peak'}; % Known data fields.
 opts.suppressoutput = true;
 opts.interactive = false;
 opts.restore_size = true;
-opts.submean = false;
+opts.submean = true;
 opts.hist_quantiles = [0.05 .25 .5 .75 .96];
 opts.hist_bins = 50;
 

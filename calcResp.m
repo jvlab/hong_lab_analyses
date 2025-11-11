@@ -22,7 +22,7 @@ for setindx = 1:numSets
 %condition the data and stimulus names
 %
     if (opts.submean)
-        resps_set{setindx}{:,:} = resps_set{setindx}{:,:}-repmat(mean(resps_set{setindx}{L,:},1),numStim,1);
+        resps_set{setindx}{:,:} = resps_set{setindx}{:,:}-repmat(mean(resps_set{setindx}{:,:},1),numStim,1);
     end 
     
     if(~opts.suppressoutput)
