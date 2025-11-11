@@ -427,6 +427,7 @@ for icombm=1:2
     resps_concat{icombm}=zeros(sum(nstims),length(glomeruli_combined{icombm}));
     resps_combined{icombm}=zeros(length(stimulus_names_unique),length(glomeruli_combined{icombm}));
     switch icombm %separate logic for intersection and union
+        % This is already done.
         case 1             
             comb_label='intersection';
             comb_label_short='inter';
@@ -452,6 +453,8 @@ for icombm=1:2
     end
     resps_combined{icombm}=resps_combined{icombm}./repmat(sum(contribs>0,2),1,length(glomeruli_combined{icombm})); %average responses according to number of sets in which they occur
 %    maxdim=min(length(stimulus_names_unique),length(glomeruli_combined{icombm}))-if_submean;
+
+    % Why would the removal of the mean reduce the dimension by 1?
     maxdim=min(length(stims_combined_keep),length(glomeruli_combined{icombm}))-if_submean;
     disp(sprintf(' combination method %20s: %3.0f responses from %2.0f glomeruli, max dim %2.0f',...
         comb_label,sum(nstims),length(glomeruli_combined{icombm}),maxdim))
@@ -498,7 +501,7 @@ for icombm=1:2
     resps=resps_combined{icombm}(stims_combined_keep,:);
     roi_names=glomeruli(glomeruli_combined{icombm});
     stim_labels=f_base.stim_labels_orig(stims_combined_keep,:); %label only the stimuli we keep
-    hlid_coords_plot;
+    hlid_coords_plot; % This is not safe.
     axes('Position',[0.5,0.02,0.01,0.01]); %for text
     text(0,0,comb_label,'Interpreter','none');
     axis off;
