@@ -22,11 +22,14 @@ function [pnew,b_change,zdiv]=afalwt_iter(p,d,w,opts)
 % b_change: Euclidean change in b_norm
 % zdiv:  1 if there was a zero-divide exception (not enough data to do fit)
 %
+% 12Nov25: bug fix:  add opts.legacy, defaults to 1, set to 0 to actually use Euclidean norm (per Jon Drover)
+%
 %   See also:  AFALWT_TEST, AFALWT_INIT, AFALWT.
 %
 if (nargin<=3) opts=[]; end
 if ~isfield(opts,'iflog') opts.iflog=0; end
 if ~isfield(opts,'nowarnzdiv') opts.nowarnzdiv=0; end
+if ~isfield(opts,'legacy') opts.legacy=1; end
 %
 nf=size(d,1);
 nr=size(d,2);
@@ -73,7 +76,11 @@ end
 d_pred=pnew.x_true*pnew.b_norm;
 pnew.varex=1-sum(sum(w.*(d_pred-dfilled).^2))/sum(sum(w.*(dfilled.^2)));
 %
-b_change=sqrt(sum(pnew.b_norm-p.b_norm).^2);
+if opts.legacy %added 12Nov25
+    b_change=sqrt(sum(pnew.b_norm-p.b_norm).^2);
+else
+    b_change=sqrt(sum((pnew.b_norm-p.b_norm).^2));
+end
 if (opts.iflog)
     disp(sprintf(' Euclidean change in pnew.b_norm is %10.8f:',b_change))
     disp(pnew.b_norm);
