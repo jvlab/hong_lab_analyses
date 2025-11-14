@@ -12,11 +12,15 @@ for setindx = 1:numSets
         tmp = all(isnan(S{setindx}{fileindx}{:,:}),2);
         itervec = itervec.*tmp;
     end
-    if(sum(itervec)>0)
+    if(sum(itervec)>0)        
         warning('Found all NaN stimuli, removing');
-        S{setindx}{fileindx}(itervec,:) = [];
+        for fileindx = 1:numFiles
+            S{setindx}{fileindx}(logical(itervec),:) = [];
+        end
     end
 end
+
+
 
 % Glomerus stuff
 for setindx = 1:numSets

@@ -53,6 +53,7 @@ for setindx = 1:numSets
         end
                 
         % The dataset indicates which odorants were part of the experiment.
+        
         isTarget = da{setindx}{fileindx}.response_amplitude_stim.is_target;
         stim = da{setindx}{fileindx}.response_amplitude_stim.stim(isTarget);
         trialTarget = da{setindx}{fileindx}.trial_info.is_target;

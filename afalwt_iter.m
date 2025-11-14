@@ -46,6 +46,7 @@ if (min(x_den)==0)
     end
     zdiv=1; % Can we just quit here?
 end
+% Is w.*dfilled redundant?
 x=sum(w.*dfilled.*repmat(p.b_norm,nf,1),2)./x_den;
 %
 % calculate new b from new x
@@ -74,7 +75,7 @@ end
 d_pred=pnew.x_true*pnew.b_norm;
 pnew.varex=1-sum(sum(w.*(d_pred-dfilled).^2))/sum(sum(w.*(dfilled.^2)));
 %
-b_change=sqrt(sum(pnew.b_norm-p.b_norm).^2);
+b_change=sqrt(sum((pnew.b_norm-p.b_norm).^2)); % This is changed 11/12/25
 if (opts.iflog)
     disp(sprintf(' Euclidean change in pnew.b_norm is %10.8f:',b_change))
     disp(pnew.b_norm);
