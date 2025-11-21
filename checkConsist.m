@@ -55,9 +55,11 @@ for setindx = 1:numSets
         % The dataset indicates which odorants were part of the experiment.
         
         isTarget = da{setindx}{fileindx}.response_amplitude_stim.is_target;
-        stim = da{setindx}{fileindx}.response_amplitude_stim.stim(isTarget);
+        
+        stim = da{setindx}{fileindx}.response_amplitude_stim.stim(logical(isTarget));
+        
         trialTarget = da{setindx}{fileindx}.trial_info.is_target;
-        stim_trial = da{setindx}{fileindx}.trial_info.stim(trialTarget);
+        stim_trial = da{setindx}{fileindx}.trial_info.stim(logical(trialTarget));
         
         for stim_val = 1:length(stim)
             for trial_val = 1:opts.trial_repeats
@@ -68,7 +70,10 @@ for setindx = 1:numSets
         end
         % check these for repeats, and rename these repeats.
         [A,~,ic] = unique(stim);
+        
+        
         if(length(A)<length(stim))
+            %fprintf('found repeat')
             status = status + string('found repeat stimuli in');
             % Anything larger than 1 indicated a repeat.    
             freqs = accumarray(ic,1);

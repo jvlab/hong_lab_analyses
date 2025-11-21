@@ -21,15 +21,22 @@ hlid_setup;
 % I am assuming that the files that are part of a set are in a separate
 % directory. There is not name checking, if a data file is in the folder
 % the code will attempt to load it into the set.
-%{
-opts.set_names = {'kiTC','meTC','moSK'};
+%
+opts.set_names = {'kiTC','meTC','moSK','vaTC'};
 Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
 Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
 Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
-%Sraw{4} = fileToRaw('../orn_terminals_Oct25/validation2');
+Sraw{4} = fileToRaw('../orn_terminals_Oct25/validation2');
+
+
+
+
+
+
 
 % Switch the if_target arrays to include only the diagnostic odors. 
 % I think this is pretty simple to do
+%{
 for setindx = 1:length(Sraw)
     numFiles = length(Sraw{setindx});
     for fileindx = 1:numFiles
@@ -42,17 +49,36 @@ for setindx = 1:length(Sraw)
     end
 end
 %}
+
+for setindx = 1:length(Sraw)
+    numFiles = length(Sraw{setindx});
+    for fileindx = 1:numFiles
+        numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
+        Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
+            ones(1,numTargets);
+        numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
+        Sraw{setindx}{fileindx}.trial_info.is_target=...
+            ones(1,numTargets);
+    end
+end
+
+
+
 %
+%{
 opts.set_names = {'kiTC','meTC','vaTC'};
 Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
 Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
 %Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
 Sraw{3} = fileToRaw('../orn_terminals_Oct25/validation2');
-%
+%}
 % Check stimulus consistency across files within a set,
 % and glomerus consistency across sets.
 [~,Sall] = checkConsist(Sraw,opts);
 
+findRepeatStimuli(Sall);
+
+error('stop')
 % First, I want to check that each stimulus has a non-NaN value somewhere
 % within a set. If an all NaN is found, that stimulus is removed.
 % The presence of the glomeruli across sets is determined. the glomeruli
