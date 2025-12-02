@@ -86,6 +86,7 @@ Strimmed = lookForSetWideHoles(Sall,opts);
 
 % Fill in the remaining holes.
 % The calls the afalwt interpolator.
+% If there is a problem with the data, it will cause matlab to throw.
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
 % Generate the first set of plots (raw - trimmed - filled)
