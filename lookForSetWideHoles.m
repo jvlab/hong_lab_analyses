@@ -5,20 +5,8 @@ function S = lookForSetWideHoles(S,opts)
 numSets = length(S);
 
 % Remove all stimuli that are NaN for every set.
-for setindx = 1:numSets
-    numFiles = length(S{setindx});
-    itervec = ones(length(S{setindx}{1}.Properties.RowNames),1);
-    for fileindx = 1:numFiles
-        tmp = all(isnan(S{setindx}{fileindx}{:,:}),2);
-        itervec = itervec.*tmp;
-    end
-    if(sum(itervec)>0)        
-        warning('Found all NaN stimuli, removing');
-        for fileindx = 1:numFiles
-            S{setindx}{fileindx}(logical(itervec),:) = [];
-        end
-    end
-end
+% I think that I want this after the next part, since removal of glom can
+% result in something resolved here being unresolved.
 
 
 
@@ -51,5 +39,46 @@ for setindx = 1:numSets
     end
     
 end
+
+% These should be two separate functions - so the order can be switched.
+
+
+for setindx = 1:numSets
+    numFiles = length(S{setindx});
+    [numStim,numGlom] = size(S{setindx}{1});
+    bigMat = zeros(numStim*numGlom,numFiles);
+    for fileindx=1:numFiles
+        bigMat(:,fileindx) = reshape(S{setindx}{fileindx}{:,:},[numStim*numGlom, 1]);
+    end
+    
+    to_remove = all(isnan(bigMat),2);
+    
+    to_remove_reshape = reshape(to_remove,[numStim, numGlom]);
+    
+    to_last = any(to_remove_reshape,2);
+    
+    for fileindx = 1:numFiles
+        S{setindx}{fileindx}(to_last,:) = [];
+    end
+end
+
+
+%{
+for setindx = 1:numSets
+    numFiles = length(S{setindx});
+    [numStim,numGlom] = size(S{setindx}{1});
+    totalVec = ones(numStim,1);
+    for fileindx = 1:numFiles
+        tmp = all(isnan(S{setindx}{fileindx}{:,:}),2);
+        totalVec = totalVec.*tmp;
+        
+    end
+    if(sum(totalVec)>0)        
+        for fileindx = 1:numFiles
+            S{setindx}{fileindx}(logical(totalVec),:) = [];
+        end
+    end
+end
+%}
 
 end

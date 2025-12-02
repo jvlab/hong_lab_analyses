@@ -9,35 +9,34 @@ afalwt_fit = cell(numSets,1);
 
 for setindx = 1:numSets
     numFiles = length(S{setindx});
-    [numStim,numGlom] = size(S{setindx}{1})
+    [numStim,numGlom] = size(S{setindx}{1});
     
     resps_gur{setindx} = zeros(numStim*numGlom,numFiles);
     for fileindx = 1:numFiles
         resps_gur{setindx}(:,fileindx)=reshape(S{setindx}{fileindx}{:,:},[numStim*numGlom,1]);
     end
-    resps_gur{setindx}
-    resps_tofill{setindx} = isnan(resps_gur{setindx})
+    resps_gur{setindx};
+    resps_tofill{setindx} = isnan(resps_gur{setindx});
     %resps_tofill{setindx}
     
-    afalwt_fit{setindx}=afalwt(resps_gur{setindx},1-resps_tofill{setindx},opts)
+    % THis does not return anything if there is a problem.
+    afalwt_fit{setindx}=afalwt(resps_gur{setindx},1-resps_tofill{setindx},opts);
     
-    afalwt_fit{setindx}
+    if(~isempty(afalwt_fit{setindx}))
+        resps_gur_fitted=(afalwt_fit{setindx}.x_true*afalwt_fit{setindx}.b_norm+repmat(afalwt_fit{setindx}.a,size(resps_gur{setindx},1),1)); %interpolated data
+        resps_gur_filled=resps_gur{setindx};
+        resps_gur_filled(resps_tofill{setindx})=resps_gur_fitted(resps_tofill{setindx});
+        resps_gu_filled=reshape(resps_gur_filled,[numStim numGlom numFiles]);
     
-    resps_gur_fitted=(afalwt_fit{setindx}.x_true*afalwt_fit{setindx}.b_norm+repmat(afalwt_fit{setindx}.a,size(resps_gur{setindx},1),1)); %interpolated data
+        for fileindx = 1:numFiles
+            S{setindx}{fileindx}{:,:} = resps_gu_filled(:,:,fileindx);
+        end
     
-    
-    resps_gur_filled=resps_gur{setindx};
-    
-    
-    resps_gur_filled(resps_tofill{setindx})=resps_gur_fitted(resps_tofill{setindx});
-    resps_gu_filled=reshape(resps_gur_filled,[numStim numGlom numFiles]);
-    
-    for fileindx = 1:numFiles
-        S{setindx}{fileindx}{:,:} = resps_gu_filled(:,:,fileindx);
-    end
-    
-    if(~opts.suppressoutput)
-        fprintf('%4.0f NaN values filled in. \n',sum(resps_tofill{setindx}(:)));
+        if(~opts.suppressoutput)
+            fprintf('%4.0f NaN values filled in. \n',sum(resps_tofill{setindx}(:)));
+        end
+    else
+        warning('set %0.0f was not filled',setindx);
     end
 end
 

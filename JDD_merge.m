@@ -4,7 +4,7 @@
 
 % dependencies : fileToRaw.m, checkConsist.m, lookForSetWideHoles,
 % fillInNaNs, makePlots_1, calcResp, makePlots_quantile.
-
+%
 opts = struct;
 opts.rep_char = '+';
 opts.trial_repeats = 3;
@@ -76,18 +76,22 @@ Sraw{3} = fileToRaw('../orn_terminals_Oct25/validation2');
 % and glomerus consistency across sets.
 [~,Sall] = checkConsist(Sraw,opts);
 
-findRepeatStimuli(Sall);
+%repeatedStimuli = findRepeatStimuli(Sall);
 
-error('stop')
 % First, I want to check that each stimulus has a non-NaN value somewhere
 % within a set. If an all NaN is found, that stimulus is removed.
 % The presence of the glomeruli across sets is determined. the glomeruli
 % used appear in a minimum number of files. 
 Strimmed = lookForSetWideHoles(Sall,opts);
+%}
+% Using this, draw which stimuli I want from each set.
+% Also, look at the NaN structure 
 
 % Fill in the remaining holes.
 % The calls the afalwt interpolator.
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
+
+
 
 % Generate the first set of plots (raw - trimmed - filled)
 makePlots_1(Sall,Strimmed,Sfilled);
@@ -103,8 +107,12 @@ makePlots_quantile(resps_set,resp_range,opts);
 % Merge the sets into an intersection and union of glomeruli.
 merged_data = mergeSets(resps_set);
 
-% All good to here. The merged sets are in the merged data cell array.
+repeat_stim = findRepeatStimuli(merged_data{1});
 
+merged_all_repeat = merged_data{1}(repeat_stim,:);
+
+% All good to here. The merged sets are in the merged data cell array.
+%{
 
 for icombm = 1:2
     numSets = length(Sfilled);
@@ -252,3 +260,4 @@ for icombm = 1:2
     text(0,0,title_string,'Interpreter','none');
     axis off;
 end
+%}

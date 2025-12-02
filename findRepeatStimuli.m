@@ -1,37 +1,32 @@
 function stimulus_list = findRepeatStimuli(S)
 % JDD 11/20
+% S is a single table.
 
-numSets = length(S);
+stimulus_all = S.Properties.RowNames;
 
-stimulus_all = {};
+stimulus_list = {};
 
-for setindx = 1:numSets
-    stimulus_all = [stimulus_all; S{setindx}{1}.Properties.RowNames];
-end
-ss = {};
 
-% Strip stimuli of ids
 stim_short = stimulus_all;
 
 for stimindx = 1:length(stimulus_all)
     stim_short{stimindx} = stimulus_all{stimindx}(1:end-4);
-    if stim_short{stimindx}(1:4)=='diag'
-        stim_short{stimindx} = stim_short{stimindx}(5:end);
+    if stim_short{stimindx}(1:5)=='diag_'
+        stim_short{stimindx} = stim_short{stimindx}(6:end);
     end
 end
 
-for stimindx = 1:length(stimulus_all)
-    stim1 = stim_short{stimindx};
-    if strcmp(stim1,string('n'))
-        continue
+while length(stim_short)>1
+    stim1 = stim_short{1};
+    findx = strcmp(stim_short,stim1);
+    if(sum(findx)>1)
+        stimulus_list = [stimulus_list;stimulus_all(findx)];
     end
+    stimulus_all(findx) = [];
+    stim_short(findx) = [];    
+end
     
-    
-    ff=strcmp(stim_short,stim1);
-    if(sum(ff)>1)
-        ss=[ss;stimulus_all(find(ff))]
-        stim_short(find(ff))=string('n');
-    end
+
     
     
 

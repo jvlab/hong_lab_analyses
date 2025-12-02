@@ -56,6 +56,7 @@ if (min(sum(w,1)==0))
    if ~opts.nowarnzdiv % This seems like a reason to stop.
        disp(' warning: zero divide on initiation of afalwt');
    end
+   
    return;
 end
 %%% Weighted mean, by default we want to remove this.
@@ -78,6 +79,7 @@ while (done==0) & (niters<opts.itermax)
         if ~opts.nowarnzdiv
            disp(sprintf(' warning: zero divide on iteration %6.0f of afalwt',niters));
         end
+        
         return; %% This returns, but doesn't terminate. Should it? Does it terminate in the caller?
     end
     if (b_change(niters)<opts.tol)
