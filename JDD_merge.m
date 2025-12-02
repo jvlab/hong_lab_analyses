@@ -10,14 +10,25 @@ opts.rep_char = '+';
 opts.trial_repeats = 3;
 opts.set_names = {'kiTC','meTC','moSK','vaTC'};
 opts.kdf = {'max_peak','mean_peak'}; % Known data fields.
-opts.suppressoutput = true;
-opts.interactive = false;
+opts.suppressoutput = false;
+opts.interactive = true;
 opts.restore_size = true;
 opts.submean = false;
 opts.hist_quantiles = [0.05 .25 .5 .75 .96];
 opts.hist_bins = 50;
-
+opts.dataselect = 'standard';
 hlid_setup;
+
+
+comb_label_short = 'inter';
+nstims = 29;
+data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',cat(2,'merged_',comb_label_short));
+data_fullname_write_def=strrep(data_fullname_write_def,'kc_soma_nls','orn_merged');
+data_fullname_write_def=strrep(data_fullname_write_def,'odor17',cat(2,'odor',zpad(sum(nstims),3)));
+data_fullname_write=getinp('coordinate file name to write','s',[],data_fullname_write_def);
+
+
+
 % I am assuming that the files that are part of a set are in a separate
 % directory. There is not name checking, if a data file is in the folder
 % the code will attempt to load it into the set.
@@ -28,55 +39,41 @@ Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
 Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
 Sraw{4} = fileToRaw('../orn_terminals_Oct25/validation2');
 
-
-
-
-
-
-
-% Switch the if_target arrays to include only the diagnostic odors. 
-% I think this is pretty simple to do
-%{
-for setindx = 1:length(Sraw)
-    numFiles = length(Sraw{setindx});
-    for fileindx = 1:numFiles
-        numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
-        Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
-            logical(ones(1,numTargets)-Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
-        numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
-        Sraw{setindx}{fileindx}.trial_info.is_target=...
-            logical(ones(1,numTargets)-Sraw{setindx}{fileindx}.trial_info.is_target);
-    end
-end
-%}
-
-for setindx = 1:length(Sraw)
-    numFiles = length(Sraw{setindx});
-    for fileindx = 1:numFiles
-        numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
-        Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
-            ones(1,numTargets);
-        numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
-        Sraw{setindx}{fileindx}.trial_info.is_target=...
-            ones(1,numTargets);
-    end
+switch opts.dataselect
+    case 'standard'
+        %Set 3 breaks this, and I will figure that out, but for now
+        %Sraw{3} = Sraw{4};
+        %Sraw(4) = [];
+        %opts.set_names = {'kiTC','meTC','vaTC'};
+    case 'diagnostic'
+        for setindx = 1:length(Sraw)
+            numFiles = length(Sraw{setindx});
+            for fileindx = 1:numFiles
+                numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
+                Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
+                    logical(ones(1,numTargets)-Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
+                numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
+                Sraw{setindx}{fileindx}.trial_info.is_target=...
+                    logical(ones(1,numTargets)-Sraw{setindx}{fileindx}.trial_info.is_target);
+            end
+        end
+    case 'all'
+        for setindx = 1:length(Sraw)
+          numFiles = length(Sraw{setindx});
+            for fileindx = 1:numFiles
+                numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
+                Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
+                    ones(1,numTargets);
+                numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
+                Sraw{setindx}{fileindx}.trial_info.is_target=...
+                    ones(1,numTargets);
+            end
+        end
 end
 
-
-
-%
-%{
-opts.set_names = {'kiTC','meTC','vaTC'};
-Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
-Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
-%Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
-Sraw{3} = fileToRaw('../orn_terminals_Oct25/validation2');
-%}
 % Check stimulus consistency across files within a set,
 % and glomerus consistency across sets.
 [~,Sall] = checkConsist(Sraw,opts);
-
-%repeatedStimuli = findRepeatStimuli(Sall);
 
 % First, I want to check that each stimulus has a non-NaN value somewhere
 % within a set. If an all NaN is found, that stimulus is removed.
@@ -91,12 +88,9 @@ Strimmed = lookForSetWideHoles(Sall,opts);
 % The calls the afalwt interpolator.
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
-
-
 % Generate the first set of plots (raw - trimmed - filled)
 makePlots_1(Sall,Strimmed,Sfilled);
 
-%
 % create the resps_set table. These are the responses, which are taken to
 % be the slope of the regression in the afalwt fit.
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
@@ -105,6 +99,7 @@ makePlots_1(Sall,Strimmed,Sfilled);
 makePlots_quantile(resps_set,resp_range,opts);
 
 % Merge the sets into an intersection and union of glomeruli.
+% there will be merged_data{1} (inter) and merged_data{2} (union).
 merged_data = mergeSets(resps_set);
 
 repeat_stim = findRepeatStimuli(merged_data{1});
