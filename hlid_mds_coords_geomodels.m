@@ -22,9 +22,13 @@ if_debug=getinp('1 for debugging','d',[0 1]);
 if (if_debug)
     d_max=5;
     max_iters=10;
+    nshuffs_def=10;
+    ref_dim_list_def=[2:3];
 else
     d_max=10;
     max_iters=1000;
+    nshuffs_def=100;
+    ref_dim_list_def=[1:7];
 end
 ra_strings={'ref','adj'};
 sm_strings={'nosub mean','sub mean'};
@@ -59,6 +63,15 @@ end
 d_max=getinp('maximum dimension to process','d',[2 ndims_avail],min(d_max,ndims_avail));
 if ~exist('neigs_show_max') neigs_show_max=10; end
 %
+if ~exist('opts_geofit')
+    opts_geofit=struct;
+end
+opts_geofit.model_types_def=psg_geomodels_define(1);
+opts_geofit.nshuffs=getinp('number of shuffles for geometric model fitting','d',[0 1000],nshuffs_def);
+opts_geofit.ref_dim_list=getinp('list of dimensions to analyze','d',[1 d_max],ref_dim_list_def);
+opts_geofit.if_log=getinp('to show logging for geometric model fitting','d',[0 1],1);
+opts_geofit.if_summary=getinp('1 to show summary for geometric model fitting','d',[0 1],1);
+%
 %now align to a consensus across embeddings, for ref and adj
 %
 dnames={'ds','sas','sets'};
@@ -69,7 +82,7 @@ aux_knit.opts_knit.max_iters=max_iters;
 aux_knit.opts_knit.if_log=0; %nondefault
 %set up plot
 aux_disp=struct;
-aux_disp.opts_disp.if_legend=-1;
+aux_disp.opts_disp.if_legend=1;
 for k=1:nmeths
     aux_disp.opts_disp.set_labels{k}=dra{1}.r.meths{k}.name_short;
 end
@@ -79,7 +92,8 @@ aux_disp.opts_disp.connect_sets_method='list';
 aux_disp.opts_disp.connect_sets_list=[1 2;2 5;2 8;3 4;4 5;5 3;6 7;7 8;8 6;5 8]; %connect among families, connect chord with chord
 aux_disp.opts_disp.connect_sets_linestyles={':'};
 aux_disp.opts_disp.dim_select=4;
-aux_disp.opts_disp.fig_position=[50 50 1400 800];
+aux_disp.opts_disp.fig_position=[100 100 1400 900];
+aux.disp.opts_disp.callout_amount=0.5;
 %
 components=cell(nra,nsubs);
 if_ok=1;
@@ -87,7 +101,7 @@ for ira=1:nra
     for isub=1:nsubs
         %create a stack of datasets, one for each embedding
         allembeds=struct;
-        disp(sprintf('assembing and checking %2.0f embedding methods for %s, %s',nmeths,ra_strings{ira},sm_strings{isub}));
+        disp(sprintf('assembling and checking %2.0f embedding methods for %s, %s',nmeths,ra_strings{ira},sm_strings{isub}));
         for id=1:length(dnames)
             dname=dnames{id};
             allembeds.(dname)=cell(nmeths,1);
@@ -97,14 +111,19 @@ for ira=1:nra
         end
         %adjust metadata fields 
         for imeth=1:nmeths
-            allembeds.sas{imeth}.typenames=strrep(allembeds.sas{imeth}.typenames,'@ -3.0','');
-            allembeds.sas{imeth}.typenames=strrep(allembeds.sas{imeth}.typenames,'@ -2.0','');
-            allembeds.sas{imeth}.typenames=strrep(allembeds.sas{imeth}.typenames,'@ 0.0','');
             allembeds.sets{imeth}.type='data'; % output file did not have had a type field
             allembeds.sets{imeth}.label=sprintf('consensus for method %s',dra{ira}.r.meths{imeth}.name_full);
             allembeds.sets{imeth}.dim_list=[1:length(dra{ira}.r.data_knit{imeth,isub}.ds{1})];
             allembeds.sets{imeth}.label_long=allembeds.sets{imeth}.label;
             allembeds.sets{imeth}.pipeline=[];
+            for istim=1:nstims
+                typename=allembeds.sas{imeth}.typenames{istim};
+                firstblank=min(find(typename==' '));
+                if ~isempty(firstblank)
+                    typename=typename(1:firstblank-1);
+                end
+                allembeds.sas{imeth}.typenames{istim}=typename;
+            end
         end
         [check,opts_used]=rs_check_coordsets(allembeds,setfield(struct,'if_warn',1));
         if ~isempty(check.warnings)
@@ -124,3 +143,23 @@ for ira=1:nra
         end
     end %isub
 end %ira
+%now, look at geometric model for each embedding, and each mean-subtraction
+%do not do nseting by dimension of the adjusted dataset, since each
+%adjusted dataset is not simply the lower-dimensional components of the next
+r=cell(nsubs,nmeths);
+for isub=1:nsubs
+    for imeth=1:nmeths
+        method_desc=sprintf('%s, %s',dra{1}.r.meths{imeth}.name_full,sm_strings{isub});
+        disp('**************');
+        disp(sprintf('geometric modeling for %s',method_desc));
+        r{isub,imeth}=struct;
+        r{isub,imeth}.ref_adj_filenames=ref_adj_filenames;
+        r{isub,imeth}.method_desc=method_desc;
+        d_ref=components{1,isub}.ds{imeth};
+        d_adj=components{2,isub}.ds{imeth};
+        [r{isub,imeth}.results,opts_geofit_used]=psg_geomodels_fit(d_adj,d_ref,opts_geofit);
+        if ~isempty(opts_geofit_used.warnings)
+            disp(opts_geofit_used.warnings);
+        end
+    end
+end
