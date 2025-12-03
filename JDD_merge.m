@@ -10,8 +10,8 @@ opts.rep_char = '+';
 opts.trial_repeats = 3;
 opts.set_names = {'kiTC','meTC','moSK','vaTC'};
 opts.kdf = {'max_peak','mean_peak'}; % Known data fields.
-opts.suppressoutput = false;
-opts.interactive = true;
+opts.suppressoutput = true;
+opts.interactive = false;
 opts.restore_size = true;
 opts.submean = false;
 opts.hist_quantiles = [0.05 .25 .5 .75 .96];
@@ -19,14 +19,14 @@ opts.hist_bins = 50;
 opts.dataselect = 'standard';
 hlid_setup;
 
-
+%{
 comb_label_short = 'inter';
 nstims = 29;
 data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',cat(2,'merged_',comb_label_short));
 data_fullname_write_def=strrep(data_fullname_write_def,'kc_soma_nls','orn_merged');
 data_fullname_write_def=strrep(data_fullname_write_def,'odor17',cat(2,'odor',zpad(sum(nstims),3)));
 data_fullname_write=getinp('coordinate file name to write','s',[],data_fullname_write_def);
-
+%}
 
 
 % I am assuming that the files that are part of a set are in a separate
@@ -73,42 +73,73 @@ end
 
 % Check stimulus consistency across files within a set,
 % and glomerus consistency across sets.
+% Select odorants according to the is_target logical array
 [~,Sall] = checkConsist(Sraw,opts);
 
 % First, I want to check that each stimulus has a non-NaN value somewhere
-% within a set. If an all NaN is found, that stimulus is removed.
+% within a set. If an all NaN is found, that stimulus is removed. If there
+% are no examples of a glomerulus/stimulus pair, the stimulus is removed
+% (this is a choice I made and it might be wrong)
 % The presence of the glomeruli across sets is determined. the glomeruli
-% used appear in a minimum number of files. 
+% used appear in a specified number of files.
 Strimmed = lookForSetWideHoles(Sall,opts);
-%}
-% Using this, draw which stimuli I want from each set.
-% Also, look at the NaN structure 
+
+
+% This is a large set spread over many files.
+% This is a solution specific to the monat set. 
+% I do not know that this will work well anywhere else.
+Strimmed{3} = desparsify(Strimmed{3});
 
 % Fill in the remaining holes.
-% The calls the afalwt interpolator.
-% If there is a problem with the data, it will cause matlab to throw.
+% Calls the afalwt interpolator.
+% If there is a problem with the data, this is the area it is going to make
+% itself known.
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
 % Generate the first set of plots (raw - trimmed - filled)
-makePlots_1(Sall,Strimmed,Sfilled);
+%makePlots_1(Sall,Strimmed,Sfilled);
 
 % create the resps_set table. These are the responses, which are taken to
 % be the slope of the regression in the afalwt fit.
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
 % Generate the quantile plots
-makePlots_quantile(resps_set,resp_range,opts);
+% makePlots_quantile(resps_set,resp_range,opts);
 
 % Merge the sets into an intersection and union of glomeruli.
 % there will be merged_data{1} (inter) and merged_data{2} (union).
 merged_data = mergeSets(resps_set);
 
+
+% Pare these so that only stimuli with multiple appearances are included.
 repeat_stim = findRepeatStimuli(merged_data{1});
 
-merged_all_repeat = merged_data{1}(repeat_stim,:);
+% When I remove non-repeaters, I misalign from the original.
+% Need to track what is removed, and apply the changes to the old tables.
+
+
+resps_set_BAK = resps_set;
+
+for setindx=1:length(Sfilled)
+    stimList = intersect(resps_set{setindx}.Properties.RowNames,repeat_stim);
+    resps_set{setindx}=resps_set{setindx}(stimList,:);
+end
+    
+
+
+merged_all_repeat{1} = merged_data{1}(repeat_stim,:);
+
+repeat_stim = findRepeatStimuli(merged_data{2}); % I think these lists are the same.
+
+merged_all_repeat{2} = merged_data{2}(repeat_stim,:);
+
+merged_data_BAK = merged_data;
+
+merged_data = merged_all_repeat;
+
 
 % All good to here. The merged sets are in the merged data cell array.
-%{
+%
 
 for icombm = 1:2
     numSets = length(Sfilled);
@@ -256,4 +287,4 @@ for icombm = 1:2
     text(0,0,title_string,'Interpreter','none');
     axis off;
 end
-%}
+%
