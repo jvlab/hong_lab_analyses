@@ -71,6 +71,7 @@ opts_geofit.nshuffs=getinp('number of shuffles for geometric model fitting','d',
 opts_geofit.ref_dim_list=getinp('list of dimensions to analyze','d',[1 d_max],ref_dim_list_def);
 opts_geofit.if_log=getinp('to show logging for geometric model fitting','d',[0 1],1);
 opts_geofit.if_summary=getinp('1 to show summary for geometric model fitting','d',[0 1],1);
+opts_geofit.if_nestbydim=-1; %nonstandard, to allow for nesting
 %
 %now align to a consensus across embeddings, for ref and adj
 %
