@@ -16,17 +16,10 @@ opts.restore_size = true;
 opts.submean = false;
 opts.hist_quantiles = [0.05 .25 .5 .75 .96];
 opts.hist_bins = 50;
-opts.dataselect = 'standard';
+opts.dataselect = 'all';
 hlid_setup;
 
-%{
-comb_label_short = 'inter';
-nstims = 29;
-data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',cat(2,'merged_',comb_label_short));
-data_fullname_write_def=strrep(data_fullname_write_def,'kc_soma_nls','orn_merged');
-data_fullname_write_def=strrep(data_fullname_write_def,'odor17',cat(2,'odor',zpad(sum(nstims),3)));
-data_fullname_write=getinp('coordinate file name to write','s',[],data_fullname_write_def);
-%}
+
 
 
 % I am assuming that the files that are part of a set are in a separate
@@ -97,14 +90,14 @@ Strimmed{3} = desparsify(Strimmed{3});
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
 % Generate the first set of plots (raw - trimmed - filled)
-%makePlots_1(Sall,Strimmed,Sfilled);
+makePlots_1(Sall,Strimmed,Sfilled);
 
 % create the resps_set table. These are the responses, which are taken to
 % be the slope of the regression in the afalwt fit.
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
 % Generate the quantile plots
-% makePlots_quantile(resps_set,resp_range,opts);
+makePlots_quantile(resps_set,resp_range,opts);
 
 % Merge the sets into an intersection and union of glomeruli.
 % there will be merged_data{1} (inter) and merged_data{2} (union).
@@ -116,7 +109,6 @@ repeat_stim = findRepeatStimuli(merged_data{1});
 
 % When I remove non-repeaters, I misalign from the original.
 % Need to track what is removed, and apply the changes to the old tables.
-
 
 resps_set_BAK = resps_set;
 
@@ -142,6 +134,12 @@ merged_data = merged_all_repeat;
 %
 
 for icombm = 1:2
+    if(icombm == 1)
+        comb_label_short = 'inter';
+    elseif(icombm == 2)
+        comb_label_short = 'union';
+    end
+    
     numSets = length(Sfilled);
     dsid = cell(numSets,1);
     for setindx = 1:numSets
@@ -195,13 +193,23 @@ for icombm = 1:2
     f.glomeruli_combined=merged_data{icombm}.Properties.VariableNames;
     f.roi_names=merged_data{icombm}.Properties.VariableNames;
 
+    
+    
+    
     for iset = 1:numSets
         resps_combined_set = merged_data{icombm}{resps_set{iset}.Properties.RowNames,:};
         maxdim_set = min(size(resps_combined_set));
         [fset,s_diag_set{iset,icombm},u_full_set{iset,icombm},v_full_set{iset,icombm},s_full_set{iset,icombm}]=...
             hlid_coords_svd(struct(),resps_combined_set,maxdim_set,maxdim_set,opts.submean);    
-    end
-
+    end    
+    
+    nstims = length(merged_data{icombm}.Properties.RowNames);
+    data_fullname_write_def=strrep(hlid_opts.coord_data_fullname_write_def,'dsid',cat(2,'merged_',comb_label_short));
+    data_fullname_write_def=strrep(data_fullname_write_def,'kc_soma_nls','orn_merged');
+    data_fullname_write_def=strrep(data_fullname_write_def,'odor17',cat(2,'odor',zpad(sum(nstims),3)));
+    data_fullname_write=getinp('coordinate file name to write','s',[],data_fullname_write_def);
+    save(data_fullname_write,'-struct','f');
+    
     resps = merged_data{icombm}{:,:};
     roi_names = merged_data{icombm}.Properties.VariableNames;
     stim_labels = merged_data{icombm}.Properties.RowNames;
