@@ -145,8 +145,6 @@ for ira=1:nra
     end %isub
 end %ira
 %now, look at geometric model for each embedding, and each mean-subtraction
-%do not do nseting by dimension of the adjusted dataset, since each
-%adjusted dataset is not simply the lower-dimensional components of the next
 r=cell(nsubs,nmeths);
 for isub=1:nsubs
     for imeth=1:nmeths
