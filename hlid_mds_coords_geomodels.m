@@ -12,7 +12,7 @@
 %
 % uses the workspaces saved by hlid_rastim_mds_coords_demo)
 %
-% 09Dec25: option to shnorten  r{isub,imeth}.results by removing opts_model_shuff_used_nestdim
+% 09Dec25: option to shorten  r{isub,imeth}.results by removing opts_model_shuff_used_nestdim
 %
 %  See also:  HLID_LOCALOPTS, HLID_RASTIM_MDS_COORDS_DEMO, PSG_GEOMODELS_RUN.
 %
