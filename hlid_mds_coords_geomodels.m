@@ -12,6 +12,8 @@
 %
 % uses the workspaces saved by hlid_rastim_mds_coords_demo)
 %
+% 09Dec25: option to shnorten  r{isub,imeth}.results by removing opts_model_shuff_used_nestdim
+%
 %  See also:  HLID_LOCALOPTS, HLID_RASTIM_MDS_COORDS_DEMO, PSG_GEOMODELS_RUN.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
@@ -30,6 +32,8 @@ else
     nshuffs_def=100;
     ref_dim_list_def=[1:7];
 end
+shorten_field='opts_model_shuff_used_nestdim';
+if_shorten=getinp(sprintf('shorten results structure by removing ''%s''',shorten_field),'d',[0 1],1);
 ra_strings={'ref','adj'};
 sm_strings={'nosub mean','sub mean'};
 nra=length(ra_strings);
@@ -156,7 +160,13 @@ for isub=1:nsubs
         r{isub,imeth}.method_desc=method_desc;
         d_ref=components{1,isub}.ds{imeth};
         d_adj=components{2,isub}.ds{imeth};
-        [r{isub,imeth}.results,opts_geofit_used]=psg_geomodels_fit(d_adj,d_ref,opts_geofit);
+        [results_keep,opts_geofit_used]=psg_geomodels_fit(d_adj,d_ref,opts_geofit);
+        if if_shorten
+            if isfield(results_keep,shorten_field)
+                results_keep=rmfield(results_keep,shorten_field);
+            end
+        end
+        r{isub,imeth}.results=results_keep;
         if ~isempty(opts_geofit_used.warnings)
             disp(opts_geofit_used.warnings);
         end
