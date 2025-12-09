@@ -162,8 +162,12 @@ for isub=1:nsubs
         d_adj=components{2,isub}.ds{imeth};
         [results_keep,opts_geofit_used]=psg_geomodels_fit(d_adj,d_ref,opts_geofit);
         if if_shorten
-            if isfield(results_keep,shorten_field)
-                results_keep=rmfield(results_keep,shorten_field);
+            for m1=1:size(results_keep,1)
+                for m2=1:size(results_keep,2)
+                    if isfield(results_keep{m1,m2},shorten_field)
+                        results_keep{m1,m2}=rmfield(results_keep{m1,m2},shorten_field);
+                    end
+                end
             end
         end
         r{isub,imeth}.results=results_keep;
