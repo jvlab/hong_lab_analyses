@@ -35,7 +35,10 @@ resps_tmp = S;
 for setindx = 1:numSets
     [numStim,~] = size(resps_tmp{setindx});
     gloms_diff = setdiff(glomeruli_combined{2},resps_tmp{setindx}.Properties.VariableNames);
-    resps_tmp{setindx}{:,gloms_diff} = zeros(numStim,length(gloms_diff));
+    size(resps_tmp{setindx})
+    if(~isempty(gloms_diff))
+        resps_tmp{setindx}{:,gloms_diff} = zeros(numStim,length(gloms_diff));
+    end
     resps_concat = resps_tmp{setindx}(:,glomeruli_combined{2});
     merged_data{2} = [merged_data{2}; resps_concat];    
 end

@@ -1,14 +1,10 @@
-% JDD merge. 
-% Getting this working without going through the UI.
-% Going to open each of the files in the first two sets.
+% JDD 12/16 
+% Permutes monat set and creates a data set
 
-% dependencies : fileToRaw.m, checkConsist.m, lookForSetWideHoles,
-% fillInNaNs, makePlots_1, calcResp, makePlots_quantile.
-%
 opts = struct;
 opts.rep_char = '+';
 opts.trial_repeats = 3;
-opts.set_names = {'kiTC','meTC','moSK','vaTC'};
+opts.set_names = {'moSK1','moSK2','moSK3'};
 opts.kdf = {'max_peak','mean_peak'}; % Known data fields.
 opts.suppressoutput = true;
 opts.interactive = false;
@@ -19,123 +15,56 @@ opts.hist_bins = 50;
 opts.dataselect = 'all';
 hlid_setup;
 
-
-
-
-% I am assuming that the files that are part of a set are in a separate
-% directory. There is not name checking, if a data file is in the folder
-% the code will attempt to load it into the set.
-%
-opts.set_names = {'kiTC','meTC','moSK','vaTC'};
-Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
-Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
-Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
-Sraw{4} = fileToRaw('../orn_terminals_Oct25/validation2');
-
-switch opts.dataselect
-    case 'standard'
-        %Set 3 breaks this, and I will figure that out, but for now
-        %Sraw{3} = Sraw{4};
-        %Sraw(4) = [];
-        %opts.set_names = {'kiTC','meTC','vaTC'};
-    case 'diagnostic'
-        for setindx = 1:length(Sraw)
-            numFiles = length(Sraw{setindx});
-            for fileindx = 1:numFiles
-                numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
-                Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
-                    logical(ones(1,numTargets)-Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
-                numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
-                Sraw{setindx}{fileindx}.trial_info.is_target=...
-                    logical(ones(1,numTargets)-Sraw{setindx}{fileindx}.trial_info.is_target);
-            end
-        end
-    case 'all'
-        for setindx = 1:length(Sraw)
-          numFiles = length(Sraw{setindx});
-            for fileindx = 1:numFiles
-                numTargets = length(Sraw{setindx}{fileindx}.response_amplitude_stim.is_target);
-                Sraw{setindx}{fileindx}.response_amplitude_stim.is_target=...
-                    ones(1,numTargets);
-                numTargets = length(Sraw{setindx}{fileindx}.trial_info.is_target);
-                Sraw{setindx}{fileindx}.trial_info.is_target=...
-                    ones(1,numTargets);
-            end
-        end
-end
-
-% Check stimulus consistency across files within a set,
-% and glomerus consistency across sets.
-% Select odorants according to the is_target logical array
+Sraw{1} = fileToRaw('../orn_terminals_Oct25/monat');
 [~,Sall] = checkConsist(Sraw,opts);
 
-% First, I want to check that each stimulus has a non-NaN value somewhere
-% within a set. If an all NaN is found, that stimulus is removed. If there
-% are no examples of a glomerulus/stimulus pair, the stimulus is removed
-% (this is a choice I made and it might be wrong)
-% The presence of the glomeruli across sets is determined. the glomeruli
-% used appear in a specified number of files.
 Strimmed = lookForSetWideHoles(Sall,opts);
 
+numFiles = length(Strimmed{1});
 
-% This is a large set spread over many files.
-% This is a solution specific to the monat set. 
-% I do not know that this will work well anywhere else.
 
-% Permute the inputs, and create a bunch of these. 
-% Ignore all of the above and reorder the Sall entries.
+SBAK = Strimmed;
 
-Strimmed{3} = desparsify(Strimmed{3});
 
-% Fill in the remaining holes.
-% Calls the afalwt interpolator.
-% If there is a problem with the data, this is the area it is going to make
-% itself known.
-[Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
+numStim = length(Strimmed{1}{1}.Properties.RowNames);
+numIters = 3;
+SallDummy = cell(numIters,1);
+StrimmedDummy = cell(numIters,1);
+fl = cell(numIters,1);
+S_played_tetris = cell(numIters,1);
+for iter = 1:numIters
+    perms = randperm(length(Strimmed{1}));
+    for fileindx = 1:numFiles
+        Siter{1}{fileindx} = Strimmed{1}{perms(fileindx)};
+    end
+    SallDummy{iter} = Sall{1};
+    StrimmedDummy{iter} = Strimmed{1};
+    [S_played_tetris{iter},fl{iter}] = desparsify(Siter{1});
+end
 
-% Generate the first set of plots (raw - trimmed - filled)
-makePlots_1(Sall,Strimmed,Sfilled);
+[Sfilled,afalwt_fit] = fillInNaNs(S_played_tetris,opts);
 
-% create the resps_set table. These are the responses, which are taken to
-% be the slope of the regression in the afalwt fit.
+%makePlots_1(SallDummy,StrimmedDummy,Sfilled);
+
+
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
-% Generate the quantile plots
-makePlots_quantile(resps_set,resp_range,opts);
+
+%makePlots_quantile(resps_set,resp_range,opts);
+
+% Do some renaming
+for iter=2:numIters
+    newStringVal = string(opts.set_names{iter});
+    for stimindx = 1:numStim
+        resps_set{iter}.Properties.RowNames{stimindx} = ...
+            replace(resps_set{iter}.Properties.RowNames{stimindx},...
+            string('moSK1'),newStringVal);
+    end
+end
 
 % Merge the sets into an intersection and union of glomeruli.
 % there will be merged_data{1} (inter) and merged_data{2} (union).
 merged_data = mergeSets(resps_set);
-
-
-% Pare these so that only stimuli with multiple appearances are included.
-repeat_stim = findRepeatStimuli(merged_data{1});
-
-% When I remove non-repeaters, I misalign from the original.
-% Need to track what is removed, and apply the changes to the old tables.
-
-resps_set_BAK = resps_set;
-
-for setindx=1:length(Sfilled)
-    stimList = intersect(resps_set{setindx}.Properties.RowNames,repeat_stim);
-    resps_set{setindx}=resps_set{setindx}(stimList,:);
-end
-    
-
-
-merged_all_repeat{1} = merged_data{1}(repeat_stim,:);
-
-repeat_stim = findRepeatStimuli(merged_data{2}); % I think these lists are the same.
-
-merged_all_repeat{2} = merged_data{2}(repeat_stim,:);
-
-merged_data_BAK = merged_data;
-
-merged_data = merged_all_repeat;
-
-
-% All good to here. The merged sets are in the merged data cell array.
-%
 
 for icombm = 1:2
     if(icombm == 1)
@@ -149,7 +78,7 @@ for icombm = 1:2
     for setindx = 1:numSets
         numFiles = length(Sfilled{setindx});
         for fileindx = 1:numFiles
-            dsid_this = Sraw{setindx}{fileindx}.meta.title;
+            dsid_this = Sraw{1}{fileindx}.meta.title;
             dsid_this=strrep(dsid_this,'/','-');
             dsid_this=strrep(dsid_this,'\','-');
             dsid_this=strrep(dsid_this,'_','-');
@@ -162,7 +91,7 @@ for icombm = 1:2
     end
     f_base=struct;
     for setindx=1:numSets
-        f_base.metadata{setindx}=Sraw{setindx}{1}.meta; %original metadata from Hong Lab
+        f_base.metadata{setindx}=Sraw{1}{1}.meta; %original metadata from Hong Lab
         f_base.dsid{setindx}=dsid{setindx}; %data set ID, with special chars turned into -
     end
     f_base.resps=resps_set; %original responses
@@ -300,3 +229,6 @@ for icombm = 1:2
     axis off;
 end
 %
+
+
+
