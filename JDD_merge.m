@@ -16,7 +16,7 @@ opts.restore_size = true;
 opts.submean = false;
 opts.hist_quantiles = [0.05 .25 .5 .75 .96];
 opts.hist_bins = 50;
-opts.dataselect = 'all';
+opts.dataselect = 'standard';
 hlid_setup;
 
 

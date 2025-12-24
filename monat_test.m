@@ -44,13 +44,13 @@ end
 
 [Sfilled,afalwt_fit] = fillInNaNs(S_played_tetris,opts);
 
-%makePlots_1(SallDummy,StrimmedDummy,Sfilled);
+makePlots_1(SallDummy,StrimmedDummy,Sfilled);
 
 
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
 
-%makePlots_quantile(resps_set,resp_range,opts);
+makePlots_quantile(resps_set,resp_range,opts);
 
 % Do some renaming
 for iter=2:numIters
