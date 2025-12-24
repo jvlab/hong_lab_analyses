@@ -32,11 +32,13 @@
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity
 % hlid_majaxes_eval:  compare axes identified in a transformation with principal components
 % hlid_majaxes_eval2: as in hlid_majazxes_eval, but add analysis of fitted transformation, other params
+% hlid_mds_coords_geomodels: transformations between spaces constructed via mds and nonstandard embeddigs, e.g., Pearson, cosine
+% hlid_mds_transform_stats: statistics related to hlid_mds_coords_geomodels
 % hlid_orn_kc_check: check on variances, etc, from coordinates for orn and kc for overlapping stimuli
 % hlid_orn_kc_mdlsum: basic goodness of fit via Procrustes for orn->kc transformation
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
-% hlid_rastim_mds_coords_demo: examine transformations of z-scores, prior to computing coordinates
+% hlid_rastim_mds_coords_demo: examine nonstandard embeddings, e.g., cosine, Pearson, via transformations of z-scores, prior to computing coordinates
 % hlid_rastim_mds_coords_subsamp: calculations of hlid_rastim_coords_demo on subsamples of files
 % hlid_rastim_mds_coords_summ: summarize output statistics of hlid_rastim_mds_coords_demo
 % hlid_rastim_mds_coords_summ2: unexplained variance in hlid_rastim_mds_coords_demo: compare orn and kc

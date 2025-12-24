@@ -1,5 +1,11 @@
-%hlid_geom_transform_stats analyzes the transformation between two representational spaces, 
+%hlid_mds_transform_stats analyzes the transformation between two representational spaces, 
 % including shuffles and resamplings for statistics
+%
+% Builds on hlid_geom_transform_stats, with plans for the following:
+%  Can construct space via nonstandard embeddings, e.g., cosine and Pearson distances (see hlid_mds_coords_geomodels.m)
+%  An overall option as to whether to trial-average
+%  Jackknife via removing individual stimuli
+%  Jackknife via removing individual preps
 %
 % makes use of code from
 %  hlid_rastim_trial_decode for reading data
@@ -25,9 +31,7 @@
 %  HLID_GEOM_TRANSFORM_STATS_3DPLOT, HLID_GEOM_TRANSFORM_STATS_SUMM, 
 %  PSG_GEOMODELS_DEFINE, PSG_GEO_GENERAL,
 %  HLID_RASTIM_TRIAL_DECODE, HLID_MAJAXES, PSG_ALIGN_VARA_DEMO, PSG_GEOMODELS_RUN, PSG_MAJAXES,
-%  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_MDS_TRANSFORM_STATS.
-%
-% 02Apr 25:Begin adding bootstraps within groups for confidence limits.
+%  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_GEOM_TRANSORM_STATS, HLID_MDS_COORDS_GEOMODELS.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
@@ -290,7 +294,7 @@ results.opts_shuff=opts_shuff_used;
 %
 results.nboots_within=nboots_within;
 results.boots_within=boots_within;
-results.boot_gp_selects=boot_gp_selects; %typo, results.boog_gp_selects, fixed 24Dec25
+results.boot_gp_selects=boot_gp_selects;
 results.opts_boot=opts_boot_used;
 %
 %do the preprocessing on all files, as this is independent of later steps
