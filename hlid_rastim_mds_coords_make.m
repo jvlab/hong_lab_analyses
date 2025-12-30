@@ -23,6 +23,7 @@
 %   * max dimension across methods asserted to be nstims-1, reducing by 1 because of jackknife on stimuli
 %   * all datasets must have all stimuli (to allow for jackknifing on stimuli)
 %   * uses stim_labels [short names of stimuli (omitting concentration)] for output files
+%   * eigenvalue statistics for individual files not saved when jackknifing on files (since these are computed within files)
 %
 % results saved in r_all, with subfields for all data, and the two kinds of jackknifes
 %
@@ -33,6 +34,7 @@
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
 nshuffs=0; % no statistics
 if_debug=getinp('1 for debugging','d',[0 1]);
+if_keep_jackfile_data=getinp('1 to keep data fields when jackknifing on files (0 to save space)','d',[0 1],0);
 %
 if ~exist('neigs_show_max') neigs_show_max=10; end
 if ~exist('dim_max_in_def') dim_max_in_def=10; end %maximum dimension for calculating consensus
@@ -199,15 +201,15 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
         case 1 %all files, all stimuli
             jack=0;
             njack=1;
-            r_field='full';
+            r_field='jackknife_omit_none';
         case 2 %jackknife on files, all stimuli
             jack=nfiles;
             njack=nfiles;
-            r_field='file_jack';
+            r_field='jackknife_by_file';
         case 3 % all files, jackknife on stimuli
             jack=nstims;
             njack=nstims;
-            r_field='stim_jack';
+            r_field='jackknife_by_stim';
     end
     if (if_debug)
         njack=min(njack,2);
@@ -217,11 +219,13 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
         disp('*********');
         disp(sprintf('processing jack_mode %1.0f jackknife %2.0f of %2.0f',jack_mode,ijack,njack));
         r=struct;
-        r.eivals=cell(nfiles,nmeths,nsubs); %files, methods, sub mean?
-        r.coords=cell(nfiles,nmeths,nsubs);
-        r.maxdim=zeros(nfiles,nsubs);
-        r.pwr_ratio=zeros(nfiles,nmeths,nsubs);
-        r.part_ratio=zeros(nfiles,nmeths,nsubs);
+        if jack_mode~=2 %these are computed within datasets, so no need to recompute if jackknifed on datasets
+            r.eivals=cell(nfiles,nmeths,nsubs); %files, methods, sub mean?
+            r.coords=cell(nfiles,nmeths,nsubs);
+            r.maxdim=zeros(nfiles,nsubs);
+            r.pwr_ratio=zeros(nfiles,nmeths,nsubs);
+            r.part_ratio=zeros(nfiles,nmeths,nsubs);
+        end
         %
         max_dev=zeros(nfiles,nsubs);
         svd_dev=zeros(nfiles);
@@ -306,10 +310,12 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
                    if size(coords,2)>size(coords,1)
                        coords=coords(:,1:size(coords,1));
                    end
-                    r.eivals{ifile,imeth,1+submean}=eivals;
+                   if jack_mode~=2
+                        r.eivals{ifile,imeth,1+submean}=eivals;
+                        r.pwr_ratio(ifile,imeth,1+submean)=sum(eivals(eivals>0))/sum(abs(eivals));
+                        r.part_ratio(ifile,imeth,1+submean)=(sum(abs(eivals)).^2)/sum(eivals.^2);
+                   end
                     r.coords{ifile,imeth,1+submean}=coords;
-                    r.pwr_ratio(ifile,imeth,1+submean)=sum(eivals(eivals>0))/sum(abs(eivals));
-                    r.part_ratio(ifile,imeth,1+submean)=(sum(abs(eivals)).^2)/sum(eivals.^2);
                     %checks
                     if all(eivals>0)
                         dists_check=sqrt(cootodsq(coords));
@@ -327,7 +333,7 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
         end %ifile_ptr
         %save file names, convert to das, sas, sets structures
         r.nstims=nstims_keep;
-        r.nrois=nrois;
+        r.nrois=nrois(files_keep);
         r.meths=meths;
         r.filenames_short=filenames_short(files_keep);
         r.data_desc='d1: method, d2: mean not subtracted, then mean subtracted';
@@ -349,8 +355,8 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
                     r.data{imeth,1+submean}.sas{ifile_ptr}=struct;
                     r.data{imeth,1+submean}.sas{ifile_ptr}.nstims=nstims_keep;
  %                   typenames_all=das{ifile}.response_amplitude_stim.stim(stims_nonan{ifile})';
-                    r.data{imeth,1+submean}.sas{ifile_ptr}.typenames=stim_labels; %use short names of stimuli
-                    btc_specoords_all=eye(nd);
+                    r.data{imeth,1+submean}.sas{ifile_ptr}.typenames=stim_labels(stims_keep); %use short names of stimuli
+                    btc_specoords_all=eye(nstims);
                     r.data{imeth,1+submean}.sas{ifile_ptr}.btc_specoords=btc_specoords_all(stims_keep,:);
                     %only keep the stimuli that are kept by jackknife
                     r.data{imeth,1+submean}.sets{ifile_ptr}=struct;
@@ -379,7 +385,7 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
         aux.opts_knit.keep_details=0; 
         aux.opts_knit.if_stats=1; %do basic stats but no shuffles
         aux.opts_knit.nshuffs=0;
-        aux.opts_knit.if_plot=1; %no plots
+        aux.opts_knit.if_plot=0; %no plots
         aux.opts_knit.dim_max_in=dim_max_in;
         %
         r.data_knit=cell(nmeths,1+if_submean);
@@ -415,6 +421,10 @@ for jack_mode=1:3 %all data, and jackknife on files, and jackknife on stimuli
             r.stim_removed=stim_labels{ijack};
         else
             r.stim_removed=0;
+        end
+        if ((if_keep_jackfile_data==0) & (jack_mode==2));
+            r=rmfield(r,'data');
+            r=rmfield(r,'coords');
         end
         r_all.(r_field){ijack}=r; %save jackknifed values
     end %ijack
