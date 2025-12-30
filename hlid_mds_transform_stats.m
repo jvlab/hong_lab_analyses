@@ -1,6 +1,8 @@
 %hlid_mds_transform_stats analyzes the transformation between two representational spaces, 
 % including shuffles and resamplings for statistics
 %
+% Will make use of hlid_rastim_mdes_coords_make, which sets up the coordinates for each condition (tnt3c and tntlabel)
+
 % Builds on hlid_geom_transform_stats, with plans for the following:
 %  Can construct space via nonstandard embeddings, e.g., cosine and Pearson distances (see hlid_mds_coords_geomodels.m)
 %  An overall option as to whether to trial-average
@@ -31,7 +33,8 @@
 %  HLID_GEOM_TRANSFORM_STATS_3DPLOT, HLID_GEOM_TRANSFORM_STATS_SUMM, 
 %  PSG_GEOMODELS_DEFINE, PSG_GEO_GENERAL,
 %  HLID_RASTIM_TRIAL_DECODE, HLID_MAJAXES, PSG_ALIGN_VARA_DEMO, PSG_GEOMODELS_RUN, PSG_MAJAXES,
-%  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_GEOM_TRANSORM_STATS, HLID_MDS_COORDS_GEOMODELS.
+%  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_GEOM_TRANSORM_STATS,
+%  HLID_RASTIM_MDS_COORDS_DEMO, HLID_MDS_COORDS_GEOMODELS.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %

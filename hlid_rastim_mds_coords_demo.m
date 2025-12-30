@@ -20,7 +20,8 @@
 % 07Nov25: use rs modules, and move knit_stats to r
 %
 %  See also:  HLID_LOCALOPTS, HLID_READ_COORDDATA_DEMO, HLID_DA_STIMSELECT, HLID_RASTIM2COORDS, DOMDS, PSG_ISOMAP_DEMO
-%   PSG_KNIT_STATS, HLID_RASTIM_MDS_COORDS_SUMM, HLID_RASTIM_MDS_COORDS_SUMM2, LID_RASTIM_MDS_COORDS_SUBSAMP.
+%   PSG_KNIT_STATS, HLID_RASTIM_MDS_COORDS_SUMM, HLID_RASTIM_MDS_COORDS_SUMM2, LID_RASTIM_MDS_COORDS_SUBSAMP,
+%   HLID_RASTIM_MDS_COORDS_MAKE.
 %
 hlid_opts=hlid_localopts; %set up read_opts and plot_opts 
 %
@@ -175,14 +176,13 @@ end
 %if_submean=getinp('1 to also analyze with mean across stims subtracted','d',[0 1],1);
 if_submean=1;
 %
-%
 % analyze with and without subtracting the mean
 %
 nsubs=1+if_submean; 
 maxdim_all=min([min(nrois),min(nstims_each)])-if_submean;
 %
 if_write=getinp('1 to write the consensus files','d',[0 1]);
-if ~exist('write_prefix') write_prefix='hlid_consensus_coords'; end %must conrain hlid*_coords
+if ~exist('write_prefix') write_prefix='hlid_consensus_coords'; end %must contain hlid*_coords
 if if_write
     filenames_out=cell(nmeths,nsubs);
     if_ok=0;
