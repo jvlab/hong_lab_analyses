@@ -2,7 +2,8 @@
 % including shuffles and resamplings for statistics
 %
 % Will make use of hlid_rastim_mdes_coords_make, which sets up the coordinates for each condition (tnt3c and tntlabel)
-
+% and various jackknifings
+%
 % Builds on hlid_geom_transform_stats, with plans for the following:
 %  Can construct space via nonstandard embeddings, e.g., cosine and Pearson distances (see hlid_mds_coords_geomodels.m)
 %  An overall option as to whether to trial-average
@@ -39,8 +40,43 @@
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
 gp_labels={'ref','adj'}; %transformations from adjusted set into reference set, same as psg_geomodels_run
+%
+if ~exist('ref_coordfile') ref_coordfile='hlid_rastim_mds_make_kc-tnt3c_30Dec25.mat'; end
+if ~exist('adj_coordfile') adj_coordfile='hlid_rastim_mds_make_kc-tntlabel_30Dec25.mat'; end
+z=struct;
+disp(sprintf(' loading ref coords from %s',ref_coordfile));
+z.ref=load(ref_coordfile);
+disp(z.ref.r_all);
+disp(sprintf(' loading adj coords from %s',adj_coordfile));
+z.adj=load(adj_coordfile);
+disp(z.adj.r_all);
+disp('all loaded')
+disp(z);
+%
 dimpair_opts={'ref and adj have same dimensions','ref and adj step through all dimensions','ref is always <= adj','ref is always >= adj'};
 if ~exist('if_econ_svd') if_econ_svd=1; end
+if_submean=1;
+meths=z.ref.r_all.jackknife_omit_none{1}.meths;
+nmeths=length(meths);
+nra=length(gp_labels);
+dmax=length(z.(gp_labels{1}).r_all.jackknife_omit_none{1}.data_knit{1,1}.ds{1});
+%
+% compare participation ratio across jackknife sets and methods
+% eigenvalues might be negative for the individual coordinate sets prior to
+% forming consensus; should only look at particpation ratio and power ratio until some of
+% the eigenvalues of the individual datasets become negative
+%
+for ira=1:nra
+    for imeth=1:nmeths
+        for submean=0:if_submean
+            %this is the consensus coordinate set, typically not principal components. Need to do PCA to get eigenvalues and participation ratio
+            %Since we are doing PCA, power ratio will always be 1.0.
+            coord_sets_all=z.(gp_labels{ira}).r_all.jackknife_omit_none{1}.data_knit{imeth,1+submean}.ds{1};
+        end
+    end
+end %ira
+%look at transformations between conditions, and look at magnif factor
+%stats
 %
 %default is to not allow offset and center data;
 %alternately could allow for offset and/or not center
