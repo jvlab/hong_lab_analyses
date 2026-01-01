@@ -297,12 +297,12 @@ results.gps=gps;
 results.gp_list=gp_list;
 results.nsets_gp=nsets_gp;
 %
-results.nsubs=nsubs;
 results.meths=meths;
 results.meth_names_short=meth_names_short;
 results.nmeths=nmeths;
 results.meth_use_list=meth_use_list;
 %
+results.nsubs=nsubs;
 results.sub_labels=sub_labels;
 results.npreprocs=npreprocs;
 results.preproc_labels=preproc_labels;

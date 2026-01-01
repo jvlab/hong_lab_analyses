@@ -14,10 +14,28 @@
 % display_order_spec can be used to specify the order of stimuli in the display
 %   defaults to display_orders.kcmerge from hlid_setup
 %   display_order_spec=[] to for native order
-%   display_oreer_spec='kcmerge','kctnt', or 'kcclust' to use one of the lists in display_orders, from hlid_setup.
+%   display_order_spec='kcmerge','kctnt', or 'kcclust' to use one of the lists in display_orders, from hlid_setup.
+%
+% 01Jan26: modifications for compatibility with hlid_mds_transform_stats
+% 01JAN26: fix error in plotting magnif factors 
 %
 %   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
-%   HLID_GEOM_TRANSFORM_STATS_LABEL.
+%   HLID_GEOM_TRANSFORM_STATS_LABEL, HLID_MDS_TRANSFORM_STATS.
+%
+plot_mode=getinp('1 for output of hlid_geom_transform_stats (nsubs, npreprocs), 2 for hlid_mds_transform_stats (isubmean, nmeths)','d',[ 1 2]);
+switch plot_mode
+    case 1
+        nu1=results.nsubs;
+        nu2=results.npreprocs;
+        nu1_labels=results.sub_labels;
+        nu2_labels=results.preproc_labels;
+    case 2
+        nu1=2; %always without and with mean subtracted
+        nu2=results.nmeths;
+        nu1_labels={'isubmean=0','isubmean=1'};
+        nu2_labels=results.meth_names_short;
+end
+if_smallfigs=getinp('1 for smaller figs','d',[0 1]); 
 %
 if ~exist('ratio_quantiles') ratio_quantiles=[.5 .05 .01]; end %to look at top of distribution
 nrq=length(ratio_quantiles);
@@ -79,18 +97,18 @@ dimlist=results.dimlist;
 model_types=rbase.model_types_def.model_types;
 %
 %plot axis magnifications for adj dim = ref dim
-results.magnif_summ_dims='d1: nsubs, d2: npreprocs, d3: nembeds, d4: nmodels';
+results.magnif_summ_dims='d1: nsubs or ifsubmean, d2: npreprocs or nmeths, d3: nembeds, d4: nmodels';
 results.magnif_summ_dims_inside='d1: ref dim= adj dim, [d2: eiv number] [boot or shuffle]';
-results.magnif_summ=cell(results.nsubs,results.npreprocs,results.nembeds,results.nmodels);
+results.magnif_summ=cell(nu1,nu2,results.nembeds,results.nmodels);
 %
-results.projs_summ_dims='d1: nsubs, d2: npreprocs, d3: nembeds, d4: nmodels';
+results.projs_summ_dims='d1: nsubs or if submean, d2: npreprocs or nments, d3: nembeds, d4: nmodels';
 results.projs_summ_dims_inside='d1: ref dim= adj dim, d2: 1->ref, 2->adj; then stim and coord and [boot]';
-results.projs_summ=cell(results.nsubs,results.npreprocs,results.nembeds,results.nmodels);
+results.projs_summ=cell(nu1,nu2,results.nembeds,results.nmodels);
 %
 for imodel=1:results.nmodels
     for iembed=1:results.nembeds
-        for isub=1:results.nsubs
-            for ipreproc=1:results.npreprocs
+        for iu1=1:nu1
+            for iu2=1:nu2
                 %
                 %collect for each model dimension (ref dim = adj dim = idim), then do vectorized calcs
                 %for shuffles, only collect magnif factors
@@ -109,16 +127,16 @@ for imodel=1:results.nmodels
                 projs_boot=cell(max(dimlist),2);
                 for idim_ptr=1:length(dimlist)
                     idim=dimlist(idim_ptr);
-                    magnif_all(dimlist(idim_ptr),[1:idim])=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.ref.magnifs{imodel}';
-                    magnif_rng(dimlist(idim_ptr),1)=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.ref.magnif_ratio{imodel};
+                    magnif_all(dimlist(idim_ptr),[1:idim])=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.ref.magnifs{imodel}';
+                    magnif_rng(dimlist(idim_ptr),1)=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.ref.magnif_ratio{imodel};
                     %
                     for ishuff=1:results.nshuffs_between
-                        magnif_all_shuff(dimlist(idim_ptr),[1:idim],ishuff)=results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}{idim,idim}.ref.magnifs{imodel}';
-                        magnif_rng_shuff(dimlist(idim_ptr),ishuff)=results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}{idim,idim}.ref.magnif_ratio{imodel};
+                        magnif_all_shuff(dimlist(idim_ptr),[1:idim],ishuff)=results.geo_majaxes_shuff{iu1,iu2,iembed,ishuff}{idim,idim}.ref.magnifs{imodel}';
+                        magnif_rng_shuff(dimlist(idim_ptr),ishuff)=results.geo_majaxes_shuff{iu1,iu2,iembed,ishuff}{idim,idim}.ref.magnif_ratio{imodel};
                     end %ishuff
                     %
                     for ira=1:2
-                        projs_orig=results.geo_majaxes{isub,ipreproc,iembed}{idim,idim}.(ra_text{ira}).projections{imodel};
+                        projs_orig=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.(ra_text{ira}).projections{imodel};
                         projs{idim,ira}=projs_orig;
                         if if_flip_projs
                             for ieiv=1:idim
@@ -130,7 +148,7 @@ for imodel=1:results.nmodels
                         pboot=NaN(size(projs{idim,ira},1),idim,2);
                     end
                     for iboot=1:results.nboots_within
-                        boot_base=results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}{idim,idim};
+                        boot_base=results.geo_majaxes_boot{iu1,iu2,iembed,iboot}{idim,idim};
                         magnif_all_boot(dimlist(idim_ptr),[1:idim],iboot)=boot_base.ref.magnifs{imodel}';
                         magnif_rng_boot(dimlist(idim_ptr),iboot)=boot_base.ref.magnif_ratio{imodel};
                         %flip the bootstrapped projections if needed to align with non-bootstrapped data
@@ -162,14 +180,14 @@ for imodel=1:results.nmodels
                 m.magnif_rng_boot=magnif_rng_boot;
                 m.magnif_r12_boot=magnif_r12_boot;
                 m.magnif_rgm_boot=magnif_rgm_boot;
-                results.magnif_summ{isub,ipreproc,iembed,imodel}=m;
+                results.magnif_summ{iu1,iu2,iembed,imodel}=m;
                 %
                 p=struct;
                 p.projs=projs;
                 p.projs_boot=projs_boot;
-                results.projs_summ{isub,ipreproc,iembed,imodel}=p;
-            end %ipreproc
-        end %isub
+                results.projs_summ{iu1,iu2,iembed,imodel}=p;
+            end %iu2
+        end %iu1
     end %iembed
 end %imodel
 for imodel=1:results.nmodels
@@ -181,10 +199,10 @@ for imodel=1:results.nmodels
         set(gcf,'Position',[100 100 1200 800]);
         set(gcf,'NumberTitle','off');
         set(gcf,'Name',cat(2,'magnif factors for ',model_types{imodel},', ',results.embed_labels{iembed}));
-        for isub=1:results.nsubs
-            for ipreproc=1:results.npreprocs
-                m=results.magnif_summ{isub,ipreproc,iembed,imodel};
-                subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);               
+        for iu1=1:nu1
+            for iu2=1:nu2
+                m=results.magnif_summ{iu1,iu2,iembed,imodel};
+                subplot(nu1,nu2,iu1+(iu2-1)*nu1);               
                 hl=cell(0);
                 ht=[];
                 hp=semilogy(dimlist,m.magnif_rng(dimlist),'k','LineWidth',2);
@@ -257,23 +275,27 @@ for imodel=1:results.nmodels
                 set(gca,'YLim',[1 10]);
                 xlabel('dimension');
                 ylabel('ratio');
-                title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
-             end %ipreproc
-        end %isub
+                title(sprintf('%s %s',nu1_labels{iu1},nu2_labels{iu2}),'Interpreter','none')
+             end %iu2
+        end %iu1
         hlid_geom_transform_stats_label;
         %
         %projection plots
         %
         for ira=1:2
             figure;
-            set(gcf,'Position',[100 50 1600 950]);
+            if if_smallfigs
+                set(gcf,'Position',[100 100 1200 800]);
+            else
+                set(gcf,'Position',[100 50 1600 950]);
+            end
             set(gcf,'NumberTitle','off');
             set(gcf,'Name',cat(2,'major axes for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
-            for isub=1:results.nsubs
-                for ipreproc=1:results.npreprocs
-                    m=results.magnif_summ{isub,ipreproc,iembed,imodel};
-                    p=results.projs_summ{isub,ipreproc,iembed,imodel};
-                    subplot(results.nsubs,results.npreprocs,isub+(ipreproc-1)*results.nsubs);
+            for iu1=1:nu1
+                for iu2=1:nu2
+                    m=results.magnif_summ{iu1,iu2,iembed,imodel};
+                    p=results.projs_summ{iu1,iu2,iembed,imodel};
+                    subplot(nu1,nu2,iu1+(iu2-1)*nu1);
                     for idim_ptr=1:length(dimlist)
                         idim=dimlist(idim_ptr);
                         yplot_off=2*idim-1;
@@ -305,9 +327,9 @@ for imodel=1:results.nmodels
                     set(gca,'YTick',[1:2:2*max(dimlist)-1]);
                     set(gca,'YTickLabel',[1:max(dimlist)]);
                     ylabel(sprintf('%s dim',ra_text{ira}));
-                    title(sprintf('%s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
-                end %ipreproc
-            end %isub
+                    title(sprintf('%s %s',nu1_labels{iu1},nu2_labels{iu2}),'Interpreter','none')
+                end %iu2
+            end %iu1
             hlid_geom_transform_stats_label;
             axes('Position',[0.75,0.05,0.01,0.01]);
             text(0,0,sprintf('flip projections so max is >0: %1.0f',if_flip_projs));
@@ -316,87 +338,102 @@ for imodel=1:results.nmodels
         %
         %plots of magnif ratio distributions and cosine distributions
         %
-        figure;
-        set(gcf,'Position',[100 50 1600 950]);
-        set(gcf,'NumberTitle','off');
-        set(gcf,'Name',cat(2,'ratio and cosine distribs for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
-        for isub=1:results.nsubs
-            for ipreproc=1:results.npreprocs
-                m=results.magnif_summ{isub,ipreproc,iembed,imodel};
-                p=results.projs_summ{isub,ipreproc,iembed,imodel};
-                %three plots: dot prod in ref space, dot prod in adj space, magnif ratio
-                nsp=3;
-                for isp=1:nsp
-                    subplot(results.nsubs,results.npreprocs*nsp,isp+nsp*(isub+(ipreproc-1)*results.nsubs-1));
-                    for idim_ptr=1:length(dimlist)
-                        idim=dimlist(idim_ptr);
-                        yplot_off=idim-1;
-                        switch isp
-                            case {1,2} %dot products
-                                xlims=[0 1];
-                                if_semilogx=0;
-                                xlabel_string=cat(2,'cosine ',ra_text{isp});
-                                bin_edges_plot=[0:hist_bins]*(1/hist_bins);
-                            case 3 %magnif factor
-                                xlims=magnif_hist_range;
-                                xlabel_string='magnif factor';
-                                if_semilogx=1;
-                                bin_edges_plot=magnif_hist_range(1)*(magnif_hist_range(2)/magnif_hist_range(1)).^([0:hist_bins]/hist_bins);
-                        end
-                        bin_edges=[-Inf bin_edges_plot(1:end-1) Inf];
-                        plot(xlims,repmat(yplot_off,1,2),'k:');
-                        hold on;
-                        for dproj=1:idim
-                            color=colors{mod(dproj-1,length(colors))+1};
+        nsp=3; %3 kinds of subplots: dot prod in ref space, dot prod in adj space, magnif factor 
+        if (plot_mode==1)           
+            nsp_together=3;
+        else
+            nsp_together=1;
+        end
+        for isp_lo=1:3/nsp_together
+            figure;
+            if if_smallfigs
+                set(gcf,'Position',[100 100 1200 800]);
+            else
+                set(gcf,'Position',[100 50 1600 950]);
+            end
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Name',cat(2,'ratio and cosine distribs for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
+            for iu1=1:nu1
+                for iu2=1:nu2
+                    m=results.magnif_summ{iu1,iu2,iembed,imodel};
+                    p=results.projs_summ{iu1,iu2,iembed,imodel};
+                    %three plots: dot prod in ref space, dot prod in adj space, magnif ratio
+                    for isp=isp_lo:isp_lo+nsp_together-1;
+                        subplot(nu1,nu2*nsp_together,(isp-isp_lo+1)+nsp_together*(iu1+(iu2-1)*nu1-1));
+                        for idim_ptr=1:length(dimlist)
+                            idim=dimlist(idim_ptr);
+                            yplot_off=idim-1;
                             switch isp
-                                case {1,2} %norm dot products
-                                    proj_exp=p.projs{idim,isp}(:,dproj);
-                                    proj_boot=reshape(p.projs_boot{idim,isp}(:,dproj,:),size(p.projs_boot{idim,isp},1),results.nboots_within);
-                                    data_exp=1;
-                                    data_boot=(proj_exp'*proj_boot)./sqrt(sum(proj_exp.^2))./sqrt(sum(proj_boot.^2,1));
+                                case {1,2} %dot products
+                                    xlims=[0 1];
+                                    if_semilogx=0;
+                                    xlabel_string=cat(2,'cosine ',ra_text{isp});
+                                    bin_edges_plot=[0:hist_bins]*(1/hist_bins);
                                 case 3 %magnif factor
-                                    data_exp=m.magnif_all(dproj,dproj);
-                                    data_boot=squeeze(m.magnif_all_boot(dproj,dproj,:));
+                                    xlims=magnif_hist_range;
+                                    xlabel_string='magnif factor';
+                                    if_semilogx=1;
+                                    bin_edges_plot=magnif_hist_range(1)*(magnif_hist_range(2)/magnif_hist_range(1)).^([0:hist_bins]/hist_bins);
                             end
-                            %plot histogram "by hand", so we can control offset
-                            hist_data_raw=histc(data_boot,bin_edges)';
-                            hist_data=zeros(hist_bins,1);
-                            hist_data(1)=hist_data_raw(1)+hist_data_raw(2);
-                            hist_data(2:hist_bins)=hist_data_raw(3:end-1);
-                            hist_data=hist_data/max(hist_data(:));
-                            hist_xvals=reshape(repmat(bin_edges_plot,2,1),2*hist_bins+2,1);
-                            hist_yvals=reshape(repmat(hist_data(:)',2,1),2*hist_bins,1);
-                            hist_yvals=[0;hist_yvals;0];
-                            plot(hist_xvals,yplot_off+hist_yvals*0.8,'Color',color,'LineWidth',1);
-                            plot(data_exp,yplot_off+voff_withinproj*dproj,'*','Color',color); %plot actual value from data
-                            plot(quantile(data_boot,boot_quantiles([1 end])),repmat(yplot_off+voff_withinproj*dproj,1,2),'Color',color); %show the inter-quantile range
-                            for ibq=1:nbq
-                                plot(repmat(quantile(data_boot,boot_quantiles(ibq)),1,2),yplot_off+voff_withinproj*(dproj+[-0.5 0.5]),'Color',color);
+                            bin_edges=[-Inf bin_edges_plot(1:end-1) Inf];
+                            plot(xlims,repmat(yplot_off,1,2),'k:');
+                            hold on;
+                            for dproj=1:idim
+                                color=colors{mod(dproj-1,length(colors))+1};
+                                switch isp
+                                    case {1,2} %norm dot products
+                                        proj_exp=p.projs{idim,isp}(:,dproj);
+                                        proj_boot=reshape(p.projs_boot{idim,isp}(:,dproj,:),size(p.projs_boot{idim,isp},1),results.nboots_within);
+                                        data_exp=1;
+                                        data_boot=(proj_exp'*proj_boot)./sqrt(sum(proj_exp.^2))./sqrt(sum(proj_boot.^2,1));
+                                    case 3 %magnif factor
+                                        data_exp=m.magnif_all(idim,dproj); %01Jan26: first index was wrongly dproj
+                                        data_boot=squeeze(m.magnif_all_boot(idim,dproj,:)); %01Jan26: first index was wrongly dproj
+                                end
+                                %plot histogram "by hand", so we can control offset
+                                hist_data_raw=histc(data_boot,bin_edges)';
+                                hist_data=zeros(hist_bins,1);
+                                hist_data(1)=hist_data_raw(1)+hist_data_raw(2);
+                                hist_data(2:hist_bins)=hist_data_raw(3:end-1);
+                                hist_data=hist_data/max(hist_data(:));
+                                hist_xvals=reshape(repmat(bin_edges_plot,2,1),2*hist_bins+2,1);
+                                hist_yvals=reshape(repmat(hist_data(:)',2,1),2*hist_bins,1);
+                                hist_yvals=[0;hist_yvals;0];
+                                plot(hist_xvals,yplot_off+hist_yvals*0.8,'Color',color,'LineWidth',1);
+                                plot(data_exp,yplot_off+voff_withinproj*dproj,'*','Color',color); %plot actual value from data
+                                plot(quantile(data_boot,boot_quantiles([1 end])),repmat(yplot_off+voff_withinproj*dproj,1,2),'Color',color); %show the inter-quantile range
+                                for ibq=1:nbq
+                                    plot(repmat(quantile(data_boot,boot_quantiles(ibq)),1,2),yplot_off+voff_withinproj*(dproj+[-0.5 0.5]),'Color',color);
+                                end
+                            end %dproj (projection dimension)
+                        end %idim_ptr
+                        set(gca,'YLim',[0 max(dimlist)]);
+                        set(gca,'YTick',[0:max(dimlist)-1]);
+                        set(gca,'YTickLabel',[1:max(dimlist)]);
+                        ylabel('dim');
+                        if if_semilogx
+                            set(gca,'XScale','log');
+                            set(gca,'XTick',unique([xlims 1]));
+                        else
+                            set(gca,'XTick',unique([xlims mean(xlims)]));
+                        end
+                        set(gca,'XLim',xlims);
+                        xlabel(xlabel_string);
+                        if plot_mode==1
+                            if isp==2
+                                title(sprintf('%s %s',nu1_labels{iu1},nu2_labels{iu2}),'Interpreter','none');
                             end
-                        end %dproj (projection dimension)
-                    end %idim_ptr
-                    set(gca,'YLim',[0 max(dimlist)]);
-                    set(gca,'YTick',[0:max(dimlist)-1]);
-                    set(gca,'YTickLabel',[1:max(dimlist)]);
-                    ylabel('dim');
-                    if if_semilogx
-                        set(gca,'XScale','log');
-                        set(gca,'XTick',unique([xlims 1]));
-                    else
-                        set(gca,'XTick',unique([xlims mean(xlims)]));
-                    end
-                    set(gca,'XLim',xlims);
-                    xlabel(xlabel_string);
-                    if isp==2
-                        title(sprintf('%s %s %s',results.sub_labels{isub},results.preproc_labels{ipreproc}),'Interpreter','none')
-                    end
-                end %isp
-            end %ipreproc
-        end %isub
-        hlid_geom_transform_stats_label;
-        axes('Position',[0.75,0.05,0.01,0.01]);
-        text(0,0,sprintf('flip projections so max is >0: %1.0f',if_flip_projs));
-        axis off
+                        else
+                            title(sprintf('sm%1.0f %s',iu1-1,nu2_labels{iu2}),'Interpreter','none');
+                        end
+                    end %isp
+                end %iu2
+            end %iu1
+            hlid_geom_transform_stats_label;
+            axes('Position',[0.75,0.05,0.01,0.01]);
+            text(0,0,sprintf('flip projections so max is >0: %1.0f',if_flip_projs));
+            axis off
+        end %isp_lo
     end %iembed
 end %imodel
 %
