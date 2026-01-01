@@ -299,7 +299,10 @@ results.nsets_gp=nsets_gp;
 %
 results.nsubs=nsubs;
 results.meths=meths;
+results.meth_names_short=meth_names_short;
 results.nmeths=nmeths;
+results.meth_use_list=meth_use_list;
+%
 results.sub_labels=sub_labels;
 results.npreprocs=npreprocs;
 results.preproc_labels=preproc_labels;
@@ -338,8 +341,8 @@ results.opts_boot=opts_boot_used;
 %
 consensus_init=cell(1,length(dimlist)); %initial guess, uniform across nsubs, npreprocs, nembeds, if_submean, nmeths
 %
-results.geo=cell(1+ifsubmean,nmeths,nembeds);
-results.geo_majaxes=cell(1+ifsubmean,nmeths,nembeds);
+results.geo=cell(1+if_submean,nmeths,nembeds);
+results.geo_majaxes=cell(1+if_submean,nmeths,nembeds);
 results.geo_majaxes_dims='d1: submean, d2: embedding method (mds,cosine,Pearson), d3: nembeds (1), d4: nshuffs';
 if if_keep_all_shuff
     results.geo_shuff=cell(1+if_submean,nmeths,nembeds,nshuffs_between);
@@ -356,11 +359,11 @@ for imeth_ptr=1:length(meth_use_list)
         znew_glbl=cell(nembeds,length(dimlist)); %coords after alignment to global consensus
         znew_bygp=cell(nembeds,length(dimlist)); %coords after alignment to in-group consensus
         for iembed=1:nembeds %do the embedding for each file, for this preprocessing choice
-            npts_embed=nstims*nembed_perstim(iembed);
+            npts_embed=nstims;
             for idim_ptr=1:length(dimlist)
                 npcs=dimlist(idim_ptr);
                 coords_embedded{iembed,idim_ptr}=zeros(npts_embed,npcs,nfiles);
-                %retrieve coordinates from r_all from hlid_mds_coords_make
+                %retrieve coordinates from r_all, calculated in hlid_mds_coords_make
                 for ifile=1:nfiles
                     ira=gps(ifile);
                     ifile_ptr=ifile-sum(nfiles_ra(1:ira-1));
@@ -374,7 +377,7 @@ for imeth_ptr=1:length(meth_use_list)
                     consensus_init{1,idim_ptr}=consensus_glbl{iembed,idim_ptr};
                 else
                     opts_pcon_use.initialize_set=0;
-                    opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
+                    opts_pcon_use.initial_guess=consensus_init{1,idim_ptr};
                     [consensus_glbl{iembed,idim_ptr},znew_glbl{iembed,idim_ptr}]=procrustes_consensus(coords_embedded{iembed,idim_ptr},opts_pcon_use);
                 end
                 disp(sprintf(' consensus made across groups,      dim %2.0f, isubmean=%1.0f, method %s',npcs,isubmean,meth_names_short{imeth}));
@@ -382,7 +385,7 @@ for imeth_ptr=1:length(meth_use_list)
                 for igp=1:ngps
                     opts_pcon_use=opts_pcon;
                     opts_pcon_use.initialize_set=0;
-                    opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
+                    opts_pcon_use.initial_guess=consensus_init{1,idim_ptr};
                     [consensus_bygp{iembed,idim_ptr,igp},znew_bygp{iembed,idim_ptr}(:,:,gp_list{igp})]=procrustes_consensus(coords_embedded{iembed,idim_ptr}(:,:,gp_list{igp}),opts_pcon_use);
                     disp(sprintf(' consensus made for group %1.0f (%4s), dim %2.0f, isubmean=%1.0f, method %s',igp,gp_labels{igp},npcs,isubmean,meth_names_short{imeth})); 
                 end
@@ -462,7 +465,7 @@ for imeth_ptr=1:length(meth_use_list)
                     consensus_shuff_bygp=cell(length(dimlist),ngps); %compute the consensus for each group, each dimension, this embedding, and center if necessary
                     for idim_ptr=1:length(dimlist)
                         for igp=1:ngps
-                            opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
+                            opts_pcon_use.initial_guess=consensus_init{1,idim_ptr};
                             consensus_shuff_bygp{idim_ptr,igp}=procrustes_consensus(coords_embedded{iembed,idim_ptr}(:,:,shuff_gp_selects{igp}(ishuff,:)),opts_pcon_use);
                             if if_center
                                 consensus_shuff_bygp{idim_ptr,igp}=consensus_shuff_bygp{idim_ptr,igp}-repmat(mean(consensus_shuff_bygp{idim_ptr,igp},1),[npts_embed,1]);
@@ -530,7 +533,7 @@ for imeth_ptr=1:length(meth_use_list)
                     consensus_boot_bygp=cell(length(dimlist),ngps); %compute the consensus for each group, each dimension, this embedding, and center if necessary
                     for idim_ptr=1:length(dimlist)
                         for igp=1:ngps
-                            opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
+                            opts_pcon_use.initial_guess=consensus_init{1,idim_ptr};
                             consensus_boot_bygp{idim_ptr,igp}=procrustes_consensus(coords_embedded{iembed,idim_ptr}(:,:,boot_gp_selects{igp}(iboot,:)),opts_pcon_use);
                             if if_center
                                 consensus_boot_bygp{idim_ptr,igp}=consensus_boot_bygp{idim_ptr,igp}-repmat(mean(consensus_boot_bygp{idim_ptr,igp},1),[npts_embed,1]);

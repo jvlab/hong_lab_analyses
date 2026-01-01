@@ -20,9 +20,14 @@ set(gcf,'Name',title_string);
 colors=rand(nstims,3);
 symbs={'o','*'};
 %needs work so that one can have multiple points per stimulus if nembed_per_stim>1
+if exist('nembed_perstim')
+    ieps_lim=nembed_perstim(iembed);
+else
+    ieps_lim=1;
+end
 for icol=1:ngps %plot by group
     subplot(1,3,icol)
-    for ieps=1:nembed_perstim(iembed)
+    for ieps=1:ieps_lim
         for istim=1:nstims
             cplot=reshape(znew_bygp{iembed,idim_ptr}(istim+nstims*(ieps-1),:,gp_list{icol}),[dimlist(idim_ptr),length(gp_list{icol})])'; %prep x dim
             cplot_mean=mean(cplot,1);
@@ -46,7 +51,7 @@ for icol=1:ngps %plot by group
 end
 %plot groups together, plotting with global consensus
 subplot(1,3,3)
-for ieps=1:nembed_perstim(iembed)
+for ieps=1:ieps_lim
     for istim=1:nstims
         for icol=1:ngps
             cplot=reshape(znew_glbl{iembed,idim_ptr}(istim+nstims*(ieps-1),:,gp_list{icol}),[dimlist(idim_ptr),length(gp_list{icol})])'; %prep x dim
