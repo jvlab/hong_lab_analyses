@@ -1,8 +1,8 @@
 %hlid_mds_transform_stats analyzes the transformation between two representational spaces, 
 % including shuffles and resamplings for statistics
 %
-% Builds on hlid_geom_transform_stats, with plans for the following:
-%  Makes use of nonstandard emvbeddings created by hlid_rastim_mds_coords_make
+% Builds on hlid_geom_transform_stats:
+%  Makes use of nonstandard embeddings created by hlid_rastim_mds_coords_make
 %    * specific for comparisons of tnt3c and tntlabel datasets
 %      - assumes identical stimulus sets
 %      - raw data read in hlid_rastim_mds_coords_make, and not here (so no call to hlid_rastim_trial_read)
@@ -13,16 +13,18 @@
 %    * since the data have already been read as a ref and adj group, the
 %    order of the files in dsids and metadata is differnt c/w hlid_geom_transform_stats
 %   
-%  Jackknife via removing individual stimuli
-%  Jackknife via removing individual preps
+%  Coordinates for all embeddings, for tntlabel and tnt3c, are first accumulated into z.[ref|adj]
+%     z.[ref|adj].r_all.jackknife_omit_none{1} are the  non-jackknifed quantities
+%     z.[ref|adj].r_all.jackknife_by_stim{:} have one stimulus omitted
+%     z.[ref|adj].r_all.jackknife_by_file{:} have one set omitted
+%  Jackknifed quantities are to be analyzed in hlid_mds_transform_jackstats
 %
 % makes use of code from
 %  psg_majaxes, hlid_majaxes: examine axes identified in a transformation
 %  psg_align_vara_demo: variance analysis after aligning multiple datasets grouped by condition
 %  psg_geomodels_run: to determine transformation between two datasets
 %
-% Then shuffles the labels and re-analyzes; hlid_geom_transform_stats_summ
-% will plot and summarize.  Main results saved in 'results'.
+% Then shuffles the labels and re-analyzes; hlid_geom_transform_stats_summ does plot and summarize.  Main results saved in 'results'.
 %
 % The list of models to analyze is given by model_types. This should be a subset of
 % the model_types field of psg_geomodels_define().  It defaults to 'affine_nooffset'
@@ -92,28 +94,9 @@ meth_use_list=getinp('list to use','d',[1 nmeths],[1:nmeths]);
 submean_use_list=getinp('list of subtract-mean options','d',[0 1],[0 1]);
 %
 dimpair_opts={'ref and adj have same dimensions','ref and adj step through all dimensions','ref is always <= adj','ref is always >= adj'};
-if ~exist('if_econ_svd') if_econ_svd=1; end
 %
-% here is where we survey the data for a summary of frac variance explained by dimension, with error bars based on jackknifes
-% compare participation ratio across jackknife sets and methods
-% eigenvalues might be negative for the individual coordinate sets prior to
-% forming consensus; should only look at particpation ratio and power ratio until some of
-% the eigenvalues of the individual datasets become negative
-%
-for ira=1:nra
-    for imeth=1:nmeths
-        for submean=0:if_submean
-            %this is the consensus coordinate set, typically not principal components. Need to do PCA to get eigenvalues and participation ratio
-            %Since we are doing PCA, power ratio will always be 1.0.
-            coord_sets_all=z.(gp_labels{ira}).r_all.jackknife_omit_none{1}.data_knit{imeth,1+submean}.ds{1};
-        end
-    end
-end %ira
 %look at transformations between conditions, and look at magnif factor
-%stats
-%
-%default is to not allow offset and center data;
-%alternately could allow for offset and/or not center
+%centering is taken care of by cosine and Pearson correlations:  Pearson is centered, cosine is not
 %
 model_types_def=psg_geomodels_define();
 model_types_use=struct;
@@ -316,7 +299,6 @@ results.dimpair_opt=dimpair_opt;
 results.dimpair_list=dimpair_list;
 results.if_frozen=if_frozen;
 results.if_debug=if_debug;
-results.if_econ_svd=if_econ_svd;
 %
 results.metadata=metadata;
 results.dsids=dsids;
