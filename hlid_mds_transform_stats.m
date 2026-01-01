@@ -512,7 +512,7 @@ for imeth_ptr=1:length(meth_use_list)
                             end %iad
                         end %ird
                     end
-                    results.geo_majaxes_shuff{1_if_submean,imeth,ishuff}=r_geo_majaxes_shuff;
+                    results.geo_majaxes_shuff{1+if_submean,imeth,ishuff}=r_geo_majaxes_shuff;
                 end %ishuff
                 disp(sprintf(' %5.0f shuffles  between ref and adj done',nshuffs_between));
             end %nshuffs_between
