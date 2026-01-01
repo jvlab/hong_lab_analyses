@@ -17,7 +17,7 @@
 %   display_order_spec='kcmerge','kctnt', or 'kcclust' to use one of the lists in display_orders, from hlid_setup.
 %
 % 01Jan26: modifications for compatibility with hlid_mds_transform_stats
-% 01JAN26: fix error in plotting magnif factors 
+% 01Jsn26: fix error in plotting magnif factors 
 %
 %   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
 %   HLID_GEOM_TRANSFORM_STATS_LABEL, HLID_MDS_TRANSFORM_STATS.
