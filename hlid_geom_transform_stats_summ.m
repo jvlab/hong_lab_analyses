@@ -1,4 +1,4 @@
-%hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_statslength(dimlist)
+%hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_stats
 % 
 % runs on results structure from hlid_geom_transform_stats
 % to plot and tabulate major axis ratios, for adj dim = ref dim
