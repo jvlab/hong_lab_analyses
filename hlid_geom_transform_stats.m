@@ -196,7 +196,7 @@ for igp=1:ngps
 end
 if_keep_all_shuff=0;
 if nshuffs_between>0
-    if_keep_all_shuff=getinp('1 to keep all outputs from shuffles, 0 for outputs only neeed for stats','d',[0 1],if_debug);
+    if_keep_all_shuff=getinp('1 to keep all outputs from shuffles, 0 for outputs only needed for stats','d',[0 1],if_debug);
     for ishuff=1:nshuffs_between
         gp_select=cell(1,ngps);
         gp_orig=cell(1,ngps);
@@ -337,7 +337,7 @@ results.geo_majaxes_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
 for isub=1:nsubs
     for ipreproc=1:npreprocs
         coords_embedded=cell(nembeds,length(dimlist));
-        conesnsus_glbl=cell(nembeds,length(dimlist)); %consensus across all groups
+        consensus_glbl=cell(nembeds,length(dimlist)); %consensus across all groups
         consensus_bygp=cell(nembeds,length(dimlist),ngps); %consensus within groups
         znew_glbl=cell(nembeds,length(dimlist)); %coords after alignment to global consensus
         znew_bygp=cell(nembeds,length(dimlist)); %coords after alignment to in-group consensus

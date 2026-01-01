@@ -1,24 +1,25 @@
 %hlid_mds_transform_stats analyzes the transformation between two representational spaces, 
 % including shuffles and resamplings for statistics
 %
-% Will make use of hlid_rastim_mdes_coords_make, which sets up the coordinates for each condition (tnt3c and tntlabel)
-% and various jackknifings
-%
 % Builds on hlid_geom_transform_stats, with plans for the following:
-%  Can construct space via nonstandard embeddings, e.g., cosine and Pearson distances (see hlid_mds_coords_geomodels.m)
-%  An overall option as to whether to trial-average
+%  Makes use of nonstandard emvbeddings created by hlid_rastim_mds_coords_make
+%    * specific for comparisons of tnt3c and tntlabel datasets
+%      - assumes identical stimulus sets
+%      - raw data read in hlid_rastim_mds_coords_make, and not here (so no call to hlid_rastim_trial_read)
+%      - embedding calcs done in hlid_rastim_mds_coords_make
+%    * trial-averaging is always done (via hlid_rastim_mds_coords_make)
+%    * mean subtraction and normalization done as part of the nonstandard embeddings
+%    * removed results fields not needed for further analysis
+%    * since the data have already been read as a ref and adj group, the
+%    order of the files in dsids and metadata is differnt c/w hlid_geom_transform_stats
+%   
 %  Jackknife via removing individual stimuli
 %  Jackknife via removing individual preps
 %
 % makes use of code from
-%  hlid_rastim_trial_decode for reading data
 %  psg_majaxes, hlid_majaxes: examine axes identified in a transformation
 %  psg_align_vara_demo: variance analysis after aligning multiple datasets grouped by condition
 %  psg_geomodels_run: to determine transformation between two datasets
-%
-% Constructs a representational space using single-trial responses or mean responses 
-% (but requires a file with single-trial responses),
-% optionally subtracting mean, optionally normalizing the magnitude.
 %
 % Then shuffles the labels and re-analyzes; hlid_geom_transform_stats_summ
 % will plot and summarize.  Main results saved in 'results'.
@@ -30,14 +31,24 @@
 % changed to contain all of the model classes, typically {'affine','projective','pwaffine'}
 %
 %  See also:  HLID_SETUP, HLID_LOCALOPTS, HLID_RASTIM2COORDS_DEMO,
-%  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT,HLID_RASTIM_TRIAL_READ,
+%  PROCRUSTES_CONSENSUS, PROCRUSTES_COMPAT,
 %  HLID_GEOM_TRANSFORM_STATS_3DPLOT, HLID_GEOM_TRANSFORM_STATS_SUMM, 
 %  PSG_GEOMODELS_DEFINE, PSG_GEO_GENERAL,
 %  HLID_RASTIM_TRIAL_DECODE, HLID_MAJAXES, PSG_ALIGN_VARA_DEMO, PSG_GEOMODELS_RUN, PSG_MAJAXES,
 %  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_GEOM_TRANSORM_STATS,
-%  HLID_RASTIM_MDS_COORDS_DEMO, HLID_MDS_COORDS_GEOMODELS.
+%  HLID_RASTIM_MDS_COORDS_DEMO, HLID_MDS_COORDS_GEOMODELS, HLID_RASTIM_MDS_COORDS_MAKE.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
+if_debug=getinp('1 for debug mode','d',[0 1]);
+if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each time, <0 for a specific seed','d',[-10000 1],1);
+if (if_frozen~=0) 
+    rng('default');
+    if (if_frozen<0)
+        rand(1,abs(if_frozen));
+    end
+else
+    rng('shuffle');
+end
 %
 gp_labels={'ref','adj'}; %transformations from adjusted set into reference set, same as psg_geomodels_run
 %
@@ -53,14 +64,33 @@ disp(z.adj.r_all);
 disp('all loaded')
 disp(z);
 %
-dimpair_opts={'ref and adj have same dimensions','ref and adj step through all dimensions','ref is always <= adj','ref is always >= adj'};
-if ~exist('if_econ_svd') if_econ_svd=1; end
+nra=length(gp_labels);
+dmax_avail=length(z.(gp_labels{1}).r_all.jackknife_omit_none{1}.data_knit{1,1}.ds{1});
+%
+nfiles_ra=zeros(1,nra);
+for ira=1:nra
+    nfiles_ra(ira)=length(z.(gp_labels{ira}).r_all.jackknife_omit_none{1}.filenames_short);
+    disp(sprintf('files for %s: %2.0f',gp_labels{ira},nfiles_ra(ira)))
+end
+nfiles=sum(nfiles_ra);
+disp(sprintf('number of files: %4.0f',nfiles));
+%
+stimulus_names_display=z.ref.r_all.jackknife_omit_none{1}.data{1,1}.sas{1}.typenames;
+nstims=length(stimulus_names_display);
+disp(sprintf('number of stimuli: %4.0f',nstims));
+%
 if_submean=1;
 meths=z.ref.r_all.jackknife_omit_none{1}.meths;
 nmeths=length(meths);
-nra=length(gp_labels);
-dmax=length(z.(gp_labels{1}).r_all.jackknife_omit_none{1}.data_knit{1,1}.ds{1});
+disp(sprintf('number of embedding methods: %4.0f',nmeths));
+for imeth=1:nmeths
+    disp(sprintf(' method %2.0f: %30s transform: %20s (brief: %20s or %12s)',imeth,meths{imeth}.name_full,meths{imeth}.xform,meths{imeth}.name_short,meths{imeth}.name_file));
+end
 %
+dimpair_opts={'ref and adj have same dimensions','ref and adj step through all dimensions','ref is always <= adj','ref is always >= adj'};
+if ~exist('if_econ_svd') if_econ_svd=1; end
+%
+% here is where we survey the data for a summary of frac variance explained by dimension, with error bars based on jackknifes
 % compare participation ratio across jackknife sets and methods
 % eigenvalues might be negative for the individual coordinate sets prior to
 % forming consensus; should only look at particpation ratio and power ratio until some of
@@ -100,64 +130,37 @@ if ~exist('if_center') if_center=1; end %whether to center the data after formin
 if ~exist('opts_majaxes') opts_majaxes=struct; end
 opts_majaxes=filldefault(opts_majaxes,'model_class_list',{'affine'}); %only affine models are calculated
 %
-if_debug=getinp('1 for debug mode','d',[0 1]);
-if_frozen=getinp('1 for frozen random numbers, 0 for new random numbers each time, <0 for a specific seed','d',[-10000 1],1);
-if (if_frozen~=0) 
-    rng('default');
-    if (if_frozen<0)
-        rand(1,abs(if_frozen));
-    end
-else
-    rng('shuffle');
-end
-if ~exist('embed_labels')  
-    embed_labels={'embed trial-averages','embed single trials','embed single trials then average',}; %first option is as in psg_align_vara_demo, second option is hlid_rastim_trial_decode
-end
-nembeds=length(embed_labels);
-%
-if ~exist('sub_labels') 
-    if if_debug
-        sub_labels={''};
-    else
-        sub_labels={'',' (mean sub)'}; end %subtract mean from responses;  %can replace by a subset to shorten analysis
-end
-nsubs=length(sub_labels);
-if ~exist('preproc_labels') 
-    if if_debug
-        preproc_labels={'raw'};
-    else
-        preproc_labels={'raw','normalized'}; end  %can replace by a subset to shorten analysis
-end
-npreprocs=length(preproc_labels);
 %
 if ~exist('opts_pcon') opts_pcon=struct; end %consensus options
 opts_pcon=filldefault(opts_pcon,'allow_reflection',1);
 opts_pcon=filldefault(opts_pcon,'allow_offset',1);
 %
-%read data
+%differences c/w hlid_geom_transform_stats
+embed_labels={'embed trial-averages'}; % only embed trial averages
+nembeds=length(embed_labels);
+sub_labels={''}; %mean subtraction taken care of at embedding stage
+nsubs=length(sub_labels);
+preproc_labels={'raw'}; %taken care of at embedding stage
+npreprocs=length(preproc_labels);
 %
-if ~exist('nrepts') nrepts=3; end %number of repeats
-if ~exist('nsets_min') nsets_min=1; end
-if ~exist('if_log') if_log=0; end
-hlid_rastim_trial_read;
-%
-% metadata=cell(nfiles,1);
-% dsids=cell(nfiles,1);
-% resps_mean=cell(nfiles,1); mean responses within stimuli(nstims,nrois_avail)
-% trial_ptrs=cell(nfiles,1); array of (nstims,nrepts)
-% resps_trial=cell(nfiles,1); trial-by-trial responses, stimuli unscrambled, (nstims,nrepts,nrois_avail)
-% trial_sequence=cell(nfiles,1); stimulus sequence, stimuli as strings
-% stims_avail=cell(nfiles,1); list of available stimuli in each file, beginning at 1
-% rois_avail=cell(nfiles,1); list of roi numbers kept for analysis, beginning at 1
-% rois=cell(nfiles,1):  original rois
-% nrois_avail(ifile): number of rois available
+% fields reconstructed from files already read
+dsids=cell(nfiles,1);
+dsids(1:nfiles_ra(1))=z.ref.r_all.jackknife_omit_none{1}.filenames_short;
+dsids(nfiles_ra(1)+[1:nfiles_ra(2)])=z.adj.r_all.jackknife_omit_none{1}.filenames_short;
+metadata=cell(nfiles,1);
+for ifile=1:nfiles_ra(1)
+    metadata{ifile}=z.ref.r_all.jackknife_omit_none{1}.data{1,1}.sets{ifile};
+end
+for ifile=1:nfiles_ra(2)
+    metadata{nfiles_ra(1)+ifile}=z.adj.r_all.jackknife_omit_none{1}.data{1,1}.sets{ifile};
+end
 %
 if ~exist('dmax') 
     if if_debug
-        dmax=5;
+        dmax=min(5,dmax_avail);
         dimlist_def=[1:4];
     else
-        dmax=nstims-1; %max representational space to create
+        dmax=min(nstims-1,dmax_avail); %max representational space to create
         dimlist_def=[2:6];
     end
 end
@@ -191,18 +194,13 @@ while (if_ok==0)
     if_ok=getinp('1 if ok','d',[0 1]);
 end
 %
-for k=1:nstims
-    stimulus_names_display{k}=stimulus_names(k,1:-1+min(find(stimulus_names(k,:)==' ')));
-end
-%
-disp(sprintf('number of files: %4.0f',nfiles));
-nsets=nfiles;
-%
 %get grouping information: group 1 is ref, group 2 is adj
 %
+nsets=nfiles;
 sets=cell(1,nsets);
 for iset=1:nsets
     sets{iset}.label=dsids{iset};
+    disp(sprintf(' file (set) %3.0f: %s',iset,sets{iset}.label));
 end
 for igp=1:length(gp_labels)
     disp(sprintf(' group %1.0f is %s',igp,gp_labels{igp}))
@@ -239,7 +237,7 @@ for igp=1:ngps
 end
 if_keep_all_shuff=0;
 if nshuffs_between>0
-    if_keep_all_shuff=getinp('1 to keep all outputs from shuffles, 0 for outputs only neeed for stats','d',[0 1],if_debug);
+    if_keep_all_shuff=getinp('1 to keep all outputs from shuffles, 0 for outputs only needed for stats','d',[0 1],if_debug);
     for ishuff=1:nshuffs_between
         gp_select=cell(1,ngps);
         gp_orig=cell(1,ngps);
@@ -285,7 +283,6 @@ end
 %save settings
 %
 results=struct;
-results.nrepts=nrepts;
 results.nstims=nstims;
 results.nfiles=nfiles;
 results.nsets=nsets;
@@ -297,6 +294,7 @@ results.gp_list=gp_list;
 results.nsets_gp=nsets_gp;
 %
 results.nsubs=nsubs;
+results.meths=meths;
 results.sub_labels=sub_labels;
 results.npreprocs=npreprocs;
 results.preproc_labels=preproc_labels;
@@ -314,9 +312,6 @@ results.if_econ_svd=if_econ_svd;
 %
 results.metadata=metadata;
 results.dsids=dsids;
-results.stims_avail=stims_avail; %list of available stimuli in each file, beginning at 1
-results.rois_avail=rois_avail;
-results.stimulus_names=stimulus_names;
 results.stimulus_names_display=stimulus_names_display;
 %
 results.nmodels=nmodels;
@@ -336,51 +331,24 @@ results.boots_within=boots_within;
 results.boot_gp_selects=boot_gp_selects;
 results.opts_boot=opts_boot_used;
 %
-%do the preprocessing on all files, as this is independent of later steps
+%analyze embedding of each dataset
 %
-resps_alltrials=cell(nsubs,npreprocs,nsets);
-for iset=1:nsets
-    for isub=1:nsubs
-        rs=resps_mean{iset};
-        rt=resps_trial{iset};
-        switch sub_labels{isub}
-            case ''
-            case ' (mean sub)'
-            rs_xm=mean(rs,1,'omitnan'); %global mean
-            rt=rt-repmat(reshape(rs_xm,[1 1 nrois_avail(iset)]),[nstims nrepts 1]);
-        end
-        for ipreproc=1:npreprocs
-            switch preproc_labels{ipreproc}
-                case 'raw'
-                case 'normalized'
-                    rt_norm=sqrt(sum(rt.^2,3));
-                    rt_norm(rt_norm==0)=1;
-                    rt=rt./repmat(rt_norm,[1 1 nrois_avail(iset)]);
-            end
-            resps_alltrials{isub,ipreproc,iset}=rt;
-        end %ipreproc
-    end %isub
-    disp(sprintf('preprocessed file %s',dsids{iset}));
-end %iset
-%
-%do embedding of each dataset
-%
+nrepts=3;
 nembed_perstim=[1 nrepts 1]; %multiple of data points per stimulus in representational space for each dataet
 nav_perembed=[1 1 nrepts]; %number of embedded points to average
 consensus_init=cell(1,length(dimlist)); %initial guess, uniform across nsubs, npreprocs, nembeds
 %
 results.geo=cell(nsubs,npreprocs,nembeds);
 results.geo_majaxes=cell(nsubs,npreprocs,nembeds);
-results.geo_majaxes_dims='d1: nsubs, d2: npreprocs, d3: nembeds, d4: nshuffs';
+results.geo_majaxes_dims='d1: submean, d2: embedding method (mds,cosine,Pearson), d3: nembeds (1), d4: nshuffs';
 if if_keep_all_shuff
     results.geo_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
 end
 results.geo_majaxes_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
-%
-for isub=1:nsubs
-    for ipreproc=1:npreprocs
+for imeth=1:nmeths
+    for submean=0:if_submean
         coords_embedded=cell(nembeds,length(dimlist));
-        conesnsus_glbl=cell(nembeds,length(dimlist)); %consensus across all groups
+        consensus_glbl=cell(nembeds,length(dimlist)); %consensus across all groups
         consensus_bygp=cell(nembeds,length(dimlist),ngps); %consensus within groups
         znew_glbl=cell(nembeds,length(dimlist)); %coords after alignment to global consensus
         znew_bygp=cell(nembeds,length(dimlist)); %coords after alignment to in-group consensus
@@ -389,26 +357,32 @@ for isub=1:nsubs
             for idim_ptr=1:length(dimlist)
                 npcs=dimlist(idim_ptr);
                 coords_embedded{iembed,idim_ptr}=zeros(npts_embed,npcs,nfiles);
-                for iset=1:nfiles
-                    nrois=nrois_avail(iset);
-                    switch iembed
-                        case 1
-                            rpca=reshape(mean(resps_alltrials{isub,ipreproc,iset},2),[nstims nrois]); %determine mean response across repeats
-                        case {2,3}
-                            rpca=reshape(resps_alltrials{isub,ipreproc,iset},[nstims*nrepts,nrois]); %keep each response separate
-                    end
-                    nonans_pca=find(all(~isnan(rpca),2));
-                    if if_econ_svd
-                        [u_nonan,s,v]=svd(rpca(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
-                    else
-                        [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
-                    end
-                    u=nan(size(rpca,1),npcs);
-                    u(nonans_pca,:)=u_nonan(:,1:npcs);
-                    coords=u*s(1:npcs,1:npcs);
-                    coords=reshape(mean(reshape(coords,[npts_embed nav_perembed(iembed) npcs]),2),[npts_embed npcs]); %averge points for corresponding stimuli
-                    coords_embedded{iembed,idim_ptr}(:,:,iset)=coords;
-                end %iset
+                %retrieve coordinates from r_all from hlid_mds_coords_make
+                for ifile=1:nfiles
+                    ira=gps(ifile);
+                    ifile_ptr=ifile-sum(nfiles_ra(1:ira-1));
+                    coords_embedded{iembed,idim_ptr}(:,:,ifile)=z.(gp_labels{ira}).r_all.jackknife_omit_none{1}.data{imeth,1+submean}.ds{ifile_ptr}{idim_ptr};
+                end
+                % for iset=1:nfiles
+                %     nrois=nrois_avail(iset);
+                %     switch iembed
+                %         case 1
+                %             rpca=reshape(mean(resps_alltrials{isub,ipreproc,iset},2),[nstims nrois]); %determine mean response across repeats
+                %         case {2,3}
+                %             rpca=reshape(resps_alltrials{isub,ipreproc,iset},[nstims*nrepts,nrois]); %keep each response separate
+                %     end
+                %     nonans_pca=find(all(~isnan(rpca),2));
+                %     if if_econ_svd
+                %         [u_nonan,s,v]=svd(rpca(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                %     else
+                %         [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
+                %     end
+                %     u=nan(size(rpca,1),npcs);
+                %     u(nonans_pca,:)=u_nonan(:,1:npcs);
+                %     coords=u*s(1:npcs,1:npcs);
+                %     coords=reshape(mean(reshape(coords,[npts_embed nav_perembed(iembed) npcs]),2),[npts_embed npcs]); %averge points for corresponding stimuli
+                %     coords_embedded{iembed,idim_ptr}(:,:,iset)=coords;
+                % end %iset
                 %consensus within groups, without shuffling, and use global consensus for iembed=1 for initial guess and alignment once it is created
                 if isempty(consensus_init{idim_ptr})
                     [consensus_glbl{iembed,idim_ptr},znew_glbl{iembed,idim_ptr}]=procrustes_consensus(coords_embedded{iembed,idim_ptr},opts_pcon);
@@ -630,8 +604,8 @@ for isub=1:nsubs
                 disp(sprintf(' %5.0f bootstraps within ref and adj done',nboots_within));
             end %nboots_within
         end %iembed
-    end %ipreproc
-end % isub
+    end %isubmean
+end % imeth
 %
 disp('results structure created, consider saving it');
 disp('summary plots can be made with hlid_geom_transform_stats_summ')
