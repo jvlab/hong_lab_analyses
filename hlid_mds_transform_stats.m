@@ -82,10 +82,14 @@ disp(sprintf('number of stimuli: %4.0f',nstims));
 if_submean=1;
 meths=z.ref.r_all.jackknife_omit_none{1}.meths;
 nmeths=length(meths);
+meth_names_short=cell(1,nmeths);
 disp(sprintf('number of embedding methods: %4.0f',nmeths));
 for imeth=1:nmeths
+    meth_names_short{imeth}=meths{imeth}.name_short;
     disp(sprintf(' method %2.0f: %30s transform: %20s (brief: %20s or %12s)',imeth,meths{imeth}.name_full,meths{imeth}.xform,meths{imeth}.name_short,meths{imeth}.name_file));
 end
+meth_use_list=getinp('list to use','d',[1 nmeths],[1:nmeths]);
+submean_use_list=getinp('list of subtract-mean options','d',[0 1],[0 1]);
 %
 dimpair_opts={'ref and adj have same dimensions','ref and adj step through all dimensions','ref is always <= adj','ref is always >= adj'};
 if ~exist('if_econ_svd') if_econ_svd=1; end
@@ -137,11 +141,11 @@ opts_pcon=filldefault(opts_pcon,'allow_offset',1);
 %
 %differences c/w hlid_geom_transform_stats
 embed_labels={'embed trial-averages'}; % only embed trial averages
-nembeds=length(embed_labels);
+nembeds=length(embed_labels); %here, =1
 sub_labels={''}; %mean subtraction taken care of at embedding stage
-nsubs=length(sub_labels);
+nsubs=length(sub_labels); %here, =1
 preproc_labels={'raw'}; %taken care of at embedding stage
-npreprocs=length(preproc_labels);
+npreprocs=length(preproc_labels); %here,=1
 %
 % fields reconstructed from files already read
 dsids=cell(nfiles,1);
@@ -295,6 +299,7 @@ results.nsets_gp=nsets_gp;
 %
 results.nsubs=nsubs;
 results.meths=meths;
+results.nmeths=nmeths;
 results.sub_labels=sub_labels;
 results.npreprocs=npreprocs;
 results.preproc_labels=preproc_labels;
@@ -331,22 +336,20 @@ results.boots_within=boots_within;
 results.boot_gp_selects=boot_gp_selects;
 results.opts_boot=opts_boot_used;
 %
-%analyze embedding of each dataset
+consensus_init=cell(1,length(dimlist)); %initial guess, uniform across nsubs, npreprocs, nembeds, if_submean, nmeths
 %
-nrepts=3;
-nembed_perstim=[1 nrepts 1]; %multiple of data points per stimulus in representational space for each dataet
-nav_perembed=[1 1 nrepts]; %number of embedded points to average
-consensus_init=cell(1,length(dimlist)); %initial guess, uniform across nsubs, npreprocs, nembeds
-%
-results.geo=cell(nsubs,npreprocs,nembeds);
-results.geo_majaxes=cell(nsubs,npreprocs,nembeds);
+results.geo=cell(1+ifsubmean,nmeths,nembeds);
+results.geo_majaxes=cell(1+ifsubmean,nmeths,nembeds);
 results.geo_majaxes_dims='d1: submean, d2: embedding method (mds,cosine,Pearson), d3: nembeds (1), d4: nshuffs';
 if if_keep_all_shuff
-    results.geo_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
+    results.geo_shuff=cell(1+if_submean,nmeths,nembeds,nshuffs_between);
 end
-results.geo_majaxes_shuff=cell(nsubs,npreprocs,nembeds,nshuffs_between);
-for imeth=1:nmeths
-    for submean=0:if_submean
+results.geo_majaxes_shuff=cell(1+if_submean,nmeths,nembeds,nshuffs_between);
+%
+for imeth_ptr=1:length(meth_use_list)
+    imeth=meth_use_list(imeth_ptr);
+    for isubmean_ptr=1:length(submean_use_list)
+        isubmean=submean_use_list(isubmean_ptr);
         coords_embedded=cell(nembeds,length(dimlist));
         consensus_glbl=cell(nembeds,length(dimlist)); %consensus across all groups
         consensus_bygp=cell(nembeds,length(dimlist),ngps); %consensus within groups
@@ -361,29 +364,11 @@ for imeth=1:nmeths
                 for ifile=1:nfiles
                     ira=gps(ifile);
                     ifile_ptr=ifile-sum(nfiles_ra(1:ira-1));
-                    coords_embedded{iembed,idim_ptr}(:,:,ifile)=z.(gp_labels{ira}).r_all.jackknife_omit_none{1}.data{imeth,1+submean}.ds{ifile_ptr}{idim_ptr};
+                    coords_embedded{iembed,idim_ptr}(:,:,ifile)=z.(gp_labels{ira}).r_all.jackknife_omit_none{1}.data{imeth,1+isubmean}.ds{ifile_ptr}{idim_ptr};
                 end
-                % for iset=1:nfiles
-                %     nrois=nrois_avail(iset);
-                %     switch iembed
-                %         case 1
-                %             rpca=reshape(mean(resps_alltrials{isub,ipreproc,iset},2),[nstims nrois]); %determine mean response across repeats
-                %         case {2,3}
-                %             rpca=reshape(resps_alltrials{isub,ipreproc,iset},[nstims*nrepts,nrois]); %keep each response separate
-                %     end
-                %     nonans_pca=find(all(~isnan(rpca),2));
-                %     if if_econ_svd
-                %         [u_nonan,s,v]=svd(rpca(nonans_pca,:),'econ'); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
-                %     else
-                %         [u_nonan,s,v]=svd(rpca(nonans_pca,:)); %resp=u*s*v', with u and v both orthogonal, so u*s=resp*v
-                %     end
-                %     u=nan(size(rpca,1),npcs);
-                %     u(nonans_pca,:)=u_nonan(:,1:npcs);
-                %     coords=u*s(1:npcs,1:npcs);
-                %     coords=reshape(mean(reshape(coords,[npts_embed nav_perembed(iembed) npcs]),2),[npts_embed npcs]); %averge points for corresponding stimuli
-                %     coords_embedded{iembed,idim_ptr}(:,:,iset)=coords;
-                % end %iset
+                %
                 %consensus within groups, without shuffling, and use global consensus for iembed=1 for initial guess and alignment once it is created
+                %
                 if isempty(consensus_init{idim_ptr})
                     [consensus_glbl{iembed,idim_ptr},znew_glbl{iembed,idim_ptr}]=procrustes_consensus(coords_embedded{iembed,idim_ptr},opts_pcon);
                     consensus_init{1,idim_ptr}=consensus_glbl{iembed,idim_ptr};
@@ -392,16 +377,17 @@ for imeth=1:nmeths
                     opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
                     [consensus_glbl{iembed,idim_ptr},znew_glbl{iembed,idim_ptr}]=procrustes_consensus(coords_embedded{iembed,idim_ptr},opts_pcon_use);
                 end
-                disp(sprintf(' consensus made across groups,      dim %2.0f [%12s %12s] %s',npcs,preproc_labels{ipreproc},sub_labels{isub},embed_labels{iembed}));
+                disp(sprintf(' consensus made across groups,      dim %2.0f, isubmean=%1.0f, method %s',npcs,isubmean,meth_names_short{imeth}));
                 znew_bygp{iembed,idim_ptr}=zeros(npts_embed,npcs,nfiles); %fill third coord according to which group
                 for igp=1:ngps
                     opts_pcon_use=opts_pcon;
                     opts_pcon_use.initialize_set=0;
                     opts_pcon_use.initial_guess=repmat(consensus_init{1,idim_ptr},nembed_perstim(iembed),1);
                     [consensus_bygp{iembed,idim_ptr,igp},znew_bygp{iembed,idim_ptr}(:,:,gp_list{igp})]=procrustes_consensus(coords_embedded{iembed,idim_ptr}(:,:,gp_list{igp}),opts_pcon_use);
-                    disp(sprintf(' consensus made for group %1.0f (%4s), dim %2.0f [%12s %12s] %s',igp,gp_labels{igp},npcs,preproc_labels{ipreproc},sub_labels{isub},embed_labels{iembed}));
+                    disp(sprintf(' consensus made for group %1.0f (%4s), dim %2.0f, isubmean=%1.0f, method %s',igp,gp_labels{igp},npcs,isubmean,meth_names_short{imeth})); 
                 end
                 if (npcs==3) & if_3dplot
+                    title_string=sprintf('isubmean=%1.0f, method %s',isubmean,meth_names_short{imeth});
                     hlid_geom_transform_stats_3dplot;
                 end
             end %idim_ptr
@@ -421,7 +407,7 @@ for imeth=1:nmeths
                 end
             end
             sa_ref=struct;
-            sa_ref.typenames=stimulus_names_display';
+            sa_ref.typenames=stimulus_names_display;
             sa_adj=struct;
             sa_adj.typenames=stimulus_names_display;
             %
@@ -460,8 +446,8 @@ for imeth=1:nmeths
                 r_geo_all{ref_dim,adj_dim}=r_geo;
             end %idim_pair
             [r_geo_majaxes,opts_majaxes_used]=psg_majaxes(d_ref,sa_ref,d_adj,sa_adj,r_geo_all,opts_majaxes);
-            results.geo{isub,ipreproc,iembed}=r_geo_all;
-            results.geo_majaxes{isub,ipreproc,iembed}=r_geo_majaxes;
+            results.geo{1+if_submean,imeth,iembed}=r_geo_all;
+            results.geo_majaxes{1+if_submean,imeth,iembed}=r_geo_majaxes;
             %
             %shuffles
             %
@@ -513,7 +499,7 @@ for imeth=1:nmeths
                     %determine major axes
                     [r_geo_majaxes_shuff,opts_shuff_majaxes_used]=psg_majaxes(d_ref_shuff,sa_ref,d_adj_shuff,sa_adj,r_geo_all_shuff,opts_majaxes);
                     if if_keep_all_shuff
-                        results.geo_shuff{isub,ipreproc,iembed,ishuff}=r_geo_all_shuff;
+                        results.geo_shuff{1+if_submean,imeth,iembed,ishuff}=r_geo_all_shuff;
                     else %strip fields from r_geo_majaxes_shuff
                         r_geo_majaxes_shuff_full=r_geo_majaxes_shuff;
                         r_geo_majaxes_shuff=cell(size(r_geo_majaxes_shuff_full));
@@ -526,7 +512,7 @@ for imeth=1:nmeths
                             end %iad
                         end %ird
                     end
-                    results.geo_majaxes_shuff{isub,ipreproc,iembed,ishuff}=r_geo_majaxes_shuff;
+                    results.geo_majaxes_shuff{1_if_submean,imeth,ishuff}=r_geo_majaxes_shuff;
                 end %ishuff
                 disp(sprintf(' %5.0f shuffles  between ref and adj done',nshuffs_between));
             end %nshuffs_between
@@ -581,7 +567,7 @@ for imeth=1:nmeths
                     %determine major axes
                     [r_geo_majaxes_boot,opts_boot_majaxes_used]=psg_majaxes(d_ref_boot,sa_ref,d_adj_boot,sa_adj,r_geo_all_boot,opts_majaxes);
                     if if_keep_all_boot
-                        results.geo_boot{isub,ipreproc,iembed,iboot}=r_geo_all_boot;
+                        results.geo_boot{1+if_submean,imeth,iembed,iboot}=r_geo_all_boot;
                     else %strip fields from r_geo_majaxes_boot
                         r_geo_majaxes_boot_full=r_geo_majaxes_boot;
                         r_geo_majaxes_boot=cell(size(r_geo_majaxes_boot_full));
@@ -599,7 +585,7 @@ for imeth=1:nmeths
                             end %iad
                         end %ird
                     end
-                    results.geo_majaxes_boot{isub,ipreproc,iembed,iboot}=r_geo_majaxes_boot;
+                    results.geo_majaxes_boot{1+if_submean,imeth,iembed,iboot}=r_geo_majaxes_boot;
                 end %iboot
                 disp(sprintf(' %5.0f bootstraps within ref and adj done',nboots_within));
             end %nboots_within

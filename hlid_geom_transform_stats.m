@@ -27,7 +27,8 @@
 %  HLID_RASTIM_TRIAL_DECODE, HLID_MAJAXES, PSG_ALIGN_VARA_DEMO, PSG_GEOMODELS_RUN, PSG_MAJAXES,
 %  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_MDS_TRANSFORM_STATS.
 %
-% 02Apr 25:Begin adding bootstraps within groups for confidence limits.
+% 02Apr25: Begin adding bootstraps within groups for confidence limits.
+% 01Jan26: Fix so that stimulus_names_display is always a column
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 %
@@ -148,6 +149,7 @@ while (if_ok==0)
     if_ok=getinp('1 if ok','d',[0 1]);
 end
 %
+stimulus_names_display=cell(nstims,1);
 for k=1:nstims
     stimulus_names_display{k}=stimulus_names(k,1:-1+min(find(stimulus_names(k,:)==' ')));
 end
@@ -404,7 +406,7 @@ for isub=1:nsubs
                 end
             end
             sa_ref=struct;
-            sa_ref.typenames=stimulus_names_display';
+            sa_ref.typenames=stimulus_names_display;
             sa_adj=struct;
             sa_adj.typenames=stimulus_names_display;
             %
