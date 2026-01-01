@@ -223,7 +223,7 @@ for igp=1:ngps
     boot_gp_origs{igp}=zeros(nboots_within,nsets_gp(igp)); %original group membership in each group
 end
 if nboots_within>0
-    if_keep_all_boot=getinp('1 to keep all outputs from bootstraps, 0 for outputs only neeed for stats','d',[0 1],if_debug);
+    if_keep_all_boot=getinp('1 to keep all outputs from bootstraps, 0 for outputs only needed for stats','d',[0 1],if_debug);
     for iboot=1:nboots_within
         gp_select=cell(1,ngps);
         gp_orig=cell(1,ngps);

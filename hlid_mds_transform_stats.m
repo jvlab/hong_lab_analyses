@@ -266,7 +266,7 @@ for igp=1:ngps
     boot_gp_origs{igp}=zeros(nboots_within,nsets_gp(igp)); %original group membership in each group
 end
 if nboots_within>0
-    if_keep_all_boot=getinp('1 to keep all outputs from bootstraps, 0 for outputs only neeed for stats','d',[0 1],if_debug);
+    if_keep_all_boot=getinp('1 to keep all outputs from bootstraps, 0 for outputs only needed for stats','d',[0 1],if_debug);
     for iboot=1:nboots_within
         gp_select=cell(1,ngps);
         gp_orig=cell(1,ngps);
@@ -449,8 +449,8 @@ for imeth_ptr=1:length(meth_use_list)
                 r_geo_all{ref_dim,adj_dim}=r_geo;
             end %idim_pair
             [r_geo_majaxes,opts_majaxes_used]=psg_majaxes(d_ref,sa_ref,d_adj,sa_adj,r_geo_all,opts_majaxes);
-            results.geo{1+if_submean,imeth,iembed}=r_geo_all;
-            results.geo_majaxes{1+if_submean,imeth,iembed}=r_geo_majaxes;
+            results.geo{1+isubmean,imeth,iembed}=r_geo_all;
+            results.geo_majaxes{1+isubmean,imeth,iembed}=r_geo_majaxes;
             %
             %shuffles
             %
@@ -502,7 +502,7 @@ for imeth_ptr=1:length(meth_use_list)
                     %determine major axes
                     [r_geo_majaxes_shuff,opts_shuff_majaxes_used]=psg_majaxes(d_ref_shuff,sa_ref,d_adj_shuff,sa_adj,r_geo_all_shuff,opts_majaxes);
                     if if_keep_all_shuff
-                        results.geo_shuff{1+if_submean,imeth,iembed,ishuff}=r_geo_all_shuff;
+                        results.geo_shuff{1+isubmean,imeth,iembed,ishuff}=r_geo_all_shuff;
                     else %strip fields from r_geo_majaxes_shuff
                         r_geo_majaxes_shuff_full=r_geo_majaxes_shuff;
                         r_geo_majaxes_shuff=cell(size(r_geo_majaxes_shuff_full));
@@ -515,7 +515,7 @@ for imeth_ptr=1:length(meth_use_list)
                             end %iad
                         end %ird
                     end
-                    results.geo_majaxes_shuff{1+if_submean,imeth,ishuff}=r_geo_majaxes_shuff;
+                    results.geo_majaxes_shuff{1+isubmean,imeth,ishuff}=r_geo_majaxes_shuff;
                 end %ishuff
                 disp(sprintf(' %5.0f shuffles  between ref and adj done',nshuffs_between));
             end %nshuffs_between
@@ -570,7 +570,7 @@ for imeth_ptr=1:length(meth_use_list)
                     %determine major axes
                     [r_geo_majaxes_boot,opts_boot_majaxes_used]=psg_majaxes(d_ref_boot,sa_ref,d_adj_boot,sa_adj,r_geo_all_boot,opts_majaxes);
                     if if_keep_all_boot
-                        results.geo_boot{1+if_submean,imeth,iembed,iboot}=r_geo_all_boot;
+                        results.geo_boot{1+isubmean,imeth,iembed,iboot}=r_geo_all_boot;
                     else %strip fields from r_geo_majaxes_boot
                         r_geo_majaxes_boot_full=r_geo_majaxes_boot;
                         r_geo_majaxes_boot=cell(size(r_geo_majaxes_boot_full));
@@ -588,7 +588,7 @@ for imeth_ptr=1:length(meth_use_list)
                             end %iad
                         end %ird
                     end
-                    results.geo_majaxes_boot{1+if_submean,imeth,iembed,iboot}=r_geo_majaxes_boot;
+                    results.geo_majaxes_boot{1+isubmean,imeth,iembed,iboot}=r_geo_majaxes_boot;
                 end %iboot
                 disp(sprintf(' %5.0f bootstraps within ref and adj done',nboots_within));
             end %nboots_within
