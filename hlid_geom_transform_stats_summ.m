@@ -7,6 +7,7 @@
 % and are optoinally flipped (by if_flip_projs) so that largest projection is positive
 %
 % ratio_quantiles can be customized for significance levels
+% boot_quantiles can be customized for error bars on plot of cos and magnif ratio
 % if_show_max can be set to 1 to also show max axis ratio
 % mixent_frac can be set to less than 1 to only inclucde shuffles with a minimum amount of mixing entropies
 % if_flip_projs can be set to 0 to disable flipping of projections so that largest projection is positive
@@ -26,13 +27,13 @@ plot_mode=getinp('1 for output of hlid_geom_transform_stats (nsubs, npreprocs), 
 switch plot_mode
     case 1
         nu1=results.nsubs;
-        nu2=results.npreprocs;
         nu1_labels=results.sub_labels;
+        nu2=results.npreprocs;
         nu2_labels=results.preproc_labels;
     case 2
         nu1=2; %always without and with mean subtracted
+        nu1_labels={'sm=0','sm=1'};
         nu2=results.nmeths;
-        nu1_labels={'isubmean=0','isubmean=1'};
         nu2_labels=results.meth_names_short;
 end
 if_smallfigs=getinp('1 for smaller figs','d',[0 1]); 
@@ -93,6 +94,10 @@ if ~isfield(results,'nboots_within') %for compatibility
 end
 %
 rbase=results.geo{1,1,1}{results.dimlist(1),results.dimlist(1)};
+if (plot_mode==2)
+    rbase.ref_file=rbase.ref_file(3+strfind(rbase.ref_file,'...'):end);
+    rbase.adj_file=rbase.adj_file(3+strfind(rbase.adj_file,'...'):end);
+end
 dimlist=results.dimlist;
 model_types=rbase.model_types_def.model_types;
 %
@@ -202,7 +207,11 @@ for imodel=1:results.nmodels
         for iu1=1:nu1
             for iu2=1:nu2
                 m=results.magnif_summ{iu1,iu2,iembed,imodel};
-                subplot(nu1,nu2,iu1+(iu2-1)*nu1);               
+                if (plot_mode==1)
+                    subplot(nu2,nu1,iu1+(iu2-1)*nu1); %mean sub determines columns
+                else
+                    subplot(nu1,nu2,iu2+(iu1-1)*nu2); %mean sub determines rows
+                end
                 hl=cell(0);
                 ht=[];
                 hp=semilogy(dimlist,m.magnif_rng(dimlist),'k','LineWidth',2);
@@ -424,7 +433,7 @@ for imodel=1:results.nmodels
                                 title(sprintf('%s %s',nu1_labels{iu1},nu2_labels{iu2}),'Interpreter','none');
                             end
                         else
-                            title(sprintf('sm%1.0f %s',iu1-1,nu2_labels{iu2}),'Interpreter','none');
+                            title(sprintf('%s %s',nu1_labels{iu1},nu2_labels{iu2}),'Interpreter','none');
                         end
                     end %isp
                 end %iu2
