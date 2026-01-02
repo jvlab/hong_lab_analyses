@@ -95,8 +95,8 @@ end
 %
 rbase=results.geo{1,1,1}{results.dimlist(1),results.dimlist(1)};
 if (plot_mode==2)
-    rbase.ref_file=rbase.ref_file(3+strfind(rbase.ref_file,'...'):end);
-    rbase.adj_file=rbase.adj_file(3+strfind(rbase.adj_file,'...'):end);
+    rbase.ref_file=rbase.ref_file(1:2+strfind(rbase.ref_file,'...'));
+    rbase.adj_file=rbase.adj_file(1:2+strfind(rbase.adj_file,'...'));
 end
 dimlist=results.dimlist;
 model_types=rbase.model_types_def.model_types;
