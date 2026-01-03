@@ -1,8 +1,11 @@
 %hlid_mds_transform_jackstats analyzes the transformation between two representational spaces, 
-% by jackknifing stimuli and datasets
-% 
+% by jackknifing stimuli and datasets.
+% At present, only stimulus-jackknifes analyzed.
+% See hlid_mds_transform_stats for statistics based onshuffles and bootstraps
+%
 % Builds on hlid_geom_transform_stats, with plans for the following:
 %  Makes use of nonstandard embeddings created by hlid_rastim_mds_coords_make
+%   which assumes that all datasets have all stimuli
 %    * consensuses across files are already calculated in hlid_rastim_mds_coords_make
 %    * specific for comparisons of tnt3c and tntlabel datasets
 %      - assumes identical stimulus sets
@@ -20,7 +23,6 @@
 %     z.[ref|adj].r_all.jackknife_by_file{:} have one set omitted
 %
 %      Consensuses are in  z.ref.r_all.jackknife_*{*}.data_knit{imeth,ism}.ds{1}
-%
 %
 % makes use of code from
 %  psg_majaxes, hlid_majaxes: examine axes identified in a transformation
@@ -40,7 +42,7 @@
 %  HLID_RASTIM_TRIAL_DECODE, HLID_MAJAXES, PSG_ALIGN_VARA_DEMO, PSG_GEOMODELS_RUN, PSG_MAJAXES,
 %  MULTI_SHUFF_GROUPS, MULTI_BOOT_GROUPS, HLID_GEOM_TRANSORM_STATS,
 %  HLID_RASTIM_MDS_COORDS_DEMO, HLID_MDS_COORDS_GEOMODELS,
-%  HLID_RASTIM_MDS_COORDS_MAKE, HLID_MDS_TRANSFORM_STATS.
+%  HLID_RASTIM_MDS_COORDS_MAKE, HLID_MDS_TRANSFORM_STATS, HLID_MDS_TRANSFORM_JACSTATS_SUMM.
 %
 hlid_setup;  %invoke hlid_localopts; set up opts_read and opts_plot
 if ~exist('eig_tol') eig_tol=10^-6;end %tolerance for a negative eigenvalue
@@ -353,99 +355,5 @@ for imeth_ptr=1:length(meth_use_list)
         end %iembed
     end %isubmean
 end % imeth
-%
-%magnif factors, as a function of submean, method, dimension and jackknife
-%
-%d1: dim-1, d2: first then second magnif then lowest then geomean, d3: full then jackknife, d4: submean d5: method
-magfacs=zeros(length(dimlist)-1,4,1+nstims,length(results.submean_use_list),length(results.meth_use_list));
-%
-for imeth_ptr=1:length(results.meth_use_list)
-    imeth=meth_use_list(imeth_ptr);
-    for isubmean_ptr=1:length(results.submean_use_list)
-        isubmean=results.submean_use_list(isubmean_ptr);
-        for ijack=0:nstims
-            if (ijack==0)
-                mf_all=results.geo_majaxes{1+isubmean,imeth};
-            else
-                mf_all=results.geo_majaxes_jack_by_stim{1+isubmean,imeth,1,ijack};
-            end
-            for k=2:dimlist(end)
-                magfacs(k-1,1:2,ijack+1,1+isubmean,imeth)=mf_all{k,k}.ref.magnifs{1}(1:2)'; %take top two values
-                magfacs(k-1,3,ijack+1,1+isubmean,imeth)=mf_all{k,k}.ref.magnifs{1}(end); %lowest value
-                magfacs(k-1,4,ijack+1,1+isubmean,imeth)=geomean(mf_all{k,k}.ref.magnifs{1}); %lowest value
-            end
-        end
-    end
-end
-%
-%plots
-%
-rng_state=rng;
-if (if_frozen~=0) 
-    rng('default');
-end
-rng(rng_state);
-colors=rand(results.nstims,3);
-%
-for ifig=1:3
-    switch ifig
-        case 1
-           vplot_all=magfacs(:,1,:,:,:)./magfacs(:,2,:,:,:); %ratio of highest to next-highest 
-           vplot_name='highest to next-highest';
-           yrange=[1 2];
-        case 2
-           vplot_all=magfacs(:,1,:,:,:)./magfacs(:,3,:,:,:); %ratio of highest to next-highest 
-           vplot_name='highest to lowest';
-           yrange=[1 4];
-        case 3
-            vplot_all=magfacs(:,1,:,:,:)./magfacs(:,4,:,:,:); %ratio of highest to geomean
-            vplot_name='highest to geomean';
-            yrange=[1 2];
-    end
-    figure;
-    set(gcf,'Position',[50 100 1450 800]);
-    set(gcf,'Name',vplot_name);
-    set(gcf,'NumberTitle','off');
-    for imeth_ptr=1:1+length(results.meth_use_list)
-        imeth=meth_use_list(1+mod(imeth_ptr-1,length(results.meth_use_list))); %last slot for legend
-        for isubmean_ptr=1:length(results.submean_use_list)
-            isubmean=results.submean_use_list(isubmean_ptr);
-            subplot(length(results.submean_use_list),1+length(results.meth_use_list),imeth_ptr+(isubmean_ptr-1)*(1+length(results.meth_use_list)));
-            hold on;
-            vplot=reshape(vplot_all(:,1,:,1+isubmean,imeth),length(dimlist)-1,1+results.nstims);
-             for ijack=1:results.nstims
-                hp=plot(dimlist(2:end),vplot(:,1+ijack)); %jackknifed ratio
-                set(hp,'DisplayName',results.stimulus_names_display{ijack},'LineWidth',2);
-               set(hp,'Color',colors(ijack,:));
-            end
-            hp=plot(dimlist(2:end),vplot(:,1),'k');
-            set(hp,'DisplayName','full','LineWidth',2);
-            hp=plot(dimlist(2:end),geomean(vplot(:,2:end),2),'k:');
-            set(hp,'DisplayName','geomean(jack)','LineWidth',2);
-            %
-            set(gca,'XLim',[1.5 results.dimlist(end)+0.5]);
-            set(gca,'XTick',results.dimlist(2:end));
-            xlabel('dim');
-            set(gca,'YLim',yrange);
-            set(gca,'YScale','log');
-            ylabel('ratio');
-            if (imeth_ptr==1+length(results.meth_use_list))
-                legend;
-                title('legend');
-            else
-                title(sprintf('sm=%1.0f %s',isubmean,results.meth_names_short{imeth}));
-            end
-        end %isubmean_ptr
-    end %imeth_ptr
-    axes('Position',[0.01,0.01,0.01,0.01]); %for text
-    text(0,0,vplot_name);
-    axis off;
-    rbase=results.geo{1+results.submean_use_list(1),results.meth_use_list(1)}{1};
-    axes('Position',[0.01,0.03,0.01,0.01]); %for text
-    text(0,0,sprintf('ref: %s',rbase.ref_file),'Interpreter','none');
-    axis off;
-    axes('Position',[0.01,0.05,0.01,0.01]); %for text
-    text(0,0,sprintf('adj: %s',rbase.adj_file),'Interpreter','none');
-    axis off;
-end %ifig
 disp('results structure created, consider saving it');
+disp('summary plots can be made with hlid_mds_transform_jackstats_summ')
