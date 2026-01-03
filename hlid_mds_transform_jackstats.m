@@ -178,7 +178,7 @@ if ~exist('dmax')
         dimlist_def=[1:4];
     else
         dmax=min(nstims-1,dmax_avail); %max representational space to create
-        dimlist_def=[2:6];
+        dimlist_def=[1:6];
     end
 end
 if ~exist('dmin') 
@@ -380,25 +380,72 @@ end
 %
 %plots
 %
-figure;
-set(gcf,'Position',[100 100 1200 800]);
-set(gcf,'Name','maj axis ratios');
-set(gcf,'NumberTitle','off');
-for imeth_ptr=1:length(results.meth_use_list)
-    imeth=meth_use_list(imeth_ptr);
-    for isubmean_ptr=1:length(results.submean_use_list)
-        isubmean=results.submean_use_list(isubmean_ptr);
-        subplot(length(results.submean_use_list),length(results.meth_use_list),imeth_ptr+(isubmean_ptr-1)*length(results.meth_use_list));
-        plot(dimlist(2:end),magfacs(:,1,1,1+isubmean,imeth)./magfacs(:,2,1,1+isubmean,imeth),'r'); %un-jackknifed ratio
-        hold on;
-        plot(dimlist(2:end),reshape(magfacs(:,1,2:end,1+isubmean,imeth)./magfacs(:,2,2:end,1+isubmean,imeth),length(dimlist)-1,nstims),'k'); %jackknifed ratio
-        set(gca,'XLim',[1.5 results.dimlist(end)+0.5]);
-        set(gca,'XTick',results.dimlist(2:end));
-        xlabel('dim');
-        set(gca,'YLim',[1 2]);
-        set(gca,'YScale','log');
-        ylabel('a1/a2');
-        title(sprintf('sm=%1.0f %s',isubmean,results.meth_names_short{imeth}));
-    end
+rng_state=rng;
+if (if_frozen~=0) 
+    rng('default');
 end
+rng(rng_state);
+colors=rand(results.nstims,3);
+%
+for ifig=1:3
+    switch ifig
+        case 1
+           vplot_all=magfacs(:,1,:,:,:)./magfacs(:,2,:,:,:); %ratio of highest to next-highest 
+           vplot_name='highest to next-highest';
+           yrange=[1 2];
+        case 2
+           vplot_all=magfacs(:,1,:,:,:)./magfacs(:,3,:,:,:); %ratio of highest to next-highest 
+           vplot_name='highest to lowest';
+           yrange=[1 4];
+        case 3
+            vplot_all=magfacs(:,1,:,:,:)./magfacs(:,4,:,:,:); %ratio of highest to geomean
+            vplot_name='highest to geomean';
+            yrange=[1 2];
+    end
+    figure;
+    set(gcf,'Position',[50 100 1450 800]);
+    set(gcf,'Name',vplot_name);
+    set(gcf,'NumberTitle','off');
+    for imeth_ptr=1:1+length(results.meth_use_list)
+        imeth=meth_use_list(1+mod(imeth_ptr-1,length(results.meth_use_list))); %last slot for legend
+        for isubmean_ptr=1:length(results.submean_use_list)
+            isubmean=results.submean_use_list(isubmean_ptr);
+            subplot(length(results.submean_use_list),1+length(results.meth_use_list),imeth_ptr+(isubmean_ptr-1)*(1+length(results.meth_use_list)));
+            hold on;
+            vplot=reshape(vplot_all(:,1,:,1+isubmean,imeth),length(dimlist)-1,1+results.nstims);
+             for ijack=1:results.nstims
+                hp=plot(dimlist(2:end),vplot(:,1+ijack)); %jackknifed ratio
+                set(hp,'DisplayName',results.stimulus_names_display{ijack},'LineWidth',2);
+               set(hp,'Color',colors(ijack,:));
+            end
+            hp=plot(dimlist(2:end),vplot(:,1),'k');
+            set(hp,'DisplayName','full','LineWidth',2);
+            hp=plot(dimlist(2:end),geomean(vplot(:,2:end),2),'k:');
+            set(hp,'DisplayName','geomean(jack)','LineWidth',2);
+            %
+            set(gca,'XLim',[1.5 results.dimlist(end)+0.5]);
+            set(gca,'XTick',results.dimlist(2:end));
+            xlabel('dim');
+            set(gca,'YLim',yrange);
+            set(gca,'YScale','log');
+            ylabel('ratio');
+            if (imeth_ptr==1+length(results.meth_use_list))
+                legend;
+                title('legend');
+            else
+                title(sprintf('sm=%1.0f %s',isubmean,results.meth_names_short{imeth}));
+            end
+        end %isubmean_ptr
+    end %imeth_ptr
+    axes('Position',[0.01,0.01,0.01,0.01]); %for text
+    text(0,0,vplot_name);
+    axis off;
+    rbase=results.geo{1+results.submean_use_list(1),results.meth_use_list(1)}{1};
+    axes('Position',[0.01,0.03,0.01,0.01]); %for text
+    text(0,0,sprintf('ref: %s',rbase.ref_file),'Interpreter','none');
+    axis off;
+    axes('Position',[0.01,0.05,0.01,0.01]); %for text
+    text(0,0,sprintf('adj: %s',rbase.adj_file),'Interpreter','none');
+    axis off;
+end %ifig
 disp('results structure created, consider saving it');
