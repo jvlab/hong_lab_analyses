@@ -35,17 +35,21 @@ for imeth_ptr=1:length(results.meth_use_list)
     end
 end
 %
-for ifig=1:3
+for ifig=1:4
     switch ifig
         case 1
            vplot_all=magfacs(:,1,:,:,:)./magfacs(:,2,:,:,:); %ratio of highest to next-highest 
            vplot_name='highest to next-highest';
            yrange=[1 4];
         case 2
+           vplot_all=magfacs(:,1,:,:,:)./magfacs(:,2,:,:,:); %ratio of highest to next-highest 
+           vplot_name='highest to next-highest, expanded scale';
+           yrange=[1 2];
+        case 3
            vplot_all=magfacs(:,1,:,:,:)./magfacs(:,3,:,:,:); %ratio of highest to next-highest 
            vplot_name='highest to lowest';
            yrange=[1 10];
-        case 3
+        case 4
             vplot_all=magfacs(:,1,:,:,:)./magfacs(:,4,:,:,:); %ratio of highest to geomean
             vplot_name='highest to geomean';
             yrange=[1 4];
