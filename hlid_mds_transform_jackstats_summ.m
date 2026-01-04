@@ -10,7 +10,7 @@ rng_state=rng;
 if (results.if_frozen~=0) 
     rng('default');
 end
-colors=rand(results.nstims,3);
+colors_jack=rand(results.nstims,3);
 rng(rng_state);
 %
 %magnif factors, as a function of submean, method, dimension and jackknife
@@ -73,7 +73,7 @@ for ifig=1:4
             for ijack=1:results.nstims
                 hp=plot(results.dimlist(2:end),vplot(:,1+ijack)); %jackknifed ratio
                 set(hp,'DisplayName',results.stimulus_names_display{ijack},'LineWidth',2);
-                set(hp,'Color',colors(ijack,:));
+                set(hp,'Color',colors_jack(ijack,:));
             end
             hp=plot(results.dimlist(2:end),vplot(:,1),'k');
             set(hp,'DisplayName','full','LineWidth',2);
@@ -120,7 +120,7 @@ for ifig=1:4
             for ijack=1:results.nstims
                 hp=plot(vplot2(results.meth_use_list,1+ijack)); %jackknifed ratio
                 set(hp,'DisplayName',results.stimulus_names_display{ijack},'LineWidth',2);
-                set(hp,'Color',colors(ijack,:));
+                set(hp,'Color',colors_jack(ijack,:));
             end
             hp=plot(vplot2(results.meth_use_list,1),'k');
             set(hp,'DisplayName','full','LineWidth',2);
