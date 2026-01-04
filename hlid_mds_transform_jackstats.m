@@ -1,6 +1,5 @@
 %hlid_mds_transform_jackstats analyzes the transformation between two representational spaces, 
-% by jackknifing stimuli and datasets.
-% At present, only stimulus-jackknifes analyzed.
+% by jackknifing stimuli and datasets. At present, only stimulus-jackknifes (not file-jackknifes) analyzed.
 % See hlid_mds_transform_stats for statistics based onshuffles and bootstraps
 %
 % Builds on hlid_geom_transform_stats, with plans for the following:
@@ -275,6 +274,10 @@ results.geo_majaxes=cell(1+if_submean,nmeths,nembeds);
 results.geo_jack_by_stim=cell(1+if_submean,nmeths,nembeds);
 results.geo_majaxes_jack_by_stim=cell(1+if_submean,nmeths,nembeds,nstims);
 results.geo_majaxes_dims='d1: submean, d2: embedding method (mds,cosine,Pearson), d3: nembeds (1), d4: jack';
+%
+results.max_euc_dim=max_euc_dim;
+results.max_euc_dim_jackstim=max_euc_dim_jackstim;
+results.max_euc_dim_dims='d1: file [ref then adj], d2: meth, d3: 1+submean (d4: jack)';
 %
 for imeth_ptr=1:length(meth_use_list)
     imeth=meth_use_list(imeth_ptr);
