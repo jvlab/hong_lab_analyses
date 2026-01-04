@@ -1,6 +1,7 @@
 %hlid_mds_transform_jackstats analyzes the transformation between two representational spaces, 
 % by jackknifing stimuli and datasets. At present, only stimulus-jackknifes (not file-jackknifes) analyzed.
-% See hlid_mds_transform_stats for statistics based onshuffles and bootstraps
+% (embeddings via pca, mds, cosine distances, and Pearson distances)
+% See hlid_mds_transform_stats for statistics based on huffles and bootstraps
 %
 % Builds on hlid_geom_transform_stats, with plans for the following:
 %  Makes use of nonstandard embeddings created by hlid_rastim_mds_coords_make

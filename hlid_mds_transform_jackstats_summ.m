@@ -1,8 +1,10 @@
 %hlid_mds_transform_jackstats_summ: summary plots for hlid_mds_transform_jackstats
+%focusing on magnification factors, jackknifed on stimuli
+% (embeddings via pca, mds, cosine distances, and Pearson distances)
 %
 %runs on results structure from hlid_mds_transform_jackstats
 %
-%  See also:  HLID_MDS_TRANSFORM_JACKSTATS.
+%  See also:  HLID_MDS_TRANSFORM_JACKSTATS, HLID_MDS_TRANSFORM_JACKSTATS_SUMM2.
 %
 rng_state=rng;
 if (results.if_frozen~=0) 
