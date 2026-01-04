@@ -7,7 +7,7 @@
 % plottingg code borrowed from hlid_geom_transform_stats_summ, adapted for
 % jackknife (so no selection based on mixing entropy, and no randomizations)
 %
-%  See also:  HLID_MDS_TRANSFORM_JACKSTATS, HLID_GEOM_TRANSFORM_STATS_SUMM.
+%  See also:  HLID_SETUP, HLID_MDS_TRANSFORM_JACKSTATS, HLID_GEOM_TRANSFORM_STATS_SUMM.,
 %
 rng_state=rng;
 if (results.if_frozen~=0) 
@@ -15,7 +15,9 @@ if (results.if_frozen~=0)
 end
 colors_jack=rand(results.nstims,3);
 rng(rng_state);
-%for compatibilty with hlid_geom_transform_stats_summ
+%for compatibilty with hlid_geom_transform_stats_summ (plot_mode=1 for outputs of hlid_geom_transform_stats, 2 for hlida_mds_transform_stats)
+%getinp('1 for output of hlid_geom_transform_stats (nsubs, npreprocs), 2 for hlid_mds_transform_stats (isubmean, nmeths)','d',[ 1 2]);
+plot_mode=2; 
 nu1=length(results.submean_use_list);
 nu1_labels_all={'sm=0','sm=1'};
 nu1_labels=nu1_labels_all(1+results.submean_use_list);
@@ -35,53 +37,9 @@ for igp=1:results.ngps
         disp(sprintf('%20s  %4.0f  %4.0f       %4.0f  %4.0f',results.meth_names_short{imeth},med(imeth,:),med_jack(imeth,:)));
     end
 end
-%to access projections:
-%results.geo_majaxes_jack_by_stim{ism,imeth,1,ijack}{idim,idim}.[ref|adj].projections{1}
 %
-%
-for imeth_ptr=1:length(results.meth_use_list)
-    imeth=results.meth_use_list(imeth_ptr);
-    for isubmean_ptr=1:length(results.submean_use_list)
-        isubmean=results.submean_use_list(isubmean_ptr);
-        for ijack=0:results.nstims
-            % if (ijack==0)
-            %     mf_all=results.geo_majaxes{1+isubmean,imeth,1};
-            % else
-            %     mf_all=results.geo_majaxes_jack_by_stim{1+isubmean,imeth,1,ijack};
-            % end
-            % for k=2:results.dimlist(end)
-            %     magfacs(k-1,1:2,ijack+1,1+isubmean,imeth)=mf_all{k,k}.ref.magnifs{1}(1:2)'; %take top two values
-            %     magfacs(k-1,3,ijack+1,1+isubmean,imeth)=mf_all{k,k}.ref.magnifs{1}(end); %lowest value
-            %     magfacs(k-1,4,ijack+1,1+isubmean,imeth)=geomean(mf_all{k,k}.ref.magnifs{1}); %lowest value
-            % end
-        end %ijack
-    end %isubmean_ptr
-end %imeth_ptr
-% 
-% vplot_name='angle cosines'
-% for ifig=1:1
-%     figure;
-%     set(gcf,'Position',[50 100 1450 800]);
-%     set(gcf,'Name',vplot_name);
-%     set(gcf,'NumberTitle','off');
-% 
-% 
-%     axes('Position',[0.01,0.01,0.01,0.01]); %for text
-%     text(0,0,vplot_name);
-%     axis off;
-%     rbase=results.geo{1+results.submean_use_list(1),results.meth_use_list(1)}{1};
-%     axes('Position',[0.01,0.03,0.01,0.01]); %for text
-%     text(0,0,sprintf('ref: %s',rbase.ref_file),'Interpreter','none');
-%     axis off;
-%     axes('Position',[0.01,0.05,0.01,0.01]); %for text
-%     text(0,0,sprintf('adj: %s',rbase.adj_file),'Interpreter','none');
-%     axis off;
-% end %ifig
-
-%%%%%%%%%%%%%%%%
 % hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_stats
 %
-plot_mode=2 %getinp('1 for output of hlid_geom_transform_stats (nsubs, npreprocs), 2 for hlid_mds_transform_stats (isubmean, nmeths)','d',[ 1 2]);
 if ~exist('if_flip_projs') if_flip_projs=1; end
 %plotting params
 hlid_setup;
@@ -130,69 +88,54 @@ for imodel=1:results.nmodels
                 %for jackknifes, collect magnif factors and projections, keeping projections on ref and also on adj
                 %
                 magnif_all=NaN(max(dimlist),max(dimlist));
-                magnif_rng=NaN(max(dimlist),1);
-                %
                 magnif_all_jack=NaN(max(dimlist),max(dimlist),results.nstims);
-                magnif_rng_jack=NaN(max(dimlist),results.nstims);
                 %
                 projs=cell(max(dimlist),2); %dim 2: 1 is ref, 2 is adj: 
                 projs_jack=cell(max(dimlist),2);
                 for idim_ptr=1:length(dimlist)
                     idim=dimlist(idim_ptr);
+                    %get magnif factors for full data and jackknifes
                     magnif_all(dimlist(idim_ptr),[1:idim])=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.ref.magnifs{imodel}';
-                    magnif_rng(dimlist(idim_ptr),1)=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.ref.magnif_ratio{imodel};
                     %
                     for ijack=1:results.nstims
                         magnif_all_jack(dimlist(idim_ptr),[1:idim],ijack)=results.geo_majaxes_jack_by_stim{iu1,iu2,iembed,ijack}{idim,idim}.ref.magnifs{imodel}';
-                        magnif_rng_jack(dimlist(idim_ptr),ijack)=results.geo_majaxes_jack_by_stim{iu1,iu2,iembed,ijack}{idim,idim}.ref.magnif_ratio{imodel};
-                    end %ishuff
-                %     %change boot to ijack, and put NaN's where the projection is missing
-                %
-                %     for ira=1:2
-                %         projs_orig=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.(ra_text{ira}).projections{imodel};
-                %         projs{idim,ira}=projs_orig;
-                %         if if_flip_projs
-                %             for ieiv=1:idim
-                %                 flip=sign(projs_orig(find(abs(projs_orig(:,ieiv))==max(abs(projs_orig(:,ieiv)))),ieiv));
-                %                 projs{idim,ira}(:,ieiv)=projs_orig(:,ieiv)*flip;
-                %             end
-                %         end
-                %         projs_boot{idim,ira}=NaN(size(projs{idim,ira},1),idim,results.nboots_within);
-                %         pboot=NaN(size(projs{idim,ira},1),idim,2);
-                %     end
-                %     for iboot=1:results.nboots_within
-                %         boot_base=results.geo_majaxes_boot{iu1,iu2,iembed,iboot}{idim,idim};
-                %         magnif_all_boot(dimlist(idim_ptr),[1:idim],iboot)=boot_base.ref.magnifs{imodel}';
-                %         magnif_rng_boot(dimlist(idim_ptr),iboot)=boot_base.ref.magnif_ratio{imodel};
+                    end %ijack
+                    %get projections for full data and jackknifes
+                    for ira=1:2
+                        projs_orig=results.geo_majaxes{iu1,iu2,iembed}{idim,idim}.(ra_text{ira}).projections{imodel};
+                        projs{idim,ira}=projs_orig;
+                        if if_flip_projs
+                            for ieiv=1:idim
+                                flip=sign(projs_orig(find(abs(projs_orig(:,ieiv))==max(abs(projs_orig(:,ieiv)))),ieiv)); %largest abs value made positive
+                                projs{idim,ira}(:,ieiv)=projs_orig(:,ieiv)*flip;
+                            end
+                        end
+                        projs_jack{idim,ira}=NaN(size(projs{idim,ira},1),idim,results.nstims);
+                        pjack=NaN(size(projs{idim,ira},1),idim,2);
+                    end
+                    for ijack=1:results.nstims
+                        keep=setdiff([1:results.nstims],ijack);
+                        jack_base=results.geo_majaxes_jack_by_stim{iu1,iu2,iembed,ijack}{idim,idim};
                 %         %flip the bootstrapped projections if needed to align with non-bootstrapped data
-                %         for ira=1:2
-                %             pboot(:,:,ira)=boot_base.(ra_text{ira}).projections{imodel};
-                %             flips=sign(pboot(:,:,ira).*projs{idim,ira});
-                %             projs_boot{idim,ira}(:,:,iboot)=flips.*pboot(:,:,ira);
-                %         end %ira
-                %     end %iboot
+                        for ira=1:2
+                            pjack(keep,:,ira)=jack_base.(ra_text{ira}).projections{imodel};
+                            pjack(ijack,:,ira)=NaN;
+                            %these two lines are a key fix
+                            flips=sign(sum(pjack(keep,:,ira).*projs{idim,ira}(keep,:),1)); %dot-product omitting the jackknifed stimuls
+                            projs_jack{idim,ira}(:,:,ijack)=repmat(flips,results.nstims,1).*pjack(:,:,ira);
+                        end %ira
+                    end %ijack
                 end %idim_ptr
-                dm=min(2,size(magnif_all,2)); %in case only one dim
-                magnif_r12=magnif_all(:,1)./magnif_all(:,dm);
-                magnif_rgm=magnif_all(:,1)./geomean(magnif_all,2,'omitnan');
-                magnif_r12_jack=reshape(magnif_all_jack(:,1,:)./magnif_all_jack(:,dm,:),[max(dimlist) results.nstims]);
-                magnif_rgm_jack=reshape(magnif_all_jack(:,1,:)./geomean(magnif_all_jack,2,'omitnan'),[max(dimlist) results.nstims]);
-                % %
+                %
                 m=struct;
                 m.magnif_all=magnif_all;
-                m.magnif_rng=magnif_rng;
-                m.magnif_r12=magnif_r12;
-                m.magnif_rgm=magnif_rgm;
                 m.magnif_all_jack=magnif_all_jack;
-                m.magnif_rng_jack=magnif_rng_jack;
-                m.magnif_r12_jack=magnif_r12_jack;
-                m.magnif_rgm_jack=magnif_rgm_jack;
                 results.magnif_summ{iu1,iu2,iembed,imodel}=m;
-                % %
-                % p=struct;
-                % p.projs=projs;
-                % p.projs_boot=projs_boot;
-                % results.projs_summ{iu1,iu2,iembed,imodel}=p;
+                %
+                p=struct;
+                p.projs=projs;
+                p.projs_jack=projs_jack;
+                results.projs_summ{iu1,iu2,iembed,imodel}=p;
             end %iu2
         end %iu1
     end %iembed

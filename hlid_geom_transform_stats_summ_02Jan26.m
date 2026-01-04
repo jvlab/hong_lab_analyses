@@ -18,8 +18,7 @@
 %   display_order_spec='kcmerge','kctnt', or 'kcclust' to use one of the lists in display_orders, from hlid_setup.
 %
 % 01Jan26: modifications for compatibility with hlid_mds_transform_stats
-% 01Jan26: fix error in plotting magnif factors 
-% 04Jan26: fix error in flipping projection vectors
+% 01Jsn26: fix error in plotting magnif factors 
 %
 %   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
 %   HLID_GEOM_TRANSFORM_STATS_LABEL, HLID_MDS_TRANSFORM_STATS.
@@ -160,11 +159,8 @@ for imodel=1:results.nmodels
                         %flip the bootstrapped projections if needed to align with non-bootstrapped data
                         for ira=1:2
                             pboot(:,:,ira)=boot_base.(ra_text{ira}).projections{imodel};
-                            %change made 04Jan26
-                            %flips=sign(pboot(:,:,ira).*projs{idim,ira});
-                            %projs_boot{idim,ira}(:,:,iboot)=flips.*pboot(:,:,ira);
-                            flips=sign(sum(pboot(:,:,ira).*projs{idim,ira},1));
-                            projs_boot{idim,ira}(:,:,iboot)=repmat(flips,size(pboot,1),1).*pboot(:,:,ira);
+                            flips=sign(pboot(:,:,ira).*projs{idim,ira});
+                            projs_boot{idim,ira}(:,:,iboot)=flips.*pboot(:,:,ira);
                         end %ira
                     end %iboot
                 end %idim_ptr
