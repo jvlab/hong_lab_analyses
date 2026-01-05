@@ -4,14 +4,21 @@
 % to plot and tabulate major axis ratios, for adj dim = ref dim
 %
 % projections are plotted after normalization so that max projection = 1
-% and are optoinally flipped (by if_flip_projs) so that largest projection is positive
+% and are optionally flipped (by if_flip_projs) so that largest projection is positive
+%
+% Analyses here:
+% shuffles: *between* groups, useful to show that the transformation is non-trivial
+% bootstraps: *within* groups, useful to put error bars on quantities that characterize the transformation
+% For jackknifes based on stimuli:
+%  see hlid_mds_transform_jackstats and hlid_mds_transform_jackstats_summ*. These only look at trial-averages,
+%  but also look at nonstandard embeddings (cosine, Pearson)
 %
 % ratio_quantiles can be customized for significance levels
 % boot_quantiles can be customized for error bars on plot of cos and magnif ratio
 % if_show_max can be set to 1 to also show max axis ratio
-% mixent_frac can be set to less than 1 to only inclucde shuffles with a minimum amount of mixing entropies
+% mixent_frac can be set to less than 1 to only include shuffles with a minimum amount of mixing entropies
 % if_flip_projs can be set to 0 to disable flipping of projections so that largest projection is positive
-%   (boostrapped projections are aligned b dot-product to unbootstrapped versions)
+%   (boostrapped projections are aligned by dot-product to unbootstrapped versions)
 % display_order_spec can be used to specify the order of stimuli in the display
 %   defaults to display_orders.kcmerge from hlid_setup
 %   display_order_spec=[] to for native order
@@ -22,7 +29,7 @@
 % 04Jan26: fix error in flipping projection vectors
 %
 %   See also:  HLID_GEOM_TRANSFORM_STATS, MULII_SHUFF_MIXENT,
-%   HLID_GEOM_TRANSFORM_STATS_LABEL, HLID_MDS_TRANSFORM_STATS.
+%   HLID_GEOM_TRANSFORM_STATS_LABEL, HLID_MDS_TRANSFORM_STATS, HLID_MDS_TRANSFORM_JACKSTATS.
 %
 plot_mode=getinp('1 for output of hlid_geom_transform_stats (nsubs, npreprocs), 2 for hlid_mds_transform_stats (isubmean, nmeths)','d',[ 1 2]);
 switch plot_mode
@@ -308,7 +315,11 @@ for imodel=1:results.nmodels
                 for iu2=1:nu2
                     m=results.magnif_summ{iu1,iu2,iembed,imodel};
                     p=results.projs_summ{iu1,iu2,iembed,imodel};
-                    subplot(nu1,nu2,iu1+(iu2-1)*nu1);
+                    if plot_mode==1
+                        subplot(nu2,nu1,iu1+(iu2-1)*nu1); %submode determines column
+                    else
+                        subplot(nu1,nu2,iu2+(iu1-1)*nu2); %submode determines row
+                    end
                     for idim_ptr=1:length(dimlist)
                         idim=dimlist(idim_ptr);
                         yplot_off=2*idim-1;
@@ -371,8 +382,12 @@ for imodel=1:results.nmodels
                     m=results.magnif_summ{iu1,iu2,iembed,imodel};
                     p=results.projs_summ{iu1,iu2,iembed,imodel};
                     %three plots: dot prod in ref space, dot prod in adj space, magnif ratio
-                    for isp=isp_lo:isp_lo+nsp_together-1;
-                        subplot(nu1,nu2*nsp_together,(isp-isp_lo+1)+nsp_together*(iu1+(iu2-1)*nu1-1));
+                    for isp=isp_lo:isp_lo+nsp_together-1
+                        if plot_mode==1 %submode determines column
+                            subplot(nu2,nu1*nsp_together,(isp-isp_lo+1)+nsp_together*(iu1+(iu2-1)*nu1-1));
+                        else
+                            subplot(nu1,nu2*nsp_together,(isp-isp_lo+1)+nsp_together*(iu2+(iu1-1)*nu2-1));
+                        end
                         for idim_ptr=1:length(dimlist)
                             idim=dimlist(idim_ptr);
                             yplot_off=idim-1;
