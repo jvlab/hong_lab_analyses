@@ -1,14 +1,10 @@
-% JDD merge. 
-% Getting this working without going through the UI.
-% Going to open each of the files in the first two sets.
+% JDD 12/16 
+% Permutes monat set and creates a data set
 
-% dependencies : fileToRaw.m, checkConsist.m, lookForSetWideHoles,
-% fillInNaNs, makePlots_1, calcResp, makePlots_quantile.
-%
 opts = struct;
 opts.rep_char = '+';
 opts.trial_repeats = 3;
-opts.set_names = {'kiTC','meTC','moSK','vaTC'};
+opts.set_names = {'moSK1','moSK2','moSK3'};
 opts.kdf = {'max_peak','mean_peak'}; % Known data fields.
 opts.suppressoutput = true;
 opts.interactive = false;
@@ -19,13 +15,6 @@ opts.hist_bins = 50;
 opts.dataselect = 'all';
 hlid_setup;
 
-
-
-
-% I am assuming that the files that are part of a set are in a separate
-% directory. There is not name checking, if a data file is in the folder
-% the code will attempt to load it into the set.
-%
 opts.set_names = {'kiTC','meTC','moSK','vaTC'};
 Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
 Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
@@ -64,18 +53,18 @@ switch opts.dataselect
         end
 end
 
-% Check stimulus consistency across files within a set,
-% and glomerus consistency across sets.
-% Select odorants according to the is_target logical array
-[~,Sall] = checkConsist(Sraw,opts);
 
+
+[~,Sall] = checkConsist(Sraw,opts);
+Sout = Sall;
+%Sout = getDiagnosticOdors(matched_stimuli,Sall);
 % First, I want to check that each stimulus has a non-NaN value somewhere
 % within a set. If an all NaN is found, that stimulus is removed. If there
 % are no examples of a glomerulus/stimulus pair, the stimulus is removed
 % (this is a choice I made and it might be wrong)
 % The presence of the glomeruli across sets is determined. the glomeruli
 % used appear in a specified number of files.
-Strimmed = lookForSetWideHoles(Sall,opts);
+Strimmed = lookForSetWideHoles(Sout,opts);
 
 
 % This is a large set spread over many files.
@@ -87,55 +76,35 @@ Strimmed = lookForSetWideHoles(Sall,opts);
 
 Strimmed{3} = desparsify(Strimmed{3});
 
+% We want 8 odors specifically.
+
 % Fill in the remaining holes.
 % Calls the afalwt interpolator.
 % If there is a problem with the data, this is the area it is going to make
 % itself known.
+
+
+
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
 
-% Generate the first set of plots (raw - trimmed - filled)
-makePlots_1(Sall,Strimmed,Sfilled);
 
-% create the resps_set table. These are the responses, which are taken to
-% be the slope of the regression in the afalwt fit.
+
+
+%makePlots_1(SallDummy,StrimmedDummy,Sfilled);
+
+
 [resps_set,resp_range] = calcResp(Sfilled,afalwt_fit,opts);
 
-% Generate the quantile plots
-makePlots_quantile(resps_set,resp_range,opts);
+
+error('stop here');
+
+%makePlots_quantile(resps_set,resp_range,opts);
+
+% Do some renaming
 
 % Merge the sets into an intersection and union of glomeruli.
 % there will be merged_data{1} (inter) and merged_data{2} (union).
 merged_data = mergeSets(resps_set);
-
-
-% Pare these so that only stimuli with multiple appearances are included.
-repeat_stim = findRepeatStimuli(merged_data{1});
-
-% When I remove non-repeaters, I misalign from the original.
-% Need to track what is removed, and apply the changes to the old tables.
-
-resps_set_BAK = resps_set;
-
-for setindx=1:length(Sfilled)
-    stimList = intersect(resps_set{setindx}.Properties.RowNames,repeat_stim);
-    resps_set{setindx}=resps_set{setindx}(stimList,:);
-end
-    
-
-
-merged_all_repeat{1} = merged_data{1}(repeat_stim,:);
-
-repeat_stim = findRepeatStimuli(merged_data{2}); % I think these lists are the same.
-
-merged_all_repeat{2} = merged_data{2}(repeat_stim,:);
-
-merged_data_BAK = merged_data;
-
-merged_data = merged_all_repeat;
-
-
-% All good to here. The merged sets are in the merged data cell array.
-%
 
 for icombm = 1:2
     if(icombm == 1)
@@ -149,7 +118,7 @@ for icombm = 1:2
     for setindx = 1:numSets
         numFiles = length(Sfilled{setindx});
         for fileindx = 1:numFiles
-            dsid_this = Sraw{setindx}{fileindx}.meta.title;
+            dsid_this = Sraw{1}{fileindx}.meta.title;
             dsid_this=strrep(dsid_this,'/','-');
             dsid_this=strrep(dsid_this,'\','-');
             dsid_this=strrep(dsid_this,'_','-');
@@ -162,7 +131,7 @@ for icombm = 1:2
     end
     f_base=struct;
     for setindx=1:numSets
-        f_base.metadata{setindx}=Sraw{setindx}{1}.meta; %original metadata from Hong Lab
+        f_base.metadata{setindx}=Sraw{1}{1}.meta; %original metadata from Hong Lab
         f_base.dsid{setindx}=dsid{setindx}; %data set ID, with special chars turned into -
     end
     f_base.resps=resps_set; %original responses
@@ -300,3 +269,6 @@ for icombm = 1:2
     axis off;
 end
 %
+
+
+
