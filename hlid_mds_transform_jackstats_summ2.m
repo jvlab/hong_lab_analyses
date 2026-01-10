@@ -2,7 +2,8 @@
 % focusing on directions of principal axes, and max Euclidean dimension, jackknifed on stimuli
 % (embeddings via pca, mds, cosine distances, and Pearson distances)
 %
-%runs on results structure from hlid_mds_transform_jackstats
+%runs on results structure from hlid_mds_transform_jackstats, 
+% and assumes that all results have been calculated for all methods
 %
 % plotting code borrowed from hlid_geom_transform_stats_summ, adapted for
 % jackknife (so no selection based on mixing entropy, and no randomizations)
@@ -31,6 +32,17 @@ nu2=results.nmeths;
 nu2_labels=results.meth_names_short;
 if_smallfigs=getinp('1 for smaller figs','d',[0 1]); 
 %
+%get which methods to plot
+for imeth=1:results.nmeths
+    disp(sprintf('%2.0f->%20s',imeth,results.meth_names_short{imeth}));
+end
+meth_plot_list=getinp('methods to plot','d',[1 results.nmeths],[1:results.nmeths]);
+if ~isempty(setdiff(meth_plot_list,results.meth_use_list))
+    disp('one or more of those methods has no data and won''t be plotted');
+end
+meth_plot_list=intersect(meth_plot_list,results.meth_use_list);
+nmeths_plot=length(meth_plot_list);
+%
 for igp=1:results.ngps
     file_range=[1:results.nsets_gp(igp)]+sum(results.nsets_gp(1:igp-1));
     med=squeeze(min(results.max_euc_dim(file_range,:,:),[],1));
@@ -44,11 +56,13 @@ for igp=1:results.ngps
     end
 end
 %
+
+%
 % hlid_geom_transform_stats_summ: summary plots from hlid_geom_transform_stats
 %
 if ~exist('if_flip_projs') if_flip_projs=1; end
 %plotting params
-hlid_setup;
+hlid_setup; %needed for plot orders
 if ~exist('display_order_spec')
     display_order=display_orders.kcmerge;
 elseif isempty(display_order_spec)
@@ -149,7 +163,7 @@ end %imodel
 for imodel=1:results.nmodels
     for iembed=1:results.nembeds
         %
-        %projection plots
+        %projection plots of selected embedding methods
         %
         for ira=1:2
             figure;
@@ -161,10 +175,11 @@ for imodel=1:results.nmodels
             set(gcf,'NumberTitle','off');
             set(gcf,'Name',cat(2,'major axes for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
             for iu1=1:nu1
-                for iu2=1:nu2
+                for iu2_ptr=1:nmeths_plot
+                    iu2=meth_plot_list(iu2_ptr);
                     m=results.magnif_summ{iu1,iu2,iembed,imodel};
                     p=results.projs_summ{iu1,iu2,iembed,imodel};
-                    subplot(nu1,nu2,iu2+(iu1-1)*nu2); %submode determines row
+                    subplot(nu1,nmeths_plot,iu2_ptr+(iu1-1)*nmeths_plot); %submode determines row
                     for idim_ptr=1:length(dimlist)
                         idim=dimlist(idim_ptr);
                         yplot_off=2*idim-1;
@@ -205,7 +220,7 @@ for imodel=1:results.nmodels
             axis off
         end %ira
         %
-        %plots of magnif ratio distributions and cosine distributions
+        %plots of magnif ratio distributions and cosine distributions for selected embedding methods
         %
         nsp=3; %3 kinds of subplots: dot prod in ref space, dot prod in adj space, magnif factor 
         nsp_together=1;
@@ -219,12 +234,13 @@ for imodel=1:results.nmodels
             set(gcf,'NumberTitle','off');
             set(gcf,'Name',cat(2,'ratio and cosine distribs for ',ra_text{ira},' ',model_types{imodel},', ',results.embed_labels{iembed}));
             for iu1=1:nu1
-                for iu2=1:nu2
+                for iu2_ptr=1:nmeths_plot
+                    iu2=meth_plot_list(iu2_ptr);
                     m=results.magnif_summ{iu1,iu2,iembed,imodel};
                     p=results.projs_summ{iu1,iu2,iembed,imodel};
                     %three plots: dot prod in ref space, dot prod in adj space, magnif ratio
                     for isp=isp_lo:isp_lo+nsp_together-1
-                        subplot(nu1,nu2*nsp_together,(isp-isp_lo+1)+nsp_together*(iu2+(iu1-1)*nu2-1));      
+                        subplot(nu1,nmeths_plot*nsp_together,(isp-isp_lo+1)+nsp_together*(iu2_ptr+(iu1-1)*nmeths_plot-1));      
                         for idim_ptr=1:length(dimlist)
                             idim=dimlist(idim_ptr);
                             yplot_off=idim-1;
