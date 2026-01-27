@@ -30,6 +30,7 @@
 % hlid_kc_mdlcomp: compare kc space constructed via nested or non-nested pipeline
 % hlid_majaxes: examine axes identified in a transformation
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity
+% hlid_majaxes_comparedims_demo: compare axes identified in a transformation, across model dimensions
 % hlid_majaxes_eval:  compare axes identified in a transformation with principal components
 % hlid_majaxes_eval2: as in hlid_majazxes_eval, but add analysis of fitted transformation, other params
 % hlid_mds_coords_geomodels: transformations between spaces constructed via mds and nonstandard embeddigs, e.g., Pearson, cosine
