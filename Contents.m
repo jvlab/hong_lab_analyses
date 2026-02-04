@@ -33,7 +33,8 @@
 % hlid_majaxes_comparedims_demo: compare axes identified in a transformation, across model dimensions
 % hlid_majaxes_eval:  compare axes identified in a transformation with principal components
 % hlid_majaxes_eval2: as in hlid_majazxes_eval, but add analysis of fitted transformation, other params
-% hlid_mds_coords_geomodels: transformations between spaces constructed via mds and nonstandard embeddigs, e.g., Pearson, cosine
+% hlid_mds_coords_geomodels: transformations between spaces constructed via mds and nonstandard embeddings, e.g., Pearson, cosine
+% hlid_mds_transform_comparefits: comparison of fits (d), across dimensoins and embedding methods
 % hlid_mds_transform_jackstats: statistics related to hlid_mds_coords_geomodels, jackknife by stimuli
 % hlid_mds_transform_jackstats_summ: summary and plots of hlid_mds_transform_jackstats: magnif factors
 % hlid_mds_transform_jackstats_summ2: summary and plots of hlid_mds_transform_jackstats: direction of axes of transformation
