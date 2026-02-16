@@ -1,5 +1,5 @@
-function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan)
-% [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan)
+function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan,opts)
+% [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan,opts)
 % is a utility to create coordinates by svd, and metadata fields for a coordinate file
 %
 % assumes that stimuli without responses have already been eliminated from resps_use
@@ -9,9 +9,11 @@ function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,res
 % resps_use: response array, each row is a stimulus, each column is a roi or similar
 % maxdim: maximum dimension of coords to be created
 % maxdim_use: maximum number of dimensions available from data
-% if_submean: 1 to subtract the mean, otherwise 0
-% stims_nonan: list of stimuli from original set that have responses, defaults to [1:size(resps_use,1)]
-% stims_nan: complement of stims_nan in [1:size(resps_use,1)]
+% if_submean: 1 to subtract the mean, otherwise 0: Note: this is just for metadta; assumes mean has already been subtracted.
+% stims_nonan: list of stimuli from original set that have responses, defaults to [1:size(resps_use,1)] if omitted or empty
+% stims_nan: complement of stims_nan in [1:size(resps_use,1)], set to [1:size(resps_use,1)] if empty and stims_nan is empty
+% opts: options
+%   opts.if_log: 1 to log (default)
 %
 % fnew: f, with additional fields added
 % s_diag_all:  diagonal of S in resps_use=U*S*V', up to maxdim_use
@@ -26,10 +28,18 @@ function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,res
 %   See also:  HLID_RASTIM2COORDS_DEMO, HLID_RASTIM2COORDS_POOL, HLID_CSV2COORDS_DEMO, HLID_ORN_MERGE, HLID_ORN_MERGE2.
 %
 dim_text='dim'; %leadin for fields of d
-if (nargin<=5)
+if (nargin<=5)   
     stims_nonan=[1:size(resps_use,1)];
     stims_nan=setdiff([1:size(resps_use,1)],stims_nonan);
 end
+if isempty(stims_nonan) & isempty(stims_nan)
+    stims_nonan=[1:size(resps_use,1)];
+    stims_nan=1:size(resps_use,1);
+end
+if (nargin<=7)
+    opts=struct;
+end
+opts=filldefault(opts,'if_log',1);
 %
 [u,s,v]=svd(resps_use); %resps_use=u*s*v', with u and v both orthogonal, so u*s=resps_use*v
 s_diag_all=diag(s(1:maxdim_use,1:maxdim_use));
@@ -50,8 +60,10 @@ if maxdim_use<maxdim %add zero eigenvectors and eigenvalues, should only happen 
 end
 %
 s_diag=diag(s);
-disp('fraction of variance explained with each component')
-disp(sprintf('%6.4f ',s_diag.^2/var_total)) %^2 added 19Dec24
+if opts.if_log
+    disp('fraction of variance explained with each component')
+    disp(sprintf('%6.4f ',s_diag.^2/var_total)) %^2 added 19Dec24
+end
 coords_all=u*s;
 for idim=1:maxdim
     f.(cat(2,dim_text,sprintf('%1.0f',idim)))=coords_all(:,1:idim);
