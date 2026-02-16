@@ -111,18 +111,14 @@ end
 %import the data into rs format
 %
 nds=size(coords_all,2);
-coords=cell(1,nds);
-for id=1:nds
-    coords{id}=coords_all(:,1:id);
-end
 aux_import=struct;
-opts_import=struct;
-opts_import.typenames=stim_labels;
-opts_import.type_coords_def='none';
-opts_import.paradigm_name='orn terminals';
-opts_import.label_long=cat(2,'orn terminals trial-averaged, merged, svd',sprintf(' meansub=%1.0f',if_submean));
-aux_import.opts_import=opts_import;
-[data_orn,aux_import_out]=rs_import_coordsets(coords,aux_import);
+opts_import_orn_all=struct;
+opts_import_orn_all.typenames=stim_labels;
+opts_import_orn_all.type_coords_def='none';
+opts_import_orn_all.paradigm_name='orn terminals';
+opts_import_orn_all.label_long=cat(2,'orn terminals trial-averaged, merged, svd',sprintf(' meansub=%1.0f',if_submean));
+aux_import.opts_import_orn_all=opts_import_orn_all;
+[data_orn_all,aux_import_orn_all]=rs_import_coordsets(coords_all,aux_import);
 
 
 %this is to test that drop-2 works%
