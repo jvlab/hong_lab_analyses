@@ -1,5 +1,5 @@
-function [resps,coords_all]=hlid_fill_merge_svd(s,opts)
-% [resps,f]=hlid_fill_merge_svd(s,opts):  use missing-data routine to fill in and merge ORN data
+function [resps,coords_all,f]=hlid_fill_merge_svd(s,opts)
+% [resps,coords_all,f]=hlid_fill_merge_svd(s,opts):  use missing-data routine to fill in and merge ORN data
 %
 %  This is essentially the modularized version of processing in hild_orn_merge, followed by optional mean subtraction, and hlid_coords_svd.
 %
@@ -8,6 +8,7 @@ function [resps,coords_all]=hlid_fill_merge_svd(s,opts)
 %
 %  resps: array of size(length(opts.nstims_use),length(opts.nglomeruli)), responses filled in
 %  coords_all: svd of coords and auxiliary data (see hlid_coords_svd)
+%  f: structure from hlid_coords_svd, with SVD details
 %
 %   See also:  HLID_PRED_MAGNIF_DEMO, AFALWT, HLID_ORN_MERGE.
 %
@@ -77,7 +78,7 @@ end
 %
 maxdim_allowed=min(size(resps))-opts.if_submean;
 maxdim_use=maxdim_allowed;
-[fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(struct(),resps,maxdim_allowed,maxdim_use,opts.if_submean,[],[],setfield(struct(),'if_log',opts.if_log));
+[f,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(struct(),resps,maxdim_allowed,maxdim_use,opts.if_submean,[],[],setfield(struct(),'if_log',opts.if_log));
 if opts.if_plot
     %
     %show data, before glomerulus selection and after selection, normalized within each dataset
