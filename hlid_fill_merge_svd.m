@@ -77,7 +77,7 @@ end
 %
 maxdim_allowed=min(size(resps))-opts.if_submean;
 maxdim_use=maxdim_allowed;
-[fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(struct(),resps,maxdim_allowed,maxdim_use,opts.if_submean,[],[],setfield(struct(),'if_log',0));
+[fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(struct(),resps,maxdim_allowed,maxdim_use,opts.if_submean,[],[],setfield(struct(),'if_log',opts.if_log));
 if opts.if_plot
     %
     %show data, before glomerulus selection and after selection, normalized within each dataset

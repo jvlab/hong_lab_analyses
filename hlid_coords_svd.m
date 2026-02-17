@@ -2,14 +2,13 @@ function [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,res
 % [fnew,s_diag_all,u_full,v_full,s_full,coords_all]=hlid_coords_svd(f,resps_use,maxdim,maxdim_use,if_submean,stims_nonan,stims_nan,opts)
 % is a utility to create coordinates by svd, and metadata fields for a coordinate file
 %
-% assumes that stimuli without responses have already been eliminated from resps_use
-% and installs NaN's in u(stims_nan,:)
+% assumes that stimuli without responses have already been eliminated from resps_use and installs NaN's in u(stims_nan,:)
 %
 % f: starting structure of fields to save
 % resps_use: response array, each row is a stimulus, each column is a roi or similar
 % maxdim: maximum dimension of coords to be created
 % maxdim_use: maximum number of dimensions available from data
-% if_submean: 1 to subtract the mean, otherwise 0: Note: this is just for metadta; assumes mean has already been subtracted.
+% if_submean: 1 to subtract the mean, otherwise 0: Note: this is just for metadata; assumes mean has already been subtracted.
 % stims_nonan: list of stimuli from original set that have responses, defaults to [1:size(resps_use,1)] if omitted or empty
 % stims_nan: complement of stims_nan in [1:size(resps_use,1)], set to [1:size(resps_use,1)] if empty and stims_nan is empty
 % opts: options

@@ -1,9 +1,15 @@
 %hlid_pred_magnif_demo: predict distances in transformation from orn to kc
 %
-% reads a set of orn files, checks for consistency, creates a merged file from trial-averaged z-scores
+% ORN: reads a set of raw data, trial-averaged files, checks for consistency, creates a merged file from trial-averaged z-scores
 % via filling in with multiplicative and additive offset (via afalwt, as in hlid_orn_merge, with if_restore_size=1)
 %
-%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD.
+% KC: reads a set of raw data, trial-averaged files, for each, creates a coordinate set via PCA, and combines
+% via Procrustes consensus with offset and without scaling
+%
+% It is necessary to start from raw data files since the prediction is
+% based on leaving out two stimuli, so the spaces need to be constructed from scratch with those stimuli deleted
+%
+%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT.
 %
 hlid_setup;
 if ~exist('opts_dasel')
@@ -12,23 +18,23 @@ end
 if_restore_size=getinp('1 to restore responses to match overall size of original data (0: legacy)','d',[0 1],1);
 if_submean=getinp('1 to subtract mean across responses before creating coordinates','d',[0 1],0);
 %
-[filenames_short,pathname]=uigetfile('*fly*.mat','Select raw ORN data files','Multiselect','on');
-if ~iscell(filenames_short)
-    filenames_short=cellstr(filenames_short);
+[filenames_short_orn,pathname_orn]=uigetfile('*fly*.mat','Select raw ORN data files','Multiselect','on');
+if ~iscell(filenames_short_orn)
+    filenames_short_orn=cellstr(filenames_short_orn);
 end
-nfiles=length(filenames_short);
-s=cell(nfiles,1);
-files_use=[];
-nancols=cell(nfiles,1);
-nanrows=cell(nfiles,1);
+nfiles_orn=length(filenames_short_orn);
+s_orn=cell(nfiles_orn,1);
+files_use_orn=[];
+nancols_orn=cell(nfiles_orn,1);
+nanrows_orn=cell(nfiles_orn,1);
 dsid=[];
 %
 %verify consistency of names and numbers of glomeruli and stimuli
 %
-for ifile=1:nfiles
-    s{ifile}=load(cat(2,pathname,filenames_short{ifile}));
-    [s{ifile},optsused_dasel]=hlid_da_stimselect(s{ifile},opts_dasel);
-    dsid_this=s{ifile}.meta.title;
+for ifile=1:nfiles_orn
+    s_orn{ifile}=load(cat(2,pathname_orn,filenames_short_orn{ifile}));
+    [s_orn{ifile},optsused_dasel]=hlid_da_stimselect(s_orn{ifile},opts_dasel);
+    dsid_this=s_orn{ifile}.meta.title;
     %'-'can be used within fields of file name
     dsid_this=strrep(dsid_this,'/','-');
     dsid_this=strrep(dsid_this,'\','-');
@@ -39,20 +45,20 @@ for ifile=1:nfiles
     %
     dsid=strvcat(dsid,dsid_this);
     if (ifile==1)
-        glomeruli=s{ifile}.rois.glomeruli;
+        glomeruli=s_orn{ifile}.rois.glomeruli;
         nglomeruli=length(glomeruli);
-        stimulus_names=s{ifile}.response_amplitude_stim.stim';
+        stimulus_names=s_orn{ifile}.response_amplitude_stim.stim';
         nstims=length(stimulus_names);
     end
-    glomeruli_check=s{ifile}.rois.glomeruli;
-    stimulus_names_check=s{ifile}.response_amplitude_stim.stim';
-    resps_raw=s{ifile}.response_amplitude_stim.mean_peak;
-    nancols{ifile}=find(all(isnan(resps_raw),1));
-    nanrows{ifile}=find(all(isnan(resps_raw),2));
+    glomeruli_check=s_orn{ifile}.rois.glomeruli;
+    stimulus_names_check=s_orn{ifile}.response_amplitude_stim.stim';
+    resps_raw=s_orn{ifile}.response_amplitude_stim.mean_peak;
+    nancols_orn{ifile}=find(all(isnan(resps_raw),1));
+    nanrows_orn{ifile}=find(all(isnan(resps_raw),2));
     %
-    disp(sprintf('file %2.0f (%20s) read, %3.0f glomeruli (%3.0f all NaN), %3.0f stimuli (%3.0f all NaN)',ifile,filenames_short{ifile},...
-        length(glomeruli_check),length(nancols{ifile}),...
-        length(stimulus_names_check),length(nanrows{ifile})));
+    disp(sprintf('file %2.0f (%20s) read, %3.0f glomeruli (%3.0f all NaN), %3.0f stimuli (%3.0f all NaN)',ifile,filenames_short_orn{ifile},...
+        length(glomeruli_check),length(nancols_orn{ifile}),...
+        length(stimulus_names_check),length(nanrows_orn{ifile})));
     ifok=1;
     if length(glomeruli_check)~=nglomeruli
         ifok=0;
@@ -69,7 +75,7 @@ for ifile=1:nfiles
         disp('names of stimuli do not match')
     end
     if (ifok==1)
-        files_use=[files_use,ifile];
+        files_use_orn=[files_use_orn,ifile];
     end
 end
 %shorten stimulus names
@@ -83,48 +89,144 @@ end
 %
 % select datasets
 %
-files_use=getinp('list of files to use','d',[1 nfiles],files_use);
-nfiles_use=length(files_use);
-min_present=getinp('minimum number of preps that a glomerulus must be present in','d',[0 nfiles_use],1);
+files_use_orn=getinp('list of files to use for ORN data','d',[1 nfiles_orn],files_use_orn);
+nfiles_use_orn=length(files_use_orn);
+min_present=getinp('minimum number of preps that a glomerulus must be present in','d',[0 nfiles_use_orn],1);
+%
+%Kenyon cell  data
+%
+[filenames_short_kc,pathname_kc]=uigetfile('*fly*megamat*.mat','Select raw KC data files','Multiselect','on');
+if ~iscell(filenames_short_kc)
+    filenames_short_kc=cellstr(filenames_short_kc);
+end
+nfiles_kc=length(filenames_short_kc);
+s_kc=cell(nfiles_kc,1);
+files_use_kc=[];
+nancols_kc=cell(nfiles_kc,1);
+nanrows_kc=cell(nfiles_kc,1);
+dsid_kc=[];
+%
+%verify consistency of names with ORN files
+%
+for ifile=1:nfiles_kc
+    s_kc{ifile}=load(cat(2,pathname_kc,filenames_short_kc{ifile}));
+    [s_kc{ifile},optsused_dasel_kc]=hlid_da_stimselect(s_kc{ifile},opts_dasel);
+    dsid_this=s_kc{ifile}.meta.title;
+    %'-'can be used within fields of file name
+    dsid_this=strrep(dsid_this,'/','-');
+    dsid_this=strrep(dsid_this,'\','-');
+    dsid_this=strrep(dsid_this,'_','-');
+    while contains(dsid_this,'--')
+        dsid_this=strrep(dsid_this,'--','-');
+    end
+    %
+    dsid_kc=strvcat(dsid_kc,dsid_this);
+    stimulus_names_check=s_kc{ifile}.response_amplitude_stim.stim';
+    stimulus_names_check=strrep(stimulus_names_check,'.0',''); %KC data has concentration labels 3.0, not 3
+    resps_raw=s_kc{ifile}.response_amplitude_stim.mean_peak;
+    nancols_kc{ifile}=find(all(isnan(resps_raw),1));
+    nanrows_kc{ifile}=find(all(isnan(resps_raw),2));
+    disp(sprintf('file %2.0f (%20s) read, %3.0f rois (%3.0f all NaN), %3.0f stimuli (%3.0f all NaN)',ifile,filenames_short_orn{ifile},...
+        size(resps_raw,2),length(nancols_kc{ifile}),...
+        length(stimulus_names_check),length(nanrows_kc{ifile})));
+    ifok=1;
+    if length(stimulus_names_check)~=nstims
+        ifok=0;
+        disp('number of stimuli does not match')
+    elseif any(strcmp(stimulus_names,stimulus_names_check)==0)
+        ifok=0;
+        disp('names of stimuli do not match')
+    end
+    if (ifok==1)
+        files_use_kc=[files_use_kc,ifile];
+    end
+end
+files_use_kc=getinp('list of files to use for KC data','d',[1 nfiles_kc],files_use_kc);
+nfiles_use_kc=length(files_use_kc);
+%
+dim_max=getinp('maximum analysis dimension','d',[1 nstims],7);
 %
 opts_fill_merge=struct;
-opts_fill_merge.files_use=files_use;
+opts_fill_merge.files_use=files_use_orn;
 opts_fill_merge.glomeruli=glomeruli;
-opts_fill_merge.nancols=nancols; %this needs to be determined on the basis of all stimuli
+opts_fill_merge.nancols=nancols_orn; %this needs to be determined on the basis of all stimuli
 opts_fill_merge.min_present=min_present;
 opts_fill_merge.if_log=1;
 opts_fill_merge.if_restore_size=if_restore_size;
 opts_fill_merge.stim_labels=stim_labels;
 opts_fill_merge.response_name='response_amplitude_stim';
 opts_fill_merge.response_name2='mean_peak';
-opts_fill_merge.stimuli_use=[1:nstims];
 opts_fill_merge.if_plot=1;
-opts_fill_merge.filenames_short=filenames_short;
+opts_fill_merge.filenames_short=filenames_short_orn;
 opts_fill_merge.if_restore_size=if_restore_size;
 opts_fill_merge.if_submean=if_submean;
 %
-[resps,coords_all]=hlid_fill_merge_svd(s,opts_fill_merge);
-if any(isnan(resps(:)))
+opts_import_orn_all=struct;
+opts_import_orn_all.paradigm_name='orn terminals';
+opts_import_orn_all.label_long=cat(2,'orn terminals trial-averaged, merged, svd',sprintf(' meansub=%1.0f',if_submean));
+opts_import_orn_all.label='orn';
+opts_import_orn_all.type_coords_def='none';
+%
+opts_import_kc_all=struct;
+opts_import_kc_all.type_coords_def='none';
+opts_import_kc_all.paradigm_name='kc soma';
+opts_knit.dim_max_in=dim_max;
+%
+% here, need to loop ovdr stims_drop=[] and all pairs
+% if [], then save the merged orn and kc files separately
+%if not, then log that the pair is done
+% in each case, need to fit the affine model, and also, need to save how
+% the glomeruli are projected into the coord space -- including taking into account if_submean
+%
+
+stims_drop=[];
+stims_use=setdiff([1:nstims],stims_drop);
+%
+%merge and import the ORN data into rs format
+%
+opts_fill_merge.stimuli_use=stims_use;
+opts_fill_merge.if_log=double(isempty(stims_drop));
+opts_fill_merge.if_plot=double(isempty(stims_drop));
+[resps_orn,coords_all_orn]=hlid_fill_merge_svd(s_orn,opts_fill_merge);
+if any(isnan(resps_orn(:)))
     disp('Cannot proceed. Not all NaNs have been filled in.')
 end
 %
-%import the data into rs format
-%
-nds=size(coords_all,2);
+opts_import_orn_all.typenames=stim_labels(stims_use);
 aux_import=struct;
-opts_import_orn_all=struct;
-opts_import_orn_all.typenames=stim_labels;
-opts_import_orn_all.type_coords_def='none';
-opts_import_orn_all.paradigm_name='orn terminals';
-opts_import_orn_all.label_long=cat(2,'orn terminals trial-averaged, merged, svd',sprintf(' meansub=%1.0f',if_submean));
-aux_import.opts_import_orn_all=opts_import_orn_all;
-[data_orn_all,aux_import_orn_all]=rs_import_coordsets(coords_all,aux_import);
-
-
-%this is to test that drop-2 works%
-opts_fill_merge_drop2=opts_fill_merge;
-opts_fill_merge_drop2.stimuli_use=[2:16];
-[resps_drop2,coords_all_drop2]=hlid_fill_merge_svd(s,opts_fill_merge_drop2);
+aux_import.opts_import=opts_import_orn_all;
+[data_orn_all,aux_import_orn_all]=rs_import_coordsets(coords_all_orn,aux_import);
 %
-
-%also need to import a KC dataset
+%for KC apply PCA to get coordinates, and import each set separately
+%
+data_kc_all=cell(1,nfiles_use_kc);
+for ifile_ptr=1:nfiles_use_kc
+    ifile=files_use_kc(ifile_ptr);
+    resps_raw=s_kc{ifile}.response_amplitude_stim.mean_peak;
+    stims_keep=setdiff([1:nstims],union(nanrows_kc{ifile},stims_drop));
+    rois_keep=setdiff([1:size(resps_raw,2)],nancols_kc{ifile});
+    resps_kc=s_kc{ifile}.response_amplitude_stim.mean_peak(stims_keep,rois_keep);
+    if if_submean
+        resps_kc=resps_kc-repmat(mean(resps_kc,1),size(resps_kc,1),1);
+    end
+    maxdim_allowed=min(size(resps_kc))-if_submean;
+    maxdim_use=maxdim_allowed;
+    [fnew,s_diag_all,u_full,v_full,s_full,coords_all_kc]=hlid_coords_svd(struct(),resps_kc,maxdim_allowed,maxdim_use,if_submean,[],[],setfield(struct(),'if_log',0));
+    %
+    opts_import_kc_all.typenames=stim_labels(stims_keep);
+    opts_import_kc_all.label_long=cat(2,'kc soma trial-averaged, svd ',filenames_short_kc{ifile},sprintf(' meansub=%1.0f',if_submean));
+    opts_import_kc_all.label=cat(2,'kc ', strrep(filenames_short_kc{ifile},'.mat',''));
+    aux_import=struct;
+    aux_import.opts_import=opts_import_kc_all;
+    [data_kc_onefile,aux_import_kc_all]=rs_import_coordsets(coords_all_kc,aux_import);
+    if ifile_ptr==1
+        data_kc_all=data_kc_onefile;
+    else
+        data_kc_all=rs_concat_coordsets(data_kc_all,data_kc_onefile);
+    end
+    aux_knit=struct;
+    aux_knit.dim_max_in=dim_max;
+    aux_knit.opts_knit.if_log=double(isempty(stims_drop));
+    aux_knit.opts_check.if_warn=double(isempty(stims_drop));
+    [data_kc_knit,aux_knit_out]=rs_knit_coordsets(data_kc_all,aux_knit);
+end
