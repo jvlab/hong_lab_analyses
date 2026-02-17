@@ -249,10 +249,14 @@ for idrop=0:ndrop_list
         end
         if idrop==0
             drawnow;
+            %save values from analysis with full stimulus set
+            resps_orn_full=resps_orn;
+            coords_all_orn_full=coords_all_orn;
+            svd_orn_full=f_orn.coord_opts;
             data_orn_full=data_orn_all;
-            orn_svd=f_orn.coord_opts;
             data_kc_full=data_kc_knit;
         end
+        svd_orn=f_orn.coord_opts;       
         disp(sprintf('analyzed %s',drop_text));
     end %if_notok
 end %drop_list

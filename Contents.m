@@ -23,6 +23,7 @@
 % hlid_csv2connectivity_demo: examine connectivity data
 % hlid_coords_plot: utility to plot coords and SVD after conversion from data files
 % hlid_coords_svd: utility to create coordinates from data files via SVD, and to create associated metadata
+% hlid_fill_merge_svd: fill missing data via missing-data pca and create coords via hlid_coords_svd
 % hlid_geom_transform_stats_label: utility labeling for hlid_geom_traansform_stats_summ
 % hlid_geom_transform_stats: analysis of transformations between datasets, with shuffle statistics
 % hlid_geom_transform_stats_3dplot: plot of representational spaces for hlid_geom_transform_stats
@@ -43,6 +44,7 @@
 % hlid_orn_kc_mdlsum: basic goodness of fit via Procrustes for orn->kc transformation
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
+% hlid_pred_magnif_demo: attempt to predict magnification factor for ORN to KC transformation, leaving out pairs of stimuli
 % hlid_rastim_mds_coords_demo: examine nonstandard embeddings, e.g., cosine, Pearson, via transformations of z-scores, prior to computing coordinates
 % hlid_rastim_mds_coords_subsamp: calculations of hlid_rastim_coords_demo on subsamples of files
 % hlid_rastim_mds_coords_summ: summarize output statistics of hlid_rastim_mds_coords_demo
