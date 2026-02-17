@@ -171,23 +171,27 @@ opts_import_kc_all=struct;
 opts_import_kc_all.type_coords_def='none';
 opts_import_kc_all.paradigm_name='kc soma';
 %
-% here, need to loop over stims_drop=[] and all pairs
+% loop over stims_drop=[] and all pairs
 % if [], then save the merged orn and kc files separately
 % if not, then log that the pair is done
 %
-% in each case, need to fit the affine model, and also, need to save how
-% the glomeruli are projected into the coord space -- including taking into account if_submean
+% in each case,
+% project each glomerular pattern onto the coordinates, taking into account if_submean
+% do this with the glomerular pattern from the full set (which includes the stimuli left in), and also the left out stimuli
+% the left-in stimuli simply serve as a check
 %
-%nned to check that when one re-analyzes the ORN dataset, that leaving out
-%one or more odors does not change the number of glomeruli that are -included
+% then fit the affine model, and also, need to save how
+% the glomeruli are projected into the coord space -- including taking into account if_submean
 %
 drop_list=nchoosek([1:nstims],2);
 ndrop_list=size(drop_list,1);
 for idrop=0:ndrop_list
     if idrop==0
         stims_drop=[];
+        drop_text='full set';
     else
         stims_drop=drop_list(idrop,:);
+        drop_text=sprintf('set with dropped stimuli [%2.0f %2.0f]',stims_drop);
     end
     stims_use=setdiff([1:nstims],stims_drop);
     %
@@ -197,54 +201,58 @@ for idrop=0:ndrop_list
     opts_fill_merge.if_log=double(isempty(stims_drop));
     opts_fill_merge.if_plot=double(isempty(stims_drop));
     [resps_orn,coords_all_orn,f_orn]=hlid_fill_merge_svd(s_orn,opts_fill_merge);
-    if any(isnan(resps_orn(:)))
-        disp('Warning. Not all NaNs have been filled in.')
-    end
-    %
-    opts_import_orn_all.typenames=stim_labels(stims_use);
-    aux_import=struct;
-    aux_import.opts_import=opts_import_orn_all;
-    [data_orn_all,aux_import_orn_all]=rs_import_coordsets(coords_all_orn,aux_import);
-    %
-    %for KC apply PCA to get coordinates, and import each set separately
-    %
-    data_kc_all=cell(1,nfiles_use_kc);
-    for ifile_ptr=1:nfiles_use_kc
-        ifile=files_use_kc(ifile_ptr);
-        resps_raw=s_kc{ifile}.response_amplitude_stim.mean_peak;
-        stims_keep=setdiff([1:nstims],union(nanrows_kc{ifile},stims_drop));
-        rois_keep=setdiff([1:size(resps_raw,2)],nancols_kc{ifile});
-        resps_kc=s_kc{ifile}.response_amplitude_stim.mean_peak(stims_keep,rois_keep);
-        if if_submean
-            resps_kc=resps_kc-repmat(mean(resps_kc,1),size(resps_kc,1),1);
+    if_notok=any(isnan(resps_orn(:)));
+    if if_notok
+        disp(sprintf('skipping %s, not all NaNs have been filled in.',drop_text));
+        if isempty(stims_dropped)
+            disp('Cannot proceed');
         end
-        maxdim_allowed=min(size(resps_kc))-if_submean;
-        maxdim_use=maxdim_allowed;
-        [f,s_diag_all,u_full,v_full,s_full,coords_all_kc]=hlid_coords_svd(struct(),resps_kc,maxdim_allowed,maxdim_use,if_submean,[],[],setfield(struct(),'if_log',0));
-        %
-        opts_import_kc_all.typenames=stim_labels(stims_keep);
-        opts_import_kc_all.label_long=cat(2,'kc soma trial-averaged, svd ',filenames_short_kc{ifile},sprintf(' meansub=%1.0f',if_submean));
-        opts_import_kc_all.label=cat(2,'kc ', strrep(filenames_short_kc{ifile},'.mat',''));
-        aux_import=struct;
-        aux_import.opts_import=opts_import_kc_all;
-        [data_kc_onefile,aux_import_kc_all]=rs_import_coordsets(coords_all_kc,aux_import);
-        if ifile_ptr==1
-            data_kc_all=data_kc_onefile;
-        else
-            data_kc_all=rs_concat_coordsets(data_kc_all,data_kc_onefile);
-        end
-        aux_knit=struct;
-        aux_knit.opts_knit.dim_max_in=dim_max;
-        aux_knit.opts_knit.if_log=double(isempty(stims_drop));
-        aux_knit.opts_check.if_warn=double(isempty(stims_drop));
-        [data_kc_knit,aux_knit_out]=rs_knit_coordsets(data_kc_all,aux_knit);
-    end
-    if idrop==0
-        data_orn_full=data_orn_all;
-        orn_svd=f_orn.coord_opts;
-        data_kc_full=data_kc_knit;
-        disp('analyzed full stimulus set');
     else
-        disp(sprintf('analyzed stimulus set with dropped stimuli: %3.0f %3.0f',stims_drop));
-    end
+        %
+        opts_import_orn_all.typenames=stim_labels(stims_use);
+        aux_import=struct;
+        aux_import.opts_import=opts_import_orn_all;
+        [data_orn_all,aux_import_orn_all]=rs_import_coordsets(coords_all_orn,aux_import);
+        %
+        %for KC apply PCA to get coordinates, and import each set separately
+        %
+        data_kc_all=cell(1,nfiles_use_kc);
+        for ifile_ptr=1:nfiles_use_kc
+            ifile=files_use_kc(ifile_ptr);
+            resps_raw=s_kc{ifile}.response_amplitude_stim.mean_peak;
+            stims_keep=setdiff([1:nstims],union(nanrows_kc{ifile},stims_drop));
+            rois_keep=setdiff([1:size(resps_raw,2)],nancols_kc{ifile});
+            resps_kc=s_kc{ifile}.response_amplitude_stim.mean_peak(stims_keep,rois_keep);
+            if if_submean
+                resps_kc=resps_kc-repmat(mean(resps_kc,1),size(resps_kc,1),1);
+            end
+            maxdim_allowed=min(size(resps_kc))-if_submean;
+            maxdim_use=maxdim_allowed;
+            [f,s_diag_all,u_full,v_full,s_full,coords_all_kc]=hlid_coords_svd(struct(),resps_kc,maxdim_allowed,maxdim_use,if_submean,[],[],setfield(struct(),'if_log',0));
+            %
+            opts_import_kc_all.typenames=stim_labels(stims_keep);
+            opts_import_kc_all.label_long=cat(2,'kc soma trial-averaged, svd ',filenames_short_kc{ifile},sprintf(' meansub=%1.0f',if_submean));
+            opts_import_kc_all.label=cat(2,'kc ', strrep(filenames_short_kc{ifile},'.mat',''));
+            aux_import=struct;
+            aux_import.opts_import=opts_import_kc_all;
+            [data_kc_onefile,aux_import_kc_all]=rs_import_coordsets(coords_all_kc,aux_import);
+            if ifile_ptr==1
+                data_kc_all=data_kc_onefile;
+            else
+                data_kc_all=rs_concat_coordsets(data_kc_all,data_kc_onefile);
+            end
+            aux_knit=struct;
+            aux_knit.opts_knit.dim_max_in=dim_max;
+            aux_knit.opts_knit.if_log=double(isempty(stims_drop));
+            aux_knit.opts_check.if_warn=double(isempty(stims_drop));
+            [data_kc_knit,aux_knit_out]=rs_knit_coordsets(data_kc_all,aux_knit);
+        end
+        if idrop==0
+            drawnow;
+            data_orn_full=data_orn_all;
+            orn_svd=f_orn.coord_opts;
+            data_kc_full=data_kc_knit;
+        end
+        disp(sprintf('analyzed %s',drop_text));
+    end %if_notok
 end %drop_list
