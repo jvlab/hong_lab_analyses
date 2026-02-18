@@ -263,12 +263,12 @@ for idrop=0:ndrop_list
             else
                 data_kc_all=rs_concat_coordsets(data_kc_all,data_kc_onefile);
             end
-            aux_knit=struct;
-            aux_knit.opts_knit.dim_max_in=dim_max;
-            aux_knit.opts_knit.if_log=double(isempty(stims_drop));
-            aux_knit.opts_check.if_warn=double(isempty(stims_drop));
-            [data_kc_knit,aux_knit_out]=rs_knit_coordsets(data_kc_all,aux_knit);
         end
+        aux_knit=struct;
+        aux_knit.opts_knit.dim_max_in=dim_max;
+        aux_knit.opts_knit.if_log=double(isempty(stims_drop));
+        aux_knit.opts_check.if_warn=double(isempty(stims_drop));
+        [data_kc_knit,aux_knit_out]=rs_knit_coordsets(data_kc_all,aux_knit);
         if idrop==0
             %save values from analysis with full stimulus set
             resps_orn_full=resps_orn;
