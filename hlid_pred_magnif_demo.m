@@ -234,7 +234,7 @@ for idrop=0:ndrop_list
         opts_import_orn_all.typenames=stim_labels(stims_use);
         aux_import=struct;
         aux_import.opts_import=opts_import_orn_all;
-        [data_orn_drop,aux_input_orn_drop]=rs_import_coordsets(coords_drop_orn,aux_import); %coords_drop_orn already has stimuli dropped
+        [data_orn_drop,aux_import_orn_drop]=rs_import_coordsets(coords_drop_orn,aux_import); %coords_drop_orn already has stimuli dropped
         %
         %for KC apply PCA to get coordinates, and import each set separately
         %
@@ -306,21 +306,21 @@ for idrop=0:ndrop_list
         disp(sprintf('analyzed %s, orn coord consistency check: %10.8f, drop effect: %10.8f',drop_text,dev_orn_coords,dev_orn_coords_drop));
         %
         %transform distances by affine model
-
-        %%%% need to do this to coords_orn_all_drop, not coords_drop_orn, which was imported into data_orn_drop
-        %      [data_orn_drop,aux_input_orn_drop]=rs_import_coordsets(coords_drop_orn,aux_import); %coords_drop_orn already has stimuli dropped
-  
+        %
+        aux_import2=aux_import;
+        aux_import2.opts_import.typenames=stim_labels;
+        [data_orn_all_drop,aux_import_orn_all_drop]=rs_import_coordsets(coords_orn_all_drop,aux_import2); %coords_orn_all_drop has all stimuli mapped into dropped space
         aux_xform=struct;
         aux_xform.opts_xform=struct;
         aux_xform.opts_xform.class=xs.affine_offset.class;
         xforms=xs.affine_offset.xforms;
-        [data_kc_model,aux_xform_out]=rs_xform_apply(data_orn_drop,xforms,aux_xform);
+        [data_kc_model,aux_xform_out]=rs_xform_apply(data_orn_all_drop,xforms,aux_xform);
         %
         %compute distances
         %
         for idim=1:dim_max
             dists{1+idrop}.orn_drop(:,:,idim)=sqrt(cootodsq(coords_orn_all_drop(:,[1:idim])));  %distances from coords made from dropped responses
-            dists{1+idrop}.kc_model(stims_use,stims_use,idim)=sqrt(cootodsq(data_kc_model.ds{1}{idim}));         %distances from kc model
+            dists{1+idrop}.kc_model(:,:,idim)=sqrt(cootodsq(data_kc_model.ds{1}{idim}));         %distances from kc model
             dists{1+idrop}.kc_data(stims_use,stims_use,idim)=sqrt(cootodsq(data_kc_knit.ds{1}{idim}));         %distances from kc data
         end
      end %if_notok
