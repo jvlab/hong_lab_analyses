@@ -15,18 +15,18 @@
 %   For KC data, it is carried out within each prep, prior to svd, and prior to Procrustes
 %
 % For fitting the transformation from ORN space to KC space, the ORN coordinaates are restricted to the retained stmuli:
-%   coordinates are coords_all_orn, computed from resps_orn (responses after dropping stimuli, merging by missing-data method) in hlid_merge_svd.
+%   coordinates are coords_drop_orn, computed from resps_orn (responses after dropping stimuli, merging by missing-data method) in hlid_merge_svd.
 %   These are re-computed by coords_orn_drop=resps_orn*v_drop, where v_drop is the projection from ORN responses to the svd space
-%   and we verify that coords_orn_drop=coords_all_orn (dev_orn_coords, dev_max_orn_coords)
+%   and we verify that coords_orn_drop=coords_drop_orn (dev_orn_coords, dev_max_orn_coords)
 % For predicting magnification factors, coords_orn_all_drop is the stimuli, mapped into the the dropped-stimulus space,
 %  via the same projection v_drop: coords_orn_all_drop=resps_orn_full*v_drop, and the affine transformation is applied to it.
 %  Note that the coordinates of the *un*dropped stimuli in resps_orn_full are not identical to the responses of the same stimuli in resps_orn,
 %   because of the way that amplitudes are matched in hlid_fill_merge_svd, but this difference is small (dev_orn_coords_drop, dev_max_orn_coords_drop)
 %
 %   Alternative (not done) would be to use just the merge of all stimuli, but just the coordinates of the un-dropped stimuli.
-%   This could be done by selecting the coordinates from coords_all_orn_full, which is coords_all_orn as computed without any dropped stimuli.
+%   This could be done by selecting the coordinates from coords_all_orn_full, which is coords_drop_orn as computed without any dropped stimuli.
 %
-%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT, RS_GEOFIT.
+%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT, RS_GEOFIT, COOTODSQ.
 %
 hlid_setup;
 if ~exist('opts_dasel')
@@ -174,7 +174,7 @@ opts_fill_merge.if_restore_size=if_restore_size;
 opts_fill_merge.stim_labels=stim_labels;
 opts_fill_merge.response_name='response_amplitude_stim';
 opts_fill_merge.response_name2='mean_peak';
-opts_fill_merge.if_plot=1;
+opts_fill_merge.if_plot=0;
 opts_fill_merge.filenames_short=filenames_short_orn;
 opts_fill_merge.if_restore_size=if_restore_size;
 opts_fill_merge.if_submean=if_submean;
@@ -189,23 +189,20 @@ opts_import_kc_all=struct;
 opts_import_kc_all.type_coords_def='none';
 opts_import_kc_all.paradigm_name='kc soma';
 %
-% loop over stims_drop=[] and all pairs
-% if [], then save the merged orn and kc files separately
-% if not, then log that the pair is done
+% Loop over stims_drop=[] and all pairs
+% if none dropped, save the merged orn and kc files separately; f not, then log that the pair is done
 %
-% in each case,
-% project each glomerular pattern onto the coordinates, taking into account if_submean
-% do this with the glomerular pattern from the full set (which includes the stimuli left in), and also the left out stimuli
-% the left-in stimuli simply serve as a check
+% Fit the affine model
 %
-% then fit the affine model, and also, need to save how
-% the glomeruli are projected into the coord space -- including taking into account if_submean
+% Project each glomerular pattern onto the coordinates, taking into account if_submean
+% including the left-out stimuli; the left-in stimuli serve as a check
 %
 drop_list=nchoosek([1:drop_stim_max],2);
 ndrop_list=size(drop_list,1);
 dev_max_orn_coords=0;
 dev_max_orn_coords_drop=0;
-d_fits=zeros(ndrop_list+1,dim_max); %goodness of fits
+d_fits=zeros(1+ndrop_list,dim_max); %goodness of fits
+dists=cell(1+ndrop_list,1);
 for idrop=0:ndrop_list
     if idrop==0
         stims_drop=[];
@@ -216,12 +213,16 @@ for idrop=0:ndrop_list
     end
     stims_use=setdiff([1:nstims],stims_drop);
     %
+    dists{1+idrop}.dropped=stims_drop;
+    dists{1+idrop}.orn_drop=NaN(nstims,nstims,dim_max); %distances from coords made from dropped responses
+    dists{1+idrop}.kc_data=NaN(nstims,nstims,dim_max); %distances from kc data
+    dists{1+idrop}.kc_model=NaN(nstims,nstims,dim_max); %distances as predicted from affine model from orn_drop
+    %
     %merge and import the ORN data into rs format
     %
-    opts_fill_merge.stimuli_use=stims_use;
+    opts_fill_merge.stimuli_use=stims_use; %this will drop the stimuli after the merge
     opts_fill_merge.if_log=double(isempty(stims_drop));
-    opts_fill_merge.if_plot=double(isempty(stims_drop));
-    [resps_orn,coords_all_orn,f_orn,resps_mean_orn]=hlid_fill_merge_svd(s_orn,opts_fill_merge);
+    [resps_orn,coords_drop_orn,f_orn,resps_mean_orn]=hlid_fill_merge_svd(s_orn,opts_fill_merge); %this will drop the stimuli after the merge
     if_notok=any(isnan(resps_orn(:)));
     if if_notok
         disp(sprintf('skipping %s, not all NaNs have been filled in.',drop_text));
@@ -233,7 +234,7 @@ for idrop=0:ndrop_list
         opts_import_orn_all.typenames=stim_labels(stims_use);
         aux_import=struct;
         aux_import.opts_import=opts_import_orn_all;
-        [data_orn_all,aux_import_orn_all]=rs_import_coordsets(coords_all_orn,aux_import);
+        [data_orn_drop,aux_input_orn_drop]=rs_import_coordsets(coords_drop_orn,aux_import); %coords_drop_orn already has stimuli dropped
         %
         %for KC apply PCA to get coordinates, and import each set separately
         %
@@ -269,13 +270,12 @@ for idrop=0:ndrop_list
             [data_kc_knit,aux_knit_out]=rs_knit_coordsets(data_kc_all,aux_knit);
         end
         if idrop==0
-            drawnow;
             %save values from analysis with full stimulus set
             resps_orn_full=resps_orn;
             resps_mean_orn_full=resps_mean_orn;
-            coords_all_orn_full=coords_all_orn;
+            coords_all_orn_full=coords_drop_orn;
             svd_orn_full=f_orn.coord_opts;
-            data_orn_full=data_orn_all;
+            data_orn_full=data_orn_drop;
             data_kc_full=data_kc_knit;
         end
         svd_orn=f_orn.coord_opts;
@@ -287,9 +287,9 @@ for idrop=0:ndrop_list
         aux_geof.opts_geof.if_fit_summary=double(isempty(stims_drop));
         aux_geof.opts_geof.if_warn=double(isempty(stims_drop));
         aux_geof.opts_geof.if_log=double(isempty(stims_drop));
-        [gfs,xs,aux_geof_out]=rs_geofit(data_orn_all,data_kc_knit,aux_geof);
+        [gfs,xs,aux_geof_out]=rs_geofit(data_orn_drop,data_kc_knit,aux_geof);
         for idim=1:dim_max
-            d_fits(idrop+1,idim)=gfs{1}.gf{idim,idim}.d;
+            d_fits(1+idrop,idim)=gfs{1}.gf{idim,idim}.d;
         end
         %
         %compute coordinates in ORN space of all stimuli,including dropped ones
@@ -298,15 +298,34 @@ for idrop=0:ndrop_list
         v_drop=f_orn.coord_opts.aux.v(:,1:dim_max);
         coords_orn_all_full=resps_orn_full*v_full; %coordinates obtained from merging all stimuli, mapped into ORN dataset with all stimuli
         coords_orn_all_drop=resps_orn_full*v_drop; %coordinates obtained from merging all stimuli, mapped into ORN dataset with dropped stimuli
-        coords_orn_drop=resps_orn*v_drop; %coordinates obtained from merging stimuli after drop, mapped into ORN dataset with dropped stimuli, should match coords_all_orn;
-        dev_orn_coords=max(max(abs(coords_orn_drop-coords_all_orn(:,1:dim_max))));
+        coords_orn_drop=resps_orn*v_drop; %coordinates obtained from merging stimuli after drop, mapped into ORN dataset with dropped stimuli, should match coords_drop_orn;
+        dev_orn_coords=max(max(abs(coords_orn_drop-coords_drop_orn(:,1:dim_max))));
         dev_max_orn_coords=max(dev_max_orn_coords,dev_orn_coords);
         dev_orn_coords_drop=max(max(abs(coords_orn_all_drop(stims_use,:)-coords_orn_drop)));
         dev_max_orn_coords_drop=max(dev_max_orn_coords_drop,dev_orn_coords_drop);
-        disp(sprintf('analyzed %s, orn cooord consistency check: %10.8f, drop effect: %10.8f',drop_text,dev_orn_coords,dev_orn_coords_drop));
+        disp(sprintf('analyzed %s, orn coord consistency check: %10.8f, drop effect: %10.8f',drop_text,dev_orn_coords,dev_orn_coords_drop));
+        %
+        %transform distances by affine model
+
+        %%%% need to do this to coords_orn_all_drop, not coords_drop_orn, which was imported into data_orn_drop
+        %      [data_orn_drop,aux_input_orn_drop]=rs_import_coordsets(coords_drop_orn,aux_import); %coords_drop_orn already has stimuli dropped
+  
+        aux_xform=struct;
+        aux_xform.opts_xform=struct;
+        aux_xform.opts_xform.class=xs.affine_offset.class;
+        xforms=xs.affine_offset.xforms;
+        [data_kc_model,aux_xform_out]=rs_xform_apply(data_orn_drop,xforms,aux_xform);
+        %
+        %compute distances
+        %
+        for idim=1:dim_max
+            dists{1+idrop}.orn_drop(:,:,idim)=sqrt(cootodsq(coords_orn_all_drop(:,[1:idim])));  %distances from coords made from dropped responses
+            dists{1+idrop}.kc_model(stims_use,stims_use,idim)=sqrt(cootodsq(data_kc_model.ds{1}{idim}));         %distances from kc model
+            dists{1+idrop}.kc_data(stims_use,stims_use,idim)=sqrt(cootodsq(data_kc_knit.ds{1}{idim}));         %distances from kc data
+        end
      end %if_notok
 end %drop_list
-disp(sprintf('max orn cooord consistency check: %10.8f, drop effect: %10.8f',dev_max_orn_coords,dev_max_orn_coords_drop));
+disp(sprintf('max orn coord consistency check: %10.8f, drop effect: %10.8f',dev_max_orn_coords,dev_max_orn_coords_drop));
 disp('goodness of fits for affine models for full dataset, as function of dimension');
 disp(d_fits(1,:));
 disp('mean goodness of fits for affine models for datasets with dropped stimuli');
