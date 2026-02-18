@@ -3,13 +3,22 @@
 % ORN: reads a set of raw data, trial-averaged files, checks for consistency, creates a merged file from trial-averaged z-scores
 % via filling in with multiplicative and additive offset (via afalwt, as in hlid_orn_merge, with if_restore_size=1)
 %
-% KC: reads a set of raw data, trial-averaged files, for each, creates a coordinate set via PCA, and combines
+% KC: reads a set of raw data, trial-averaged files, for each, creates a coordinate set via svd, and combines
 % via Procrustes consensus with offset and without scaling
 %
 % It is necessary to start from raw data files since the prediction is
 % based on leaving out two stimuli, so the spaces need to be constructed from scratch with those stimuli deleted
 %
-%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT.
+% mean subtraction (optional, determined by if_submean, defaults to 0):
+%   If mean subtraction is enabled, for the ORN data, it is carried out after the preps are merged by the missing-data SVD routine
+%   For KC data, it is carried out within each prep, prior to svd, and prior to Procrustes
+%
+% For fitting the transformation from ORN space to KC space, the ORN merging is restricted to the retained stmuli.
+%   This is resps_orn (responses after dropping stimuli, merging by missing-data method); used to compute coords_all_orn via svd
+%   Alternative (not done) would be to use just the merge of all stimuli, but just the coordinates of the un-dropped stimuli.
+%   This could be done by selecting the coordinates from coords_all_orn_full, which is coords_all_orn as computed without any dropped stimuli.
+%
+%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT, RS_GEOFIT.
 %
 hlid_setup;
 if ~exist('opts_dasel')
@@ -145,6 +154,7 @@ files_use_kc=getinp('list of files to use for KC data','d',[1 nfiles_kc],files_u
 nfiles_use_kc=length(files_use_kc);
 %
 dim_max=getinp('maximum analysis dimension','d',[1 nstims],7);
+drop_stim_max=getinp('maximum stimulus number to drop','d',[2 nstims],nstims);  %for debugging
 %
 opts_fill_merge=struct;
 opts_fill_merge.files_use=files_use_orn;
@@ -183,8 +193,10 @@ opts_import_kc_all.paradigm_name='kc soma';
 % then fit the affine model, and also, need to save how
 % the glomeruli are projected into the coord space -- including taking into account if_submean
 %
-drop_list=nchoosek([1:nstims],2);
+drop_list=nchoosek([1:drop_stim_max],2);
 ndrop_list=size(drop_list,1);
+dev_max_orn_coords=0;
+d_fits=zeros(ndrop_list+1,dim_max); %goodness of fits
 for idrop=0:ndrop_list
     if idrop==0
         stims_drop=[];
@@ -200,7 +212,7 @@ for idrop=0:ndrop_list
     opts_fill_merge.stimuli_use=stims_use;
     opts_fill_merge.if_log=double(isempty(stims_drop));
     opts_fill_merge.if_plot=double(isempty(stims_drop));
-    [resps_orn,coords_all_orn,f_orn]=hlid_fill_merge_svd(s_orn,opts_fill_merge);
+    [resps_orn,coords_all_orn,f_orn,resps_mean_orn]=hlid_fill_merge_svd(s_orn,opts_fill_merge);
     if_notok=any(isnan(resps_orn(:)));
     if if_notok
         disp(sprintf('skipping %s, not all NaNs have been filled in.',drop_text));
@@ -222,8 +234,8 @@ for idrop=0:ndrop_list
             resps_raw=s_kc{ifile}.response_amplitude_stim.mean_peak;
             stims_keep=setdiff([1:nstims],union(nanrows_kc{ifile},stims_drop));
             rois_keep=setdiff([1:size(resps_raw,2)],nancols_kc{ifile});
-            resps_kc=s_kc{ifile}.response_amplitude_stim.mean_peak(stims_keep,rois_keep);
-            if if_submean
+            resps_kc=s_kc{ifile}.response_amplitude_stim.mean_peak(stims_keep,rois_keep);           
+            if if_submean %subtract the mean of the stimuli being analyzed               
                 resps_kc=resps_kc-repmat(mean(resps_kc,1),size(resps_kc,1),1);
             end
             maxdim_allowed=min(size(resps_kc))-if_submean;
@@ -251,12 +263,36 @@ for idrop=0:ndrop_list
             drawnow;
             %save values from analysis with full stimulus set
             resps_orn_full=resps_orn;
+            resps_mean_orn_full=resps_mean_orn;
             coords_all_orn_full=coords_all_orn;
             svd_orn_full=f_orn.coord_opts;
             data_orn_full=data_orn_all;
             data_kc_full=data_kc_knit;
         end
-        svd_orn=f_orn.coord_opts;       
-        disp(sprintf('analyzed %s',drop_text));
+        svd_orn=f_orn.coord_opts;
+        %
+        %determine affine model from dropped ORN coords to dropped KC coords
+        %
+        aux_geof=struct;
+        aux_geof.opts_geof.model_list={'affine_offset'};
+        aux_geof.opts_geof.if_fit_summary=double(isempty(stims_drop));
+        aux_geof.opts_geof.if_warn=double(isempty(stims_drop));
+        aux_geof.opts_geof.if_log=double(isempty(stims_drop));
+        [gfs,xs,aux_geof_out]=rs_geofit(data_orn_all,data_kc_knit,aux_geof);
+        for idim=1:dim_max
+            d_fits(idrop+1,idim)=gfs{1}.gf{idim,idim}.d;
+        end
+        %
+        %compute coordinates in ORN space of all stimuli,including dropped ones
+        %
+        v_full=svd_orn_full.aux.v(:,1:dim_max);
+        v_drop=f_orn.coord_opts.aux.v(:,1:dim_max);
+        coords_orn_all_full=resps_orn_full*v_full; %coordinates obtained from merging all stimuli, mapped into ORN dataset with all stimuli
+        coords_orn_all_drop=resps_orn_full*v_drop; %coordinates obtained from merging all stimuli, mapped into ORN dataset with dropped stimuli
+        coords_orn_drop=resps_orn*v_drop; %coordinates obtained from merging stimuli after drop, mapped into ORN dataset with dropped stimuli, should match coords_all_orn;
+        dev_orn_coords=max(max(abs(coords_orn_drop-coords_all_orn(:,1:dim_max))));
+        disp(sprintf('analyzed %s, orn cooord consistency check: %10.8f',drop_text,dev_orn_coords));
+        dev_max_orn_coords=max(dev_max_orn_coords,dev_orn_coords);
     end %if_notok
 end %drop_list
+disp(sprintf('max orn cooord consistency check: %10.8f',dev_max_orn_coords));

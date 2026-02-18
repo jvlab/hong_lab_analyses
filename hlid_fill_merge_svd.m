@@ -1,5 +1,5 @@
-function [resps,coords_all,f]=hlid_fill_merge_svd(s,opts)
-% [resps,coords_all,f]=hlid_fill_merge_svd(s,opts):  use missing-data routine to fill in and merge ORN data
+function [resps,coords_all,f,resps_mean]=hlid_fill_merge_svd(s,opts)
+% [resps,coords_all,f,resps_mean]=hlid_fill_merge_svd(s,opts):  use missing-data routine to fill in and merge ORN data
 %
 %  This is essentially the modularized version of processing in hild_orn_merge, followed by optional mean subtraction, and hlid_coords_svd.
 %
@@ -9,6 +9,7 @@ function [resps,coords_all,f]=hlid_fill_merge_svd(s,opts)
 %  resps: array of size(length(opts.nstims_use),length(opts.nglomeruli)), responses filled in
 %  coords_all: svd of coords and auxiliary data (see hlid_coords_svd)
 %  f: structure from hlid_coords_svd, with SVD details
+%  resps_mean: mean of resps across stimuli (prior to mean-subtraction)
 %
 %   See also:  HLID_PRED_MAGNIF_DEMO, AFALWT, HLID_ORN_MERGE.
 %
@@ -64,10 +65,11 @@ end
 %
 resps=reshape(afalwt_fit.x_true,[nstims nglomeruli_use]); %use regression slope as response measure
 if opts.if_restore_size
-    resps=resps*geomean(afalwt_fit.b_norm);;
+    resps=resps*geomean(afalwt_fit.b_norm);
 end
+resps_mean=mean(resps,1);
 if (opts.if_submean)
-    resps=resps-repmat(mean(resps,1),nstims,1);
+    resps=resps-repmat(resps_mean,nstims,1);
 end
 %
 if opts.if_log
