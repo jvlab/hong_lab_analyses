@@ -1,20 +1,28 @@
 %hlid_pred_magnif_demo: predict distances in transformation from orn to kc
 %
 % ORN: reads a set of raw data, trial-averaged files, checks for consistency, creates a merged file from trial-averaged z-scores
-% via filling in with multiplicative and additive offset (via afalwt, as in hlid_orn_merge, with if_restore_size=1)
+% via filling in with multiplicative and additive offset (via afalwt, as in hlid_orn_merge, with if_restore_size=1).
+% The missing-data procedure is carried out before any stimuli are dropped.
 %
 % KC: reads a set of raw data, trial-averaged files, for each, creates a coordinate set via svd, and combines
 % via Procrustes consensus with offset and without scaling
 %
-% It is necessary to start from raw data files since the prediction is
-% based on leaving out two stimuli, so the spaces need to be constructed from scratch with those stimuli deleted
+% It is necessary to start from raw data files since the prediction is based on leaving out two stimuli,
+% so the spaces need to be constructed from scratch with those stimuli deleted
 %
 % mean subtraction (optional, determined by if_submean, defaults to 0):
 %   If mean subtraction is enabled, for the ORN data, it is carried out after the preps are merged by the missing-data SVD routine
 %   For KC data, it is carried out within each prep, prior to svd, and prior to Procrustes
 %
-% For fitting the transformation from ORN space to KC space, the ORN merging is restricted to the retained stmuli.
-%   This is resps_orn (responses after dropping stimuli, merging by missing-data method); used to compute coords_all_orn via svd
+% For fitting the transformation from ORN space to KC space, the ORN coordinaates are restricted to the retained stmuli:
+%   coordinates are coords_all_orn, computed from resps_orn (responses after dropping stimuli, merging by missing-data method) in hlid_merge_svd.
+%   These are re-computed by coords_orn_drop=resps_orn*v_drop, where v_drop is the projection from ORN responses to the svd space
+%   and we verify that coords_orn_drop=coords_all_orn (dev_orn_coords, dev_max_orn_coords)
+% For predicting magnification factors, coords_orn_all_drop is the stimuli, mapped into the the dropped-stimulus space,
+%  via the same projection v_drop: coords_orn_all_drop=resps_orn_full*v_drop, and the affine transformation is applied to it.
+%  Note that the coordinates of the *un*dropped stimuli in resps_orn_full are not identical to the responses of the same stimuli in resps_orn,
+%   because of the way that amplitudes are matched in hlid_fill_merge_svd, but this difference is small (dev_orn_coords_drop, dev_max_orn_coords_drop)
+%
 %   Alternative (not done) would be to use just the merge of all stimuli, but just the coordinates of the un-dropped stimuli.
 %   This could be done by selecting the coordinates from coords_all_orn_full, which is coords_all_orn as computed without any dropped stimuli.
 %
@@ -196,6 +204,7 @@ opts_import_kc_all.paradigm_name='kc soma';
 drop_list=nchoosek([1:drop_stim_max],2);
 ndrop_list=size(drop_list,1);
 dev_max_orn_coords=0;
+dev_max_orn_coords_drop=0;
 d_fits=zeros(ndrop_list+1,dim_max); %goodness of fits
 for idrop=0:ndrop_list
     if idrop==0
@@ -291,11 +300,13 @@ for idrop=0:ndrop_list
         coords_orn_all_drop=resps_orn_full*v_drop; %coordinates obtained from merging all stimuli, mapped into ORN dataset with dropped stimuli
         coords_orn_drop=resps_orn*v_drop; %coordinates obtained from merging stimuli after drop, mapped into ORN dataset with dropped stimuli, should match coords_all_orn;
         dev_orn_coords=max(max(abs(coords_orn_drop-coords_all_orn(:,1:dim_max))));
-        disp(sprintf('analyzed %s, orn cooord consistency check: %10.8f',drop_text,dev_orn_coords));
         dev_max_orn_coords=max(dev_max_orn_coords,dev_orn_coords);
-    end %if_notok
+        dev_orn_coords_drop=max(max(abs(coords_orn_all_drop(stims_use,:)-coords_orn_drop)));
+        dev_max_orn_coords_drop=max(dev_max_orn_coords_drop,dev_orn_coords_drop);
+        disp(sprintf('analyzed %s, orn cooord consistency check: %10.8f, drop effect: %10.8f',drop_text,dev_orn_coords,dev_orn_coords_drop));
+     end %if_notok
 end %drop_list
-disp(sprintf('max orn cooord consistency check: %10.8f',dev_max_orn_coords));
+disp(sprintf('max orn cooord consistency check: %10.8f, drop effect: %10.8f',dev_max_orn_coords,dev_max_orn_coords_drop));
 disp('goodness of fits for affine models for full dataset, as function of dimension');
 disp(d_fits(1,:));
 disp('mean goodness of fits for affine models for datasets with dropped stimuli');
