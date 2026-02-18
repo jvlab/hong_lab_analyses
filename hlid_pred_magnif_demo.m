@@ -296,3 +296,8 @@ for idrop=0:ndrop_list
     end %if_notok
 end %drop_list
 disp(sprintf('max orn cooord consistency check: %10.8f',dev_max_orn_coords));
+disp('goodness of fits for affine models for full dataset, as function of dimension');
+disp(d_fits(1,:));
+disp('mean goodness of fits for affine models for datasets with dropped stimuli');
+disp(mean(d_fits(2:end,:),1));
+
