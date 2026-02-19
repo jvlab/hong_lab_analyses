@@ -1,5 +1,8 @@
 %hlid_pred_magnif_demo: predict distances in transformation from orn to kc
 %
+%  procrustes (with scale and offset) is used to comapre affine prediction with an isotropic model
+%  results (distances, input files, params) saved in results structure
+%
 % ORN: reads a set of raw data, trial-averaged files, checks for consistency, creates a merged file from trial-averaged z-scores
 % via filling in with multiplicative and additive offset (via afalwt, as in hlid_orn_merge, with if_restore_size=1).
 % The missing-data procedure is carried out before any stimuli are dropped.
@@ -161,7 +164,7 @@ end
 files_use_kc=getinp('list of files to use for KC data','d',[1 nfiles_kc],files_use_kc);
 nfiles_use_kc=length(files_use_kc);
 %
-dim_max=getinp('maximum analysis dimension','d',[1 nstims],7);
+dim_max=getinp('maximum analysis dimension','d',[2 nstims],7);
 drop_stim_max=getinp('maximum stimulus number to drop','d',[2 nstims],nstims);  %for debugging
 %
 opts_fill_merge=struct;
@@ -197,12 +200,17 @@ opts_import_kc_all.paradigm_name='kc soma';
 % Project each glomerular pattern onto the coordinates, taking into account if_submean
 % including the left-out stimuli; the left-in stimuli serve as a check
 %
+model_list={'procrustes_scale_offset','affine_offset'};
+%
 drop_list=nchoosek([1:drop_stim_max],2);
 ndrop_list=size(drop_list,1);
 dev_max_orn_coords=0;
 dev_max_orn_coords_drop=0;
-d_fits=zeros(1+ndrop_list,dim_max); %goodness of fits
+d_fits=zeros(1+ndrop_list,2,dim_max); %goodness of fits: d1: drop, d2: procrustes or affine, d3: dimension
 dists=cell(1+ndrop_list,1);
+%out-of-sample predictions
+dists_kc_oos.procrustes=zeros(nstims,nstims,dim_max);
+dists_kc_oos.affine=zeros(nstims,nstims,dim_max);
 for idrop=0:ndrop_list
     if idrop==0
         stims_drop=[];
@@ -216,7 +224,8 @@ for idrop=0:ndrop_list
     dists{1+idrop}.dropped=stims_drop;
     dists{1+idrop}.orn_drop=NaN(nstims,nstims,dim_max); %distances from coords made from dropped responses
     dists{1+idrop}.kc_data=NaN(nstims,nstims,dim_max); %distances from kc data
-    dists{1+idrop}.kc_model=NaN(nstims,nstims,dim_max); %distances as predicted from affine model from orn_drop
+    dists{1+idrop}.kc_procrustes=NaN(nstims,nstims,dim_max); %distances as predicted from procrustes model from orn_drop
+    dists{1+idrop}.kc_affine=NaN(nstims,nstims,dim_max); %distances as predicted from affine model from orn_drop
     %
     %merge and import the ORN data into rs format
     %
@@ -283,13 +292,13 @@ for idrop=0:ndrop_list
         %determine affine model from dropped ORN coords to dropped KC coords
         %
         aux_geof=struct;
-        aux_geof.opts_geof.model_list={'affine_offset'};
+        aux_geof.opts_geof.model_list=model_list;
         aux_geof.opts_geof.if_fit_summary=double(isempty(stims_drop));
         aux_geof.opts_geof.if_warn=double(isempty(stims_drop));
         aux_geof.opts_geof.if_log=double(isempty(stims_drop));
         [gfs,xs,aux_geof_out]=rs_geofit(data_orn_drop,data_kc_knit,aux_geof);
         for idim=1:dim_max
-            d_fits(1+idrop,idim)=gfs{1}.gf{idim,idim}.d;
+            d_fits(1+idrop,:,idim)=gfs{1}.gf{idim,idim}.d';
         end
         %
         %compute coordinates in ORN space of all stimuli,including dropped ones
@@ -305,29 +314,54 @@ for idrop=0:ndrop_list
         dev_max_orn_coords_drop=max(dev_max_orn_coords_drop,dev_orn_coords_drop);
         disp(sprintf('analyzed %s, orn coord consistency check: %10.8f, drop effect: %10.8f',drop_text,dev_orn_coords,dev_orn_coords_drop));
         %
-        %transform distances by affine model
+        %transform distances by models
         %
         aux_import2=aux_import;
         aux_import2.opts_import.typenames=stim_labels;
         [data_orn_all_drop,aux_import_orn_all_drop]=rs_import_coordsets(coords_orn_all_drop,aux_import2); %coords_orn_all_drop has all stimuli mapped into dropped space
         aux_xform=struct;
         aux_xform.opts_xform=struct;
-        aux_xform.opts_xform.class=xs.affine_offset.class;
-        xforms=xs.affine_offset.xforms;
-        [data_kc_model,aux_xform_out]=rs_xform_apply(data_orn_all_drop,xforms,aux_xform);
+        %
+        model_name=model_list{1};
+        aux_xform.opts_xform.class=xs.(model_name).class;
+        xforms=xs.(model_name).xforms;
+        [data_kc_procrustes,aux_xform_procrustes_out]=rs_xform_apply(data_orn_all_drop,xforms,aux_xform);
+        %
+        model_name=model_list{2};
+        aux_xform.opts_xform.class=xs.(model_name).class;
+        xforms=xs.(model_name).xforms;
+        [data_kc_affine,aux_xform_affine_out]=rs_xform_apply(data_orn_all_drop,xforms,aux_xform);
         %
         %compute distances
         %
         for idim=1:dim_max
             dists{1+idrop}.orn_drop(:,:,idim)=sqrt(cootodsq(coords_orn_all_drop(:,[1:idim])));  %distances from coords made from dropped responses
-            dists{1+idrop}.kc_model(:,:,idim)=sqrt(cootodsq(data_kc_model.ds{1}{idim}));         %distances from kc model
+            dists{1+idrop}.kc_procrustes(:,:,idim)=sqrt(cootodsq(data_kc_procrustes.ds{1}{idim}));         %distances from kc model
+            dists{1+idrop}.kc_affine(:,:,idim)=sqrt(cootodsq(data_kc_affine.ds{1}{idim}));         %distances from kc model
             dists{1+idrop}.kc_data(stims_use,stims_use,idim)=sqrt(cootodsq(data_kc_knit.ds{1}{idim}));         %distances from kc data
+        end
+        if ~isempty(stims_drop)
+            dists_kc_oos.procrustes(stims_drop(1),stims_drop(2),:)=dists{1+idrop}.kc_procrustes(stims_drop(1),stims_drop(2),:);
+            dists_kc_oos.affine(stims_drop(1),stims_drop(2),:)=dists{1+idrop}.kc_affine(stims_drop(1),stims_drop(2),:);
         end
      end %if_notok
 end %drop_list
+dists_kc_oos.procrustes=dists_kc_oos.procrustes+permute(dists_kc_oos.procrustes,[2 1 3]);
+dists_kc_oos.affine=dists_kc_oos.affine+permute(dists_kc_oos.affine,[2 1 3]);
+%
 disp(sprintf('max orn coord consistency check: %10.8f, drop effect: %10.8f',dev_max_orn_coords,dev_max_orn_coords_drop));
-disp('goodness of fits for affine models for full dataset, as function of dimension');
-disp(d_fits(1,:));
-disp('mean goodness of fits for affine models for datasets with dropped stimuli');
-disp(mean(d_fits(2:end,:),1));
-
+disp('goodness of fits for procrustes and affine models for full dataset, as function of dimension');
+disp(squeeze(d_fits(1,:,:)));
+disp('mean goodness of fits for procrusets and affine models for datasets with dropped stimuli');
+disp(squeeze(mean(d_fits(2:end,:,:),1)));
+%
+results=struct;
+results.nstims=nstims;
+results.if_submean=if_submean;
+results.if_restore_size=if_restore_size;
+results.files_use_orn=files_use_orn;
+results.files_use_kc=files_use_kc;
+results.min_present=min_present;
+results.dim_max=dim_max;
+results.dists=dists;
+results.dists_kc_oos=dists_kc_oos;
