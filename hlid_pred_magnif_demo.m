@@ -357,11 +357,13 @@ disp(squeeze(mean(d_fits(2:end,:,:),1)));
 %
 results=struct;
 results.nstims=nstims;
+results.stim_labels=stim_labels;
 results.if_submean=if_submean;
 results.if_restore_size=if_restore_size;
 results.files_use_orn=files_use_orn;
 results.files_use_kc=files_use_kc;
 results.min_present=min_present;
 results.dim_max=dim_max;
+results.drop_list=drop_list;
 results.dists=dists;
 results.dists_kc_oos=dists_kc_oos;
