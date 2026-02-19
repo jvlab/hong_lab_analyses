@@ -1,7 +1,7 @@
 %hlid_pred_magnif_demo: predict distances in transformation from orn to kc
 %
 %  procrustes (with scale and offset) is used to comapre affine prediction with an isotropic model
-%  results (distances, input files, params) saved in results structure
+%  results (distances, input files, params) saved in results structure, to be plotted with hlid_pred_magnif_plot
 %
 % ORN: reads a set of raw data, trial-averaged files, checks for consistency, creates a merged file from trial-averaged z-scores
 % via filling in with multiplicative and additive offset (via afalwt, as in hlid_orn_merge, with if_restore_size=1).
@@ -29,7 +29,7 @@
 %   Alternative (not done) would be to use just the merge of all stimuli, but just the coordinates of the un-dropped stimuli.
 %   This could be done by selecting the coordinates from coords_all_orn_full, which is coords_drop_orn as computed without any dropped stimuli.
 %
-%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT,
+%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT, HLID_PRED_MAGNIF_PLOT,
 %   RS_IMPORT_COORDSETS, RS_KNIT_COORDSETS, RS_GEOFIT, RS_XFORM_APPLY, COOTODSQ.
 %
 hlid_setup;
@@ -363,6 +363,8 @@ disp('mean goodness of fits for procrusets and affine models for datasets with d
 disp(squeeze(mean(d_fits(2:end,:,:),1)));
 %
 results=struct;
+results.filenames_orn=filenames_short_orn;
+results.filenames_kc=filenames_short_kc;
 results.nstims=nstims;
 results.stim_labels=stim_labels;
 results.if_submean=if_submean;

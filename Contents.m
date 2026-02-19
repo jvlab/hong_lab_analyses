@@ -45,6 +45,7 @@
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
 % hlid_pool_pcacontrib: show contributions of each component dataset to pcs of a pooled dataset
 % hlid_pred_magnif_demo: attempt to predict magnification factor for ORN to KC transformation, leaving out pairs of stimuli
+% hlid_pred_magnif_plot: plot results of hlid_pred_magnif_demo
 % hlid_rastim_mds_coords_demo: examine nonstandard embeddings, e.g., cosine, Pearson, via transformations of z-scores, prior to computing coordinates
 % hlid_rastim_mds_coords_subsamp: calculations of hlid_rastim_coords_demo on subsamples of files
 % hlid_rastim_mds_coords_summ: summarize output statistics of hlid_rastim_mds_coords_demo
