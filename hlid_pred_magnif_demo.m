@@ -167,7 +167,7 @@ end
 files_use_kc=getinp('list of files to use for KC data','d',[1 nfiles_kc],files_use_kc);
 nfiles_use_kc=length(files_use_kc);
 %
-dim_max=getinp('maximum analysis dimension','d',[2 nstims-2-if_submean],7);
+dim_max=getinp('maximum analysis dimension','d',[2 nstims-2-if_submean],nstims-2-ifsubmean);
 drop_stim_max=getinp('maximum stimulus number to drop','d',[2 nstims],nstims);  %use lower values only for debugging
 %
 opts_fill_merge=struct;
@@ -298,6 +298,7 @@ for idrop=0:ndrop_list
         aux_geof=struct;
         aux_geof.opts_geof.model_list=model_list;
         aux_geof.opts_geof.dim_max_in=dim_max;
+        aux_geof.opts_geof.if_stats=0;
         aux_geof.opts_geof.if_fit_summary=double(isempty(stims_drop));
         aux_geof.opts_geof.if_warn=double(isempty(stims_drop));
         aux_geof.opts_geof.if_log=double(isempty(stims_drop));
