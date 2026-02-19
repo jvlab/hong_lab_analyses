@@ -29,7 +29,8 @@
 %   Alternative (not done) would be to use just the merge of all stimuli, but just the coordinates of the un-dropped stimuli.
 %   This could be done by selecting the coordinates from coords_all_orn_full, which is coords_drop_orn as computed without any dropped stimuli.
 %
-%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT, RS_GEOFIT, COOTODSQ.
+%   See also:  HLID_SETUP, HLID_ORN_MERGE, HLID_FILL_MERGE_SVD, HLID_COORDS_SVD, HLID_DA_STIMSELECT,
+%   RS_IMPORT_COORDSETS, RS_KNIT_COORDSETS, RS_GEOFIT, RS_XFORM_APPLY, COOTODSQ.
 %
 hlid_setup;
 if ~exist('opts_dasel')
@@ -51,6 +52,7 @@ dsid=[];
 %
 %verify consistency of names and numbers of glomeruli and stimuli
 %
+disp(sprintf('files from %s',pathname_orn))
 for ifile=1:nfiles_orn
     s_orn{ifile}=load(cat(2,pathname_orn,filenames_short_orn{ifile}));
     [s_orn{ifile},optsused_dasel]=hlid_da_stimselect(s_orn{ifile},opts_dasel);
@@ -128,6 +130,7 @@ dsid_kc=[];
 %
 %verify consistency of names with ORN files
 %
+disp(sprintf('files from %s',pathname_kc))
 for ifile=1:nfiles_kc
     s_kc{ifile}=load(cat(2,pathname_kc,filenames_short_kc{ifile}));
     [s_kc{ifile},optsused_dasel_kc]=hlid_da_stimselect(s_kc{ifile},opts_dasel);
@@ -164,8 +167,8 @@ end
 files_use_kc=getinp('list of files to use for KC data','d',[1 nfiles_kc],files_use_kc);
 nfiles_use_kc=length(files_use_kc);
 %
-dim_max=getinp('maximum analysis dimension','d',[2 nstims],7);
-drop_stim_max=getinp('maximum stimulus number to drop','d',[2 nstims],nstims);  %for debugging
+dim_max=getinp('maximum analysis dimension','d',[2 nstims-2-if_submean],7);
+drop_stim_max=getinp('maximum stimulus number to drop','d',[2 nstims],nstims);  %use lower values only for debugging
 %
 opts_fill_merge=struct;
 opts_fill_merge.files_use=files_use_orn;
@@ -184,7 +187,7 @@ opts_fill_merge.if_submean=if_submean;
 %
 opts_import_orn_all=struct;
 opts_import_orn_all.paradigm_name='orn terminals';
-opts_import_orn_all.label_long=cat(2,'orn terminals trial-averaged, merged, svd',sprintf(' meansub=%1.0f',if_submean));
+opts_import_orn_all.label_long=cat(2,'orn terminals trial-averaged, merged, svd',sprintf(' submean=%1.0f',if_submean));
 opts_import_orn_all.label='orn';
 opts_import_orn_all.type_coords_def='none';
 %
@@ -208,9 +211,10 @@ dev_max_orn_coords=0;
 dev_max_orn_coords_drop=0;
 d_fits=zeros(1+ndrop_list,2,dim_max); %goodness of fits: d1: drop, d2: procrustes or affine, d3: dimension
 dists=cell(1+ndrop_list,1);
+transforms=cell(1+ndrop_list,1);
 %out-of-sample predictions
-dists_kc_oos.procrustes=zeros(nstims,nstims,dim_max);
-dists_kc_oos.affine=zeros(nstims,nstims,dim_max);
+dists_kc_out_of_sample.procrustes=zeros(nstims,nstims,dim_max);
+dists_kc_out_of_sample.affine=zeros(nstims,nstims,dim_max);
 for idrop=0:ndrop_list
     if idrop==0
         stims_drop=[];
@@ -262,7 +266,7 @@ for idrop=0:ndrop_list
             [f,s_diag_all,u_full,v_full,s_full,coords_all_kc]=hlid_coords_svd(struct(),resps_kc,maxdim_allowed,maxdim_use,if_submean,[],[],setfield(struct(),'if_log',0));
             %
             opts_import_kc_all.typenames=stim_labels(stims_keep);
-            opts_import_kc_all.label_long=cat(2,'kc soma trial-averaged, svd ',filenames_short_kc{ifile},sprintf(' meansub=%1.0f',if_submean));
+            opts_import_kc_all.label_long=cat(2,'kc soma trial-averaged, svd ',filenames_short_kc{ifile},sprintf(' submean=%1.0f',if_submean));
             opts_import_kc_all.label=cat(2,'kc ', strrep(filenames_short_kc{ifile},'.mat',''));
             aux_import=struct;
             aux_import.opts_import=opts_import_kc_all;
@@ -289,14 +293,16 @@ for idrop=0:ndrop_list
         end
         svd_orn=f_orn.coord_opts;
         %
-        %determine affine model from dropped ORN coords to dropped KC coords
+        %determine prcrustes and affine model from dropped ORN coords to dropped KC coords
         %
         aux_geof=struct;
         aux_geof.opts_geof.model_list=model_list;
+        aux_geof.opts_geof.dim_max_in=dim_max;
         aux_geof.opts_geof.if_fit_summary=double(isempty(stims_drop));
         aux_geof.opts_geof.if_warn=double(isempty(stims_drop));
         aux_geof.opts_geof.if_log=double(isempty(stims_drop));
         [gfs,xs,aux_geof_out]=rs_geofit(data_orn_drop,data_kc_knit,aux_geof);
+        transforms{1+idrop}=xs;
         for idim=1:dim_max
             d_fits(1+idrop,:,idim)=gfs{1}.gf{idim,idim}.d';
         end
@@ -341,13 +347,13 @@ for idrop=0:ndrop_list
             dists{1+idrop}.kc_data(stims_use,stims_use,idim)=sqrt(cootodsq(data_kc_knit.ds{1}{idim}));         %distances from kc data
         end
         if ~isempty(stims_drop)
-            dists_kc_oos.procrustes(stims_drop(1),stims_drop(2),:)=dists{1+idrop}.kc_procrustes(stims_drop(1),stims_drop(2),:);
-            dists_kc_oos.affine(stims_drop(1),stims_drop(2),:)=dists{1+idrop}.kc_affine(stims_drop(1),stims_drop(2),:);
+            dists_kc_out_of_sample.procrustes(stims_drop(1),stims_drop(2),:)=dists{1+idrop}.kc_procrustes(stims_drop(1),stims_drop(2),:);
+            dists_kc_out_of_sample.affine(stims_drop(1),stims_drop(2),:)=dists{1+idrop}.kc_affine(stims_drop(1),stims_drop(2),:);
         end
      end %if_notok
 end %drop_list
-dists_kc_oos.procrustes=dists_kc_oos.procrustes+permute(dists_kc_oos.procrustes,[2 1 3]);
-dists_kc_oos.affine=dists_kc_oos.affine+permute(dists_kc_oos.affine,[2 1 3]);
+dists_kc_out_of_sample.procrustes=dists_kc_out_of_sample.procrustes+permute(dists_kc_out_of_sample.procrustes,[2 1 3]);
+dists_kc_out_of_sample.affine=dists_kc_out_of_sample.affine+permute(dists_kc_out_of_sample.affine,[2 1 3]);
 %
 disp(sprintf('max orn coord consistency check: %10.8f, drop effect: %10.8f',dev_max_orn_coords,dev_max_orn_coords_drop));
 disp('goodness of fits for procrustes and affine models for full dataset, as function of dimension');
@@ -365,5 +371,11 @@ results.files_use_kc=files_use_kc;
 results.min_present=min_present;
 results.dim_max=dim_max;
 results.drop_list=drop_list;
+results.drop_stim_max=drop_stim_max;
 results.dists=dists;
-results.dists_kc_oos=dists_kc_oos;
+results.dists_kc_out_of_sample=dists_kc_out_of_sample;
+results.transforms=transforms;
+%
+clear s_kc
+clear s_orn
+disp('consider saving ''results''')
