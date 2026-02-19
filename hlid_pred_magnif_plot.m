@@ -64,9 +64,9 @@ for inout=1:2 %insample vs out of sample
             plot([0 dist_range],[0 dist_range],'k:');
             %
             rmse=sqrt(mean(xvals(:)-yvals(:)).^2);
-            text(0.1*dist_range,0.85*dist_range,sprintf('rmse=%5.1f',rmse));
+            text(0.1*dist_range,0.90*dist_range,sprintf('rmse=%5.1f',rmse),'FontSize',7);
             r=corr(xvals,yvals);
-            text(0.1*dist_range,0.60*dist_range,sprintf('r=%5.3f',r));
+            text(0.1*dist_range,0.75*dist_range,sprintf('r=%5.3f',r),'FontSize',7);
             %
             title(sprintf('dim %2.0f',idim));
             xlabel('kc dist')
