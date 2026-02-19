@@ -86,11 +86,17 @@ for plot_type=1:4
                 subplot(nmodels+1-m_low,ndims_plot,idim_ptr+(im-m_low)*ndims_plot);
                 switch plot_type
                     case 1 % kc/orn dist
+                        cvals_all=results.dists{1}.orn_drop(:,:,idim);
+                        cvals=cvals_all(utria_sel);
+                        cvals_median=median(cvals);
                         xvals_all=dists_data(:,:,idim);
                         yvals_all=dists_models{im}(:,:,idim);
                         xvals=xvals_all(utria_sel);
                         yvals=yvals_all(utria_sel);
-                        plot(xvals,yvals,'k.');
+                        %
+                        plot(xvals(cvals>=cvals_median),yvals(cvals>=cvals_median),'k.');
+                        hold on;
+                        plot(xvals(cvals<cvals_median),yvals(cvals<cvals_median),'r.');
                         hold on;
                         plot([0 dist_range],[0 dist_range],'k:');
                         %
@@ -110,11 +116,17 @@ for plot_type=1:4
                         set(gca,'YTick',[0 0.5 1]*dist_range_label);
                         axis square;
                     case 2 %kc/orn dist
-                        xvals_all=dists_data(:,:,idim)./results.dists{1}.orn_drop(:,:,idim);
-                        yvals_all=dists_models{im}(:,:,idim)./results.dists{1}.orn_drop(:,:,idim);
+                        cvals_all=results.dists{1}.orn_drop(:,:,idim);
+                        cvals=log2(cvals_all(utria_sel));
+                        cvals_median=median(cvals);
+                        xvals_all=dists_data(:,:,idim)./cvals_all;
+                        yvals_all=dists_models{im}(:,:,idim)./cvals_all;
                         xvals=log2(xvals_all(utria_sel));
                         yvals=log2(yvals_all(utria_sel));
-                        plot(xvals,yvals,'k.');
+                        %
+                        plot(xvals(cvals>=cvals_median),yvals(cvals>=cvals_median),'k.');
+                        hold on;
+                        plot(xvals(cvals<cvals_median),yvals(cvals<cvals_median),'r.');
                         hold on;
                         plot(log2(ratio_range),log2(ratio_range),'k:');
                         %
@@ -160,6 +172,11 @@ for plot_type=1:4
                 end %plot_type
             end %idim_ptr
         end %im
+        if ismember(plot_type,[1 2])
+            axes('Position',[0.5,0.04,0.01,0.01]);
+            text(0,0,sprintf('red: ORN distance < median; black: ORN distance > median'));
+            axis off
+        end
         if ismember(plot_type,[3 4])
             axes('Position',[0.5,0.04,0.01,0.01]);
             text(0,0,sprintf('range: %5.2f to %5.2f',zscale));
@@ -203,8 +220,8 @@ for if_logratio=1:2
     set(gca,'ColorOrder',[1 0 0;1 0 0;0 0 1;0 0 1]);
     set(gca,'LineStyleOrder',{':','-',':','-'});
     set(gca,'LineStyleCyclingMethod','withcolor');
+    set(gca,'XTick',dimlist_plot);
     xlabel('dim');
-    legend({'proc in-samp','aff in-samp','proc out-of-samp','aff out-of-samp'},'Location','Best');
     title(cat(2,'rmse',log_label));
     %
     subplot(3,2,2+if_logratio)
@@ -212,8 +229,8 @@ for if_logratio=1:2
     set(gca,'ColorOrder',[1 0 0;1 0 0;0 0 1;0 0 1]);
     set(gca,'LineStyleOrder',{':','-',':','-'});
     set(gca,'LineStyleCyclingMethod','withcolor');
+    set(gca,'XTick',dimlist_plot);
     xlabel('dim');
-    legend({'proc in-samp','aff in-samp','proc out-of-samp','aff out-of-samp'},'Location','Best');
     title(cat(2,'frac var unex',log_label));
     %
     subplot(3,2,4+if_logratio)
@@ -221,6 +238,7 @@ for if_logratio=1:2
     set(gca,'ColorOrder',[1 0 0;1 0 0;0 0 1;0 0 1]);
     set(gca,'LineStyleOrder',{':','-',':','-'});
     set(gca,'LineStyleCyclingMethod','withcolor');
+    set(gca,'XTick',dimlist_plot);
     xlabel('dim');
     set(gca,'YLim',[-0.1 1]);
     legend({'proc in-samp','aff in-samp','proc out-of-samp','aff out-of-samp'},'Location','Best');
