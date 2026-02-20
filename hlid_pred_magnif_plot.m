@@ -106,7 +106,7 @@ for plot_type=1:4
                         plot([0 dist_range],[0 dist_range],'k:');
                         %
                         rmse(im,idim_ptr,inout)=sqrt(mean((xvals-yvals).^2));
-                        text(0.05*dist_range,0.95*dist_range,sprintf('rmse=%5.1f',rmse(im,idim_ptr,inout)),'FontSize',7);
+                        text(0.05*dist_range,0.95*dist_range,sprintf('rmse=%5.2f',rmse(im,idim_ptr,inout)),'FontSize',7);
                         fvu(im,idim_ptr,inout)=sum((xvals-yvals).^2)/sum((xvals-mean(xvals)).^2);
                         text(0.05*dist_range,0.85*dist_range,sprintf('fvu=%5.3f',fvu(im,idim_ptr,inout)),'FontSize',7);
                         correl(im,idim_ptr,inout)=corr(xvals,yvals);
@@ -136,7 +136,7 @@ for plot_type=1:4
                         plot(log2(ratio_range),log2(ratio_range),'k:');
                         %
                         rmse_logratio(im,idim_ptr,inout)=sqrt(mean((xvals-yvals).^2));
-                        text(log2(ratio_range(1)),0.05*log2(ratio_range(1))+0.95*log2(ratio_range(2)),sprintf('rmse=%5.1f',rmse_logratio(im,idim_ptr,inout)),'FontSize',7);
+                        text(log2(ratio_range(1)),0.05*log2(ratio_range(1))+0.95*log2(ratio_range(2)),sprintf('rmse=%5.2f',rmse_logratio(im,idim_ptr,inout)),'FontSize',7);
                         fvu_logratio(im,idim_ptr,inout)=sum((xvals-yvals).^2)/sum((xvals-mean(xvals)).^2);
                         text(log2(ratio_range(1)),0.15*log2(ratio_range(1))+0.85*log2(ratio_range(2)),sprintf('fvu=%5.3f',fvu_logratio(im,idim_ptr,inout)),'FontSize',7);
                         correl_logratio(im,idim_ptr,inout)=corr(xvals,yvals);
