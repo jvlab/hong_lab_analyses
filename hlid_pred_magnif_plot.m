@@ -20,6 +20,11 @@ hlid_setup;
 % results.dists_kc_out_of_sample=dists_kc_out_of_sample;
 % results.transforms=transforms;
 %
+stims_use=[1:results.nstims];
+stims_use=getinp('stimuli to use for plots and statistics','d',[1 results.nstims],stims_use);
+nstims_use=length(stims_use);
+stim_labels_use=results.stim_labels(stims_use);
+%
 dimlist_plot=getinp('dimension list to plot','d',[1 results.dim_max],[2:min(7,results.dim_max)]);
 ndims_plot=length(dimlist_plot);
 %
@@ -31,7 +36,7 @@ if ~exist('dist_diff_range') dist_diff_range=[-20 70]; end
 dist_range=max(dist_range_label,max(max(max(results.dists{1}.kc_data(:,:,dimlist_plot)))));
 model_names={'procrustes','affine'};
 nmodels=length(model_names);
-utria_sel=find(triu(ones(results.nstims),1)==1); %select values in upper triangular part of a matrix of size nstims
+utria_sel=find(triu(ones(nstims_use),1)==1); %select values in upper triangular part of a matrix of size nstims_use
 %
 %computed from kc distance
 rmse=zeros(nmodels,ndims_plot,2); %root-mean-squared error, d1: model, d2:dim, d3: in-sample or out-of-sample
@@ -86,11 +91,11 @@ for plot_type=1:4
                 subplot(nmodels+1-m_low,ndims_plot,idim_ptr+(im-m_low)*ndims_plot);
                 switch plot_type
                     case 1 % kc/orn dist
-                        cvals_all=results.dists{1}.orn_drop(:,:,idim);
+                        cvals_all=results.dists{1}.orn_drop(stims_use,stims_use,idim);
                         cvals=cvals_all(utria_sel);
                         cvals_median=median(cvals);
-                        xvals_all=dists_data(:,:,idim);
-                        yvals_all=dists_models{im}(:,:,idim);
+                        xvals_all=dists_data(stims_use,stims_use,idim);
+                        yvals_all=dists_models{im}(stims_use,stims_use,idim);
                         xvals=xvals_all(utria_sel);
                         yvals=yvals_all(utria_sel);
                         %
@@ -116,11 +121,11 @@ for plot_type=1:4
                         set(gca,'YTick',[0 0.5 1]*dist_range_label);
                         axis square;
                     case 2 %kc/orn dist
-                        cvals_all=results.dists{1}.orn_drop(:,:,idim);
+                        cvals_all=results.dists{1}.orn_drop(stims_use,stims_use,idim);
                         cvals=log2(cvals_all(utria_sel));
                         cvals_median=median(cvals);
-                        xvals_all=dists_data(:,:,idim)./cvals_all;
-                        yvals_all=dists_models{im}(:,:,idim)./cvals_all;
+                        xvals_all=dists_data(stims_use,stims_use,idim)./cvals_all;
+                        yvals_all=dists_models{im}(stims_use,stims_use,idim)./cvals_all;
                         xvals=log2(xvals_all(utria_sel));
                         yvals=log2(yvals_all(utria_sel));
                         %
@@ -150,23 +155,23 @@ for plot_type=1:4
                     case {3,4} %kc distance heatmap
                         if plot_type==3
                                 if im==0
-                                    dvals=dists_data(:,:,idim);
+                                    dvals=dists_data(stims_use,stims_use,idim);
                                     mstring='data';
                                 else
-                                    dvals=dists_models{im}(:,:,idim);
+                                    dvals=dists_models{im}(stims_use,stims_use,idim);
                                     mstring=model_names{im};
                                 end
                                 zscale=[0 dist_range];
                         else
-                            dvals=dists_data(:,:,idim)-dists_models{im}(:,:,idim);
+                            dvals=dists_data(stims_use,stims_use,idim)-dists_models{im}(stims_use,stims_use,idim);
                             mstring=sprintf('data - %s',model_names{im});
                             zscale=dist_diff_range;
                         end
                         imagesc(dvals,zscale);
-                        set(gca,'XTick',[1:results.nstims]);
-                        set(gca,'XTickLabel',results.stim_labels,'FontSize',7);
-                        set(gca,'YTick',[1:results.nstims]);
-                        set(gca,'YTickLabel',results.stim_labels,'FontSize',7);
+                        set(gca,'XTick',[1:nstims_use]);
+                        set(gca,'XTickLabel',stim_labels_use,'FontSize',7);
+                        set(gca,'YTick',[1:nstims_use]);
+                        set(gca,'YTickLabel',stim_labels_use,'FontSize',7);
                         title(sprintf(' dim %2.0f %s',idim,mstring));
                         axis square;
                 end %plot_type
@@ -184,7 +189,7 @@ for plot_type=1:4
         end
         %
         axes('Position',[0.01,0.04,0.01,0.01]);
-        text(0,0,cat(2,tstring,sprintf('; if submean %1.0f nstims %1.0f',results.if_submean,results.nstims)));
+        text(0,0,cat(2,tstring,sprintf('; if submean %1.0f nstims shown %1.0f',results.if_submean,nstims_use)));
         axis off
         %
         axes('Position',[0.01,0.01,0.01,0.01]);
@@ -245,7 +250,7 @@ for if_logratio=1:2
     title(cat(2,'correl',log_label));
 end
 axes('Position',[0.01,0.04,0.01,0.01]);
-text(0,0,sprintf('if submean %1.0f nstims %1.0f',results.if_submean,results.nstims));
+text(0,0,sprintf('if submean %1.0f nstims shown %1.0f',results.if_submean,nstims_use));
 axis off
 %
 axes('Position',[0.01,0.01,0.01,0.01]);
