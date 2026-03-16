@@ -63,4 +63,10 @@
 % hlid_rastim_trial_vis_plot: plotting utility plotting for hlid_rastim_trial_vis
 % hlid_tnt_label_model_3c_compare: compare control kc dataset with tnt and tnt transformed by models
 %
+%   Volumetric data
+%
+% hlid_vi_explore: prelim view of volumetric data
+% hlid_vi_read: read volumetric datasets from hdf5 files
+% hlid_vi_stimnames: set up stimulus names 
+%
 %   Copyright (c) 2024, 2025, 2026 by J. Victor
