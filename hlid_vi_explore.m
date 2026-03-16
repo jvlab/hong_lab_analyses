@@ -1,6 +1,6 @@
 %initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%  Need to add: plot z score, plot as function of time
+%  Need to add: plot as function of time
 % 
 %   See also:  HLID_VI_READ, HLID_VI_STIMNAMES.
 %
@@ -8,6 +8,12 @@ if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medi
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
 if ~exist('nstims') nstims=24; end
 if ~exist('nrepts') nrepts=5; end
+%
+resp_measures={'deltaF/F','z'};
+for k=1:length(resp_measures)
+    disp(sprintf('%1.0f->response measure %s',k,resp_measures{k}));
+end
+resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
 %
 if ~exist('if_reorder') if_reorder=0; end
 %
@@ -25,10 +31,9 @@ stims=hlid_vi_stimnames;
 %
 %olot mean response (delta-F/F), averaged over repeats
 %
-resp_type='deltaF/F';
 resp_maxlength=size(s.responses,2);
 deltaF=s.responses-repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
-switch resp_type
+switch resp_measure
     case 'deltaF/F'
         v=deltaF./repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
     case 'z'
@@ -57,7 +62,7 @@ end
 for plane_ptr=1:s.n_planes_with_data_kept
     plane=s.plane_list_kept(plane_ptr);
     pxls_inplane=find(s.xyz_kept(:,3)==plane);
-    tstring=sprintf('plane %2.0f: %s, %s',plane,resp_type,strrep(s.opts_read.data_file,'.hdf5',''));
+    tstring=sprintf('plane %2.0f: %s, %s',plane,resp_measure,strrep(s.opts_read.data_file,'.hdf5',''));
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
