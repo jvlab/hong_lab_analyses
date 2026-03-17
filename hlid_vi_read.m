@@ -63,7 +63,7 @@ if opts_read.if_remnan==1
     pixel_values=h5read(fullname,'/pixel_values'); %read all repts and stims
     nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
     if opts_read.if_log
-        disp(sprintf('%10.0f pixel values read from %7.0f frames across all repts and stims; %7.0f have a NaN in some frame',...
+        disp(sprintf('%10.0f pixel values in %7.0f pixels across all repts and stims; %7.0f have a NaN in some frame',...
             numel(pixel_values),size(pixel_values,1),sum(nan_pixels)));
     end
     pixels_keep=find(nan_pixels==0);
@@ -79,7 +79,7 @@ else
     end
     nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
     if opts_read.if_log
-        disp(sprintf('%10.0f pixel values read from %7.0f frames across specified repts and stims; %7.0f have a NaN in some frame',...
+        disp(sprintf('%10.0f pixel values in %7.0f pixels across specified repts and stims; %7.0f have a NaN in some frame',...
             numel(pixel_values),size(pixel_values,1),sum(nan_pixels)));
     end
     if opts_read.if_remnan==-1
