@@ -1,6 +1,6 @@
 %initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%   See also:  HLID_VI_READ, HLID_VI_STIMNAMES.
+%   See also:  HLID_VI_READ, HLID_VI_STIMNAMES, HLID_VARRATS.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
@@ -166,12 +166,12 @@ if if_dist
     v_indiv_repts=reshape(v,[s.n_pixels_kept,resp_maxlength,s.n_repts_kept*s.n_stims_kept]);
     v_indiv_repts=reshape(v_indiv_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
     %
-    %expand the display pointer order to take into account each repeat
+    var_rats=hlid_varrats(reshape(v_indiv_repts,[s.n_pixels_kept*resp_minlength,s.n_repts_kept,s.n_stims_kept]));
     %
-    dpo_expanded=s.n_repts_kept*repmat(display_ptr_order-1,s.n_repts_kept,1);
+    dpo_expanded=s.n_repts_kept*repmat(display_ptr_order-1,s.n_repts_kept,1); %expand the display pointer order to take into account blocks of repeats
     dpo_expanded=dpo_expanded+repmat([1:s.n_repts_kept]',1,s.n_stims_kept);
     dpo_expanded=dpo_expanded(:)';
-    tick_locs=[1:s.n_stims_kept]*s.n_repts_kept-(s.n_repts_kept-1)/2;
+    tick_locs=[1:s.n_stims_kept]*s.n_repts_kept-(s.n_repts_kept-1)/2; %tick locations for a block of repeats
     %
     tstring=sprintf('distances, each repeat: %s, %s',resp_measure,read_data_file_short);
     figure;
@@ -198,6 +198,9 @@ if if_dist
         colorbar;
     end
     %
+    axes('Position',[0.01,0.04,0.01,0.01]);
+    text(0,0,sprintf('variance ratio: %8.4f',var_rats.ratio));
+    axis off
     axes('Position',[0.01,0.01,0.01,0.01]);
     text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
     axis off

@@ -65,6 +65,7 @@
 %
 %   Volumetric data
 %
+% hlid_varrats: compute within vs across repeat variances
 % hlid_vi_explore: prelim view of volumetric data
 % hlid_vi_read: read volumetric datasets from hdf5 files
 % hlid_vi_stimnames: set up stimulus names 
