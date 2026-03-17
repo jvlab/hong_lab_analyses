@@ -1,13 +1,14 @@
 %initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%  Need to add: plot as function of time
-% 
 %   See also:  HLID_VI_READ, HLID_VI_STIMNAMES.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
 if ~exist('nstims') nstims=24; end
 if ~exist('nrepts') nrepts=5; end
+%
+dist_names={'cosine','Pearson'};
+n_dists=length(dist_names);
 %
 resp_measures={'deltaF/F','z'};
 for k=1:length(resp_measures)
@@ -17,7 +18,7 @@ resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
 %
 if_spatial_pattern=getinp('1 to plot spatial patterns','d',[0 1]);
 if_temporal_pattern=getinp('1 to plot temporal patterns','d',[0 1]);
-if_corr=getinp('1 to plot correlations','d',[0 1]);
+if_dist=getinp('1 to plot distances','d',[0 1]);
 %
 if_reorder=getinp('1 to reorder stimuli','d',[0 1]);
 rept_list=getinp('repeat list','d',[1 nrepts],1:nrepts);
@@ -29,6 +30,7 @@ opts_read.stim_list=stim_list;
 opts_read.rept_list=rept_list;
 [s,opts_read_used]=hlid_vi_read(opts_read);
 read_data_file_short=strrep(s.opts_read.data_file,'.hdf5','');
+rept_string=cat(2,'repts: ',sprintf(' %2.0f',opts_read.rept_list));
 %
 disp(s)
 %
@@ -94,7 +96,7 @@ if if_spatial_pattern
             title(sprintf('s %2.0f: %s',stim_no,stim_name));
         end
         axes('Position',[0.01,0.01,0.01,0.01]);
-        text(0,0,tstring,'Interpreter','none');
+        text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
         axis off
     end
 end
@@ -119,31 +121,85 @@ if if_temporal_pattern
         title(sprintf('s %2.0f: %s',stim_no,stim_name));
     end
     axes('Position',[0.01,0.01,0.01,0.01]);
-    text(0,0,tstring,'Interpreter','none');
+    text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
     axis off
 end
 %
-if if_corr
+if if_dist
+    %
+    % average across repeats
     %
     v_across_repts=reshape(mean(v,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);
     v_across_repts=reshape(v_across_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_stims_kept]);
     %
-    tstring=sprintf('correlations: %s, %s',resp_measure,read_data_file_short);
+    tstring=sprintf('distances: %s, %s',resp_measure,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
     set(gcf,'Name',tstring);
-    v_corr=corr(v_across_repts);
-    imagesc(v_corr(display_ptr_order,display_ptr_order)-diag(diag(v_corr)));
-    set(gca,'XTick',[1:s.n_stims_kept]);
-    set(gca,'XTickLabels',stims.names_short(s.opts_read.stim_list(display_ptr_order)));
-    set(gca,'YTick',[1:s.n_stims_kept]);
-    set(gca,'YTickLabels',stims.names_short(s.opts_read.stim_list(display_ptr_order)));
-    axis square;
-    colorbar;
+    for idist=1:n_dists
+        switch dist_names{idist}
+            case 'cosine'
+                dot_prods=v_across_repts'*v_across_repts;
+                mags=sqrt(diag(dot_prods));
+                heatmap=dot_prods./(mags*mags');
+            case 'Pearson'
+                heatmap=corr(v_across_repts);
+        end
+        subplot(1,n_dists,idist);
+        imagesc(heatmap(display_ptr_order,display_ptr_order)-diag(diag(heatmap))); %remove the diagonal so as not to inflate the scale
+        set(gca,'XTick',[1:s.n_stims_kept]);
+        set(gca,'XTickLabels',stims.names_short(s.opts_read.stim_list(display_ptr_order)));
+        set(gca,'YTick',[1:s.n_stims_kept]);
+        set(gca,'YTickLabels',stims.names_short(s.opts_read.stim_list(display_ptr_order)));
+        axis square;
+        title(dist_names{idist})
+        colorbar;
+    end
     %
     axes('Position',[0.01,0.01,0.01,0.01]);
-    text(0,0,tstring,'Interpreter','none');
+    text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
+    axis off
+    %
+    % keep individual repeats
+    %
+    v_indiv_repts=reshape(v,[s.n_pixels_kept,resp_maxlength,s.n_repts_kept*s.n_stims_kept]);
+    v_indiv_repts=reshape(v_indiv_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
+    %
+    %expand the display pointer order to take into account each repeat
+    %
+    dpo_expanded=s.n_repts_kept*repmat(display_ptr_order-1,s.n_repts_kept,1);
+    dpo_expanded=dpo_expanded+repmat([1:s.n_repts_kept]',1,s.n_stims_kept);
+    dpo_expanded=dpo_expanded(:)';
+    tick_locs=[1:s.n_stims_kept]*s.n_repts_kept-(s.n_repts_kept-1)/2;
+    %
+    tstring=sprintf('distances, each repeat: %s, %s',resp_measure,read_data_file_short);
+    figure;
+    set(gcf,'Position',[100 100 1200 800]);
+    set(gcf,'NumberTitle','off');
+    set(gcf,'Name',tstring);
+    for idist=1:n_dists
+        switch dist_names{idist}
+            case 'cosine'
+                dot_prods=v_indiv_repts'*v_indiv_repts;
+                mags=sqrt(diag(dot_prods));
+                heatmap=dot_prods./(mags*mags');
+            case 'Pearson'
+                heatmap=corr(v_indiv_repts);
+        end
+        subplot(1,n_dists,idist);
+        imagesc(heatmap(dpo_expanded,dpo_expanded)-diag(diag(heatmap))); %remove the diagonal so as not to inflate the scale
+        set(gca,'XTick',tick_locs);
+        set(gca,'XTickLabels',stims.names_short(s.opts_read.stim_list(display_ptr_order)));
+        set(gca,'YTick',tick_locs);
+        set(gca,'YTickLabels',stims.names_short(s.opts_read.stim_list(display_ptr_order)));
+        axis square;
+        title(dist_names{idist})
+        colorbar;
+    end
+    %
+    axes('Position',[0.01,0.01,0.01,0.01]);
+    text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
     axis off
 end
 

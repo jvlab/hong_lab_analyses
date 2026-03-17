@@ -106,8 +106,8 @@ if opts_read.if_log
         disp(sprintf(' plane %3.0f: pixels present: %7.0f, pixels kept: %7.0f',...
             s.plane_list_all(plane_ptr),s.pixels_per_plane_all(plane_ptr),s.pixels_per_plane_all_kept(plane_ptr)));
     end
-    disp(sprintf('         total pixels present: %7.0f, total pixels kept: %7.0f',sum(s.pixels_per_plane_all),sum(s.pixels_per_plane_all_kept)));
-    disp(sprintf(' checks: total pixels present: %7.0f, total pixels kept: %7.0f',size(pixel_values,1),length(pixels_keep)))
+    disp(sprintf('      total pixels present: %7.0f, pixels kept: %7.0f',sum(s.pixels_per_plane_all),sum(s.pixels_per_plane_all_kept)));
+    disp(sprintf(' ck:  total pixels present: %7.0f, pixels kept: %7.0f',size(pixel_values,1),length(pixels_keep)))
 end
 s.plane_list_kept=s.plane_list_all(s.pixels_per_plane_all_kept>0);
 s.n_planes_with_data_kept=length(s.plane_list_kept);
