@@ -164,6 +164,7 @@ if if_dist
         title(dist_names{idist})
         colorbar;
     end
+    clear v_across_repts
     %
     axes('Position',[0.01,0.01,0.01,0.01]);
     text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
