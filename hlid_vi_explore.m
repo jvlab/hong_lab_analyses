@@ -18,8 +18,8 @@ resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
 opts_read.if_remnan=getinp('1 to remove NaN, -1 for just from requested data','d',[-1 1],1);
 opts_read.if_spatialfilter=getinp('1 for spatial filter','d',[0 1],0);
 if opts_read.if_spatialfilter
-    opts_read.sfilt_hw=getinp('spatial kernel','d',[1 10],2);
-    sf_string=sprintf('sf: kernel hw=%2.0f',opts_read.sfilt_hw);
+    opts_read.sfilt_hw=0.5*getinp('spatial kernel full width (0 is no filter)','d',[0 10],1);
+    sf_string=sprintf('sf: kernel hw=%3.1f',opts_read.sfilt_hw);
 else
     sf_string='sf: none';
 end

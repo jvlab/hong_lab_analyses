@@ -75,7 +75,7 @@ if opts_read.if_remnan==1
         pixel_values=hlid_vi_spatialfilter(pixel_values,s);
         nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
         if opts_read.if_log
-            disp(sprintf('after spatial filtering: %7.0f have a NaN in some frame',sum(nan_pixels_prelim)));
+            disp(sprintf('after spatial filtering: %7.0f have a NaN in some frame',sum(nan_pixels)));
         end
     else 
         nan_pixels=nan_pixels_prelim;
@@ -101,7 +101,7 @@ else
         pixel_values=hlid_vi_spatialfilter(pixel_values,s);
         nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
         if opts_read.if_log
-            disp(sprintf('after spatial filtering: %7.0f have a NaN in some frame',sum(nan_pixels_prelim)));
+            disp(sprintf('after spatial filtering: %7.0f have a NaN in some frame',sum(nan_pixels)));
         end
     else 
         nan_pixels=nan_pixels_prelim;
