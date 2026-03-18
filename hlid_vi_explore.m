@@ -1,6 +1,6 @@
 %initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%   See also:  HLID_VI_READ, HLID_VI_STIMNAMES, HLID_VARRATS.
+%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
@@ -15,6 +15,14 @@ for k=1:length(resp_measures)
     disp(sprintf('%1.0f->response measure %s',k,resp_measures{k}));
 end
 resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
+opts_read.if_remnan=getinp('1 to remove NaN, -1 for just from requested data','d',[-1 1],1);
+opts_read.if_spatialfilter=getinp('1 for spatial filter','d',[0 1],0);
+if opts_read.if_spatialfilter
+    opts_read.sfilt_hw=getinp('spatial kernel','d',[1 10],2);
+    sf_string=sprintf('sf: kernel hw=%2.0f',opts_read.sfilt_hw);
+else
+    sf_string='sf: none';
+end
 %
 if_spatial_pattern=getinp('1 to plot spatial patterns','d',[0 1]);
 if_temporal_pattern=getinp('1 to plot temporal patterns','d',[0 1]);
@@ -71,7 +79,7 @@ if if_spatial_pattern
     for plane_ptr=1:s.n_planes_with_data_kept
         plane=s.plane_list_kept(plane_ptr);
         pxls_inplane=find(s.xyz_kept(:,3)==plane);
-        tstring=sprintf('plane %2.0f: %s, %s',plane,resp_measure,read_data_file_short);
+        tstring=sprintf('plane %2.0f: %s, %s, %s',plane,resp_measure,sf_string,read_data_file_short);
         figure;
         set(gcf,'Position',[100 100 1200 800]);
         set(gcf,'NumberTitle','off');
@@ -105,7 +113,7 @@ if if_temporal_pattern
     v_pertime=reshape(mean(v,1,'omitnan'),[resp_maxlength,s.n_repts_kept,s.n_stims_kept]); %average across space and repeat
     v_pertime_range=[min(v_pertime(:)) max(v_pertime(:))];
     %
-    tstring=sprintf('timecourse: %s, %s',resp_measure,read_data_file_short);
+    tstring=sprintf('timecourse: %s, %s, %s',resp_measure,sf_string,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
@@ -132,7 +140,7 @@ if if_dist
     v_across_repts=reshape(mean(v,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);
     v_across_repts=reshape(v_across_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_stims_kept]);
     %
-    tstring=sprintf('distances: %s, %s',resp_measure,read_data_file_short);
+    tstring=sprintf('distances: %s, %s, %s',resp_measure,sf_string,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
@@ -173,7 +181,7 @@ if if_dist
     dpo_expanded=dpo_expanded(:)';
     tick_locs=[1:s.n_stims_kept]*s.n_repts_kept-(s.n_repts_kept-1)/2; %tick locations for a block of repeats
     %
-    tstring=sprintf('distances, each repeat: %s, %s',resp_measure,read_data_file_short);
+    tstring=sprintf('distances, each repeat: %s, %s, %s',resp_measure,sf_string,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');

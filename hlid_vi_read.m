@@ -10,6 +10,8 @@ function [s,opts_read_used]=hlid_vi_read(opts_read)
 %  if_log: 1 (default) to log
 %  if_remnan: 1 (default) to remove pixels that are NaN in any rept or stim, -1 for just those read, 0 to keep all
 %  if_keep_all_raw: 1 to keep all raw data in s, 0 (default) to delete
+%  if_spatialfilter: 1 to apply spatial filter
+%  sfilt_hw: half-width of spatial kernel
 %
 % s: structure of data read from the HDF5 file
 %
@@ -19,7 +21,7 @@ function [s,opts_read_used]=hlid_vi_read(opts_read)
 %
 % opts_read_used: options used
 %
-%   See also:  HLID_VI_EXPLORE, H5INFO, H5READ.
+%   See also:  HLID_VI_EXPLORE, hlid_VI_SPATIALFILTER, H5INFO, H5READ.
 %
 if nargin<1
     opts_read=struct;
@@ -31,6 +33,8 @@ opts_read=filldefault(opts_read,'stim_list',1);
 opts_read=filldefault(opts_read,'if_log',1);
 opts_read=filldefault(opts_read,'if_remnan',1);
 opts_read=filldefault(opts_read,'if_keep_all_raw',0);
+opts_read=filldefault(opts_read,'if_spatialfilter',0);
+opts_read=filldefault(opts_read,'sfilt_hw',2); %corresponds to [1 2 1]/4
 opts_read_used=opts_read;
 %
 s=struct;
@@ -61,13 +65,23 @@ end
 %
 if opts_read.if_remnan==1
     pixel_values=h5read(fullname,'/pixel_values'); %read all repts and stims
-    nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
+    nan_pixels_prelim=any(any(any(isnan(pixel_values),2),3),4);
     if opts_read.if_log
-        disp(sprintf('%10.0f pixel values in %7.0f pixels across all repts and stims; %7.0f have a NaN in some frame',...
-            numel(pixel_values),size(pixel_values,1),sum(nan_pixels)));
+        disp(sprintf('%10.0f pixel values read in %7.0f pixels across all repts and stims; %7.0f have a NaN in some frame',...
+            numel(pixel_values),size(pixel_values,1),sum(nan_pixels_prelim)));
+    end
+    if opts_read.if_spatialfilter
+        %apply spatial filtering to pixel_values
+        pixel_values=hlid_vi_spatialfilter(pixel_values,s);
+        nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
+        if opts_read.if_log
+            disp(sprintf('after spatial filtering: %7.0f have a NaN in some frame',sum(nan_pixels_prelim)));
+        end
+    else 
+        nan_pixels=nan_pixels_prelim;
     end
     pixels_keep=find(nan_pixels==0);
-    pixel_values=pixel_values(:,:,opts_read.rept_list,opts_read.stim_list); %pixel valuse in requested repts and stims
+    pixel_values=pixel_values(:,:,opts_read.rept_list,opts_read.stim_list); %pixel values in requested repts and stims
 else
     pixel_values=zeros(s.n_pixels_all,s.n_timepoints,s.n_repts_kept,s.n_stims_kept); %only read the repts and stims rquested
     for rept_ptr=1:s.n_repts_kept
@@ -77,11 +91,21 @@ else
             pixel_values(:,:,rept_ptr,stim_ptr)=h5read(fullname,'/pixel_values',[1 1 rept stim],[s.n_pixels_all s.n_timepoints 1 1]);
         end
     end
-    nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
+    nan_pixels_prelim=any(any(any(isnan(pixel_values),2),3),4);
     if opts_read.if_log
         disp(sprintf('%10.0f pixel values in %7.0f pixels across specified repts and stims; %7.0f have a NaN in some frame',...
-            numel(pixel_values),size(pixel_values,1),sum(nan_pixels)));
+            numel(pixel_values),size(pixel_values,1),sum(nan_pixels_prelim)));
     end
+    if opts_read.if_spatialfilter
+        %apply spatial filtering to pixel_values
+        pixel_values=hlid_vi_spatialfilter(pixel_values,s);
+        nan_pixels=any(any(any(isnan(pixel_values),2),3),4);
+        if opts_read.if_log
+            disp(sprintf('after spatial filtering: %7.0f have a NaN in some frame',sum(nan_pixels_prelim)));
+        end
+    else 
+        nan_pixels=nan_pixels_prelim;
+    end   
     if opts_read.if_remnan==-1
         pixels_keep=find(nan_pixels==0);
     else
