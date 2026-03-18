@@ -52,15 +52,30 @@ stims.names={...
     'CO2',...
     };
 stims.names_short=stims.names;
-stims.names_short=strrep(stims.names_short,'isoamyl acetate','IaA');
-stims.names_short=strrep(stims.names_short,'trans-2-hexenal','t2h'); 
-stims.names_short=strrep(stims.names_short,'methyl salicylate','ms');
-stims.names_short=strrep(stims.names_short,'3-octanol','3-8ol'); %???
+stims.names_short=strrep(stims.names_short,'1,4 diaminobutane','1,4d');
 stims.names_short=strrep(stims.names_short,'1-hexanol','1-6ol');
+stims.names_short=strrep(stims.names_short,'2,5-dimethylpyrazine','2,5d');
 stims.names_short=strrep(stims.names_short,'2-heptanone','2h');
+stims.names_short=strrep(stims.names_short,'3-methylthio-1-propanol','3mt1p');
+stims.names_short=strrep(stims.names_short,'3-octanol','3-8ol');
+stims.names_short=strrep(stims.names_short,'4-methylcyclohexanol','4-mch');
+stims.names_short=strrep(stims.names_short,'ACV 10%','ACV');
+stims.names_short=strrep(stims.names_short,'CO2','CO2');
 stims.names_short=strrep(stims.names_short,'acetic acid','aa');
-stims.names_short=strrep(stims.names_short,'ACV 10%','ACV'); %???
-stims.names_short=strrep(stims.names_short,'ethanol 15%','eth'); %???
+stims.names_short=strrep(stims.names_short,'banana','ban');
+stims.names_short=strrep(stims.names_short,'ethanol 15%','EtOH');
+stims.names_short=strrep(stims.names_short,'geosmin','geos');
+stims.names_short=strrep(stims.names_short,'geranyl acetate','ga');
+stims.names_short=strrep(stims.names_short,'isoamyl acetate','IaA');
+stims.names_short=strrep(stims.names_short,'menthone','menth');
+stims.names_short=strrep(stims.names_short,'methyl acetate','ma');
+stims.names_short=strrep(stims.names_short,'methyl salicylate','ms');
+stims.names_short=strrep(stims.names_short,'mint','mint');
+stims.names_short=strrep(stims.names_short,'p-cresol','p-cre');
+stims.names_short=strrep(stims.names_short,'pfo','pfo');
+stims.names_short=strrep(stims.names_short,'trans-2-hexenal','t2h'); 
+stims.names_short=strrep(stims.names_short,'water','H2O'); 
+stims.names_short=strrep(stims.names_short,'wine','wine'); 
 for k=1:length(stims.names_short)
     if length(stims.names_short{k})>opts.trunc_length
         stims.names_short{k}=stims.names_short{k}(1:opts.trunc_length);
