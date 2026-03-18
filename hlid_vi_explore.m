@@ -1,4 +1,4 @@
-%initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
+%hlid_vi_explore: initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS.
 %
