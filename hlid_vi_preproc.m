@@ -12,7 +12,7 @@ resp_measures={'deltaF/F','z'};
 opts_read.if_remnan=1;
 opts_read.if_log=0;
 opts_read.if_spatialfilter=1;
-fw_list=getinp('spatial kernel full width list (0 is no filter)','d',[0 Inf],[0:10]);
+fw_list=getinp('spatial kernel full width list (0 is no filter)','d',[0 Inf],[0 1 2 4 8]);
 rept_list=getinp('repeat list','d',[1 nrepts],1:nrepts);
 stim_list=getinp('stimulus list','d',[1 nstims],1:nstims);
 %

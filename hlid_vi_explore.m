@@ -153,12 +153,12 @@ if if_temporal_pattern~=0
             stim_no=opts_read.stim_list(stim_ptr);
             stim_name=stims.names_short{stim_no};
             %compute the response one stimulus at a time to save space
-            deltaF_stim=s.pixel_values_kept(:,:,:,stim_no)-repmat(reshape(s.baseline_means(:,:,stim_no),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+            deltaF_stim=s.pixel_values_kept(:,:,:,stim_ptr)-repmat(reshape(s.baseline_means(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
             switch resp_measure
                  case 'deltaF/F'
-                     v_stim=deltaF_stim./repmat(reshape(s.baseline_means(:,:,stim_no),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+                     v_stim=deltaF_stim./repmat(reshape(s.baseline_means(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
                  case 'z'
-                     v_stim=deltaF_stim./repmat(reshape(s.baseline_stdvs(:,:,stim_no),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+                     v_stim=deltaF_stim./repmat(reshape(s.baseline_stdvs(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
             end
             v_stim=reshape(mean(v_stim,1,'omitnan'),[s.n_timepoints s.n_repts_kept]);
             subplot(nrows,ncols,stim_ptr_seq);
@@ -168,8 +168,8 @@ if if_temporal_pattern~=0
             %plot stimulus onsets and offsets
             colors=get(gca,'ColorOrder');
             for ir=1:s.n_repts_kept
-                frame_on=s.onset_indexes_kept(ir,stim_no)/s.n_planes;
-                frame_off=s.offset_indexes_kept(ir,stim_no)/s.n_planes;
+                frame_on=s.onset_indexes_kept(ir,stim_ptr)/s.n_planes;
+                frame_off=s.offset_indexes_kept(ir,stim_ptr)/s.n_planes;
                 if if_timemark1
                     %method 1: cursors at each position
                     ypos=v_pertime_range(1)+(ir-1)*diff(v_pertime_range)/s.n_repts_kept+[0 diff(v_pertime_range)/s.n_repts_kept];
