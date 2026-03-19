@@ -8,6 +8,8 @@ function vr=hlid_varrats(v)
 % vr.centroid(npts,1): the centroid, i.e., the global mean
 % vr.ratio=mean(vr.across)/mean(vr.within)
 % 
+% for large nrepts,nstims, the expected value of vr.ratio is (1-1/nstims)/nrepts
+%
 %   See also:  HLID_VI_EXPLORE.
 %
 npts=size(v,1);

@@ -9,8 +9,6 @@ if ~exist('nrepts') nrepts=5; end
 %
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
 %
-if ~exist('eigs_to_show') eigs_to_show=120; end
-%
 opts_read.if_remnan=1;
 opts_read.if_log=0;
 opts_read.if_spatialfilter=1;
@@ -33,8 +31,12 @@ n_fws=length(fw_list);
 n_meas=length(resp_measures);
 %
 var_ratios=zeros(n_fws,n_meas);
+part_ratios=zeros(n_fws,n_meas);
 eival_sqs=zeros(n_stims*n_repts,n_fws,n_meas);
-var_ratios_eacheiv=zeros(nstims*nrepts,n_fws,n_meas); %fariance ratio for each eigenvector
+var_ratios_eacheiv=zeros(nstims*nrepts,n_fws,n_meas); %variance ratio for each eigenvector
+var_ratios_eacheiv_num=zeros(nstims*nrepts,n_fws,n_meas); %variance ratio for each eigenvector, numerator
+var_ratios_eacheiv_den=zeros(nstims*nrepts,n_fws,n_meas); %variance ratio for each eigenvector, denominator
+part_ratios_eacheiv=zeros(nstims*nrepts,n_fws,n_meas);
 %
 for fw_ptr=1:n_fws
     opts_read.sfilt_hw=fw_list(fw_ptr)/2;
@@ -74,11 +76,22 @@ for fw_ptr=1:n_fws
         %
         [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
         eival_sqs(:,fw_ptr,meas_ptr)=(diag(svd_s)).^2;
+        part_ratios(fw_ptr,meas_ptr)=(sum(diag(svd_s)).^2)/sum(diag(svd_s).^2);
+  
         %
         for k=1:nstims*nrepts
-            wt=svd_v(:,k); %wweights for kth eigenvector
+            wt=svd_v(:,k); %weights for kth eigenvector (repts and stims)
             var_rats_each=hlid_varrats(reshape(wt,[1 n_repts n_stims]));
             var_ratios_eacheiv(k,fw_ptr,meas_ptr)=var_rats_each.ratio;
+            var_ratios_eacheiv_num(k,fw_ptr,meas_ptr)=var_rats_each.across; %for later summing
+            var_ratios_eacheiv_den(k,fw_ptr,meas_ptr)=var_rats_each.within; %for later summing
+            %
+            %svd of wts and stims to get participation ratio
+            [svd_wu,svd_ws,svd_wv]=svd(reshape(wt,[n_repts n_stims]));
+            w_dims=min(n_repts,n_stims);
+            svd_ws_eivs=diag(svd_ws(1:w_dims,1:w_dims));
+            part_ratios_eacheiv(k,fw_ptr,meas_ptr)=(sum(svd_ws_eivs).^2)/sum(svd_ws_eivs.^2);
+            %
         end
     end
     clear deltaF v
@@ -88,51 +101,72 @@ end
 %
 %plot
 %
+vr_norm_fac=n_repts/(1-1/n_stims); %asymptotic mean and median of variance fraction
+if ~exist('eigs_show_list') eigs_show_list=[20 120]; end
 if ~exist('logrange') logrange=10^2; end
-eigs_to_show=min(eigs_to_show,n_repts*n_stims);
-fw_labels=cell(1,n_fws);
-for fw_ptr=1:n_fws
-    fw_labels{fw_ptr}=sprintf('fw %2.0f',fw_list(fw_ptr));
-end
-figure;
-set(gcf,'NumberTitle','off');
-set(gcf,'Position',[50 50 1400 800]);
-set(gcf,'Name','eigenvalue anlaysis');
-n_cols=3;
-for meas_ptr=1:n_meas
-    %scree plots
-    subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
-    semilogy(eival_sqs(1:eigs_to_show,:,meas_ptr),'.-');
-    xlabel('eigenvalue');
-    ylabel(cat(2,resp_measures{meas_ptr},' var explained'));
-    set(gca,'YLim',max(max(eival_sqs(:,:,meas_ptr)))*[1/logrange 1]);
-    legend(fw_labels,'Location','best');
-    %
-    totvar=sum(eival_sqs(:,:,meas_ptr),1);
-    subplot(n_meas,n_cols,2+(meas_ptr-1)*n_cols)
-    semilogy(eival_sqs(1:eigs_to_show,:,meas_ptr)./repmat(totvar,eigs_to_show,1),'.-');
-    xlabel('eigenvalue');
-    ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
-    set(gca,'YLim',0.5*[1/logrange 1]);
-    legend(fw_labels,'Location','best');
-    %
-    %variance ratio for each eiv
-    %
-    vr_norm_fac=n_repts/(1-1/n_stims);
-    vr_norm=vr_norm_fac*var_ratios_eacheiv(:,:,meas_ptr);
-    subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
-    semilogy(vr_norm(1:eigs_to_show,:),'.-');
-    hold on;
-    xlabel('eigenvalue')
-    ylabel('normalized var ratio');
-    colors=get(gca,'ColorOrder');
-    %variance ratio for full data
+for eigs_show_ptr=1:length(eigs_show_list)
+    n_eigs=min(eigs_show_list(eigs_show_ptr),n_repts*n_stims);
+    fw_labels=cell(1,n_fws);
     for fw_ptr=1:n_fws
-        hp=plot([1 eigs_to_show],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
-        set(hp,'Color',colors(fw_ptr,:));
+        fw_labels{fw_ptr}=sprintf('fw %2.0f',fw_list(fw_ptr));
     end
-    plot([1 eigs_to_show],[1 1],'k');
-end
-axes('Position',[0.01,0.01,0.01,0.01]);
-text(0,0,data_file,'Interpreter','none');
-axis off
+    figure;
+    set(gcf,'NumberTitle','off');
+    set(gcf,'Position',[50 50 1400 800]);
+    set(gcf,'Name',sprintf('eigenvalue anlaysis: 1 to %1.0f',n_eigs));
+    n_cols=5;
+    for meas_ptr=1:n_meas
+        %scree plots
+        subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
+        semilogy(eival_sqs(1:n_eigs,:,meas_ptr),'.-');
+        xlabel('eigenvalue');
+        ylabel(cat(2,resp_measures{meas_ptr},' var explained'));
+        set(gca,'YLim',max(max(eival_sqs(:,:,meas_ptr)))*[1/logrange 1]);
+        legend(fw_labels,'Location','best');
+        %
+        totvar=sum(eival_sqs(:,:,meas_ptr),1);
+        subplot(n_meas,n_cols,2+(meas_ptr-1)*n_cols)
+        semilogy(eival_sqs(1:n_eigs,:,meas_ptr)./repmat(totvar,n_eigs,1),'.-');
+        xlabel('eigenvalue');
+        ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
+        set(gca,'YLim',0.5*[1/logrange 1]);
+        legend(fw_labels,'Location','best');
+        %
+        %variance ratio for each eiv
+        %
+        subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
+        semilogy(vr_norm_fac*var_ratios_eacheiv(1:n_eigs,:,meas_ptr),'.-');
+        xlabel('eigenvalue')
+        ylabel('normalized variance ratio');
+        hold on;
+        %variance ratio for full data
+        colors=get(gca,'ColorOrder');
+        for fw_ptr=1:n_fws
+            hp=plot([1 n_eigs],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
+            set(hp,'Color',colors(fw_ptr,:));
+        end
+        plot([1 n_eigs],[1 1],'k');
+        %should also be able to get variance ratio for full data by 
+        %sum(var_ratios_num*eival_sqs)/sum(var_ratios_den*eival_sqs)
+        %
+        %participation ratio for as function of filtering
+        %
+        subplot(n_meas,n_cols,4+(meas_ptr-1)*n_cols);
+        plot(fw_list,part_ratios(:,meas_ptr),'k.-');
+        set(gca,'YLim',[1 nrepts*nstims]);
+        set(gca,'XTick',fw_list);
+        xlabel('filtering width')
+        ylabel('participation ratio');
+        %
+        %participation ratio for each eiv
+        %
+        subplot(n_meas,n_cols,5+(meas_ptr-1)*n_cols);
+        plot(part_ratios_eacheiv(1:n_eigs,:,meas_ptr),'.-');
+        set(gca,'YLim',[1 min(n_repts,n_stims)]);
+        xlabel('eigenvalue')
+        ylabel('participation ratio');
+    end
+    axes('Position',[0.01,0.01,0.01,0.01]);
+    text(0,0,data_file,'Interpreter','none');
+    axis off
+end %eigs_show_list
