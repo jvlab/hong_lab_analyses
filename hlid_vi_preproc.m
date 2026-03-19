@@ -1,6 +1,6 @@
 %hlid_vi_preproc: look at preprocessig options for KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS.
+%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC_PLOT.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
@@ -98,76 +98,4 @@ for fw_ptr=1:n_fws
     clear svd*
     disp(sprintf(' kernel hw: %4.1f; total pixels kept: %7.0f; variance ratios for dff and z: %7.4f %7.4f',opts_read.sfilt_hw,size(xyz,3),var_ratios(fw_ptr,:)));
 end
-%
-%plot
-%
-vr_norm_fac=n_repts/(1-1/n_stims); %asymptotic mean and median of variance fraction
-if ~exist('eigs_show_list') eigs_show_list=[20 120]; end
-if ~exist('logrange') logrange=10^2; end
-if ~exist('n_fw_show') n_fw_show=n_fws; end
-for eigs_show_ptr=1:length(eigs_show_list)
-    n_eigs=min(eigs_show_list(eigs_show_ptr),n_repts*n_stims);
-    fw_labels=cell(1,n_fw_show);
-    for fw_ptr=1:n_fw_show
-        fw_labels{fw_ptr}=sprintf('fw %2.0f',fw_list(fw_ptr));
-    end
-    figure;
-    set(gcf,'NumberTitle','off');
-    set(gcf,'Position',[50 50 1400 800]);
-    set(gcf,'Name',sprintf('eigenvalue anlaysis: 1 to %1.0f',n_eigs));
-    n_cols=5;
-    for meas_ptr=1:n_meas
-        %scree plots
-        subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
-        semilogy(eival_sqs(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
-        xlabel('eigenvalue');
-        ylabel(cat(2,resp_measures{meas_ptr},' var explained'));
-        set(gca,'YLim',max(max(eival_sqs(:,:,meas_ptr)))*[1/logrange 1]);
-        legend(fw_labels,'Location','best');
-        %
-        totvar=sum(eival_sqs(:,1:n_fw_show,meas_ptr),1);
-        subplot(n_meas,n_cols,2+(meas_ptr-1)*n_cols)
-        semilogy(eival_sqs(1:n_eigs,1:n_fw_show,meas_ptr)./repmat(totvar,n_eigs,1),'.-');
-        xlabel('eigenvalue');
-        ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
-        set(gca,'YLim',0.5*[1/logrange 1]);
-        legend(fw_labels,'Location','best');
-        %
-        %variance ratio for each eiv
-        %
-        subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
-        semilogy(vr_norm_fac*var_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
-        xlabel('eigenvalue')
-        ylabel('normalized variance ratio');
-        hold on;
-        %variance ratio for full data
-        colors=get(gca,'ColorOrder');
-        for fw_ptr=1:n_fw_show
-            hp=plot([1 n_eigs],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
-            set(hp,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
-        end
-        plot([1 n_eigs],[1 1],'k');
-        %should also be able to get variance ratio for full data by 
-        %sum(var_ratios_num*eival_sqs)/sum(var_ratios_den*eival_sqs)
-        %
-        %participation ratio for as function of filtering
-        %
-        subplot(n_meas,n_cols,4+(meas_ptr-1)*n_cols);
-        plot(fw_list,part_ratios(:,meas_ptr),'k.-');
-        set(gca,'YLim',[1 nrepts*nstims]);
-        set(gca,'XTick',fw_list);
-        xlabel('filtering width')
-        ylabel('participation ratio');
-        %
-        %participation ratio for each eiv
-        %
-        subplot(n_meas,n_cols,5+(meas_ptr-1)*n_cols);
-        plot(part_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
-        set(gca,'YLim',[1 min(n_repts,n_stims)]);
-        xlabel('eigenvalue')
-        ylabel('participation ratio');
-    end
-    axes('Position',[0.01,0.01,0.01,0.01]);
-    text(0,0,data_file,'Interpreter','none');
-    axis off
-end %eigs_show_list
+disp(sprintf(' suggest saving workspace as hlid_vi_preproc*.mat; can plot with hlid_vi_preproc_plot');
