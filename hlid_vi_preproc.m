@@ -9,7 +9,7 @@ if ~exist('nrepts') nrepts=5; end
 %
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
 %
-if ~exist('eigs_to_show') eigs_to_show=50; end
+if ~exist('eigs_to_show') eigs_to_show=120; end
 %
 opts_read.if_remnan=1;
 opts_read.if_log=0;
@@ -100,6 +100,7 @@ set(gcf,'Position',[50 50 1400 800]);
 set(gcf,'Name','eigenvalue anlaysis');
 n_cols=3;
 for meas_ptr=1:n_meas
+    %scree plots
     subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
     semilogy(eival_sqs(1:eigs_to_show,:,meas_ptr),'.-');
     xlabel('eigenvalue');
@@ -114,6 +115,23 @@ for meas_ptr=1:n_meas
     ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
     set(gca,'YLim',0.5*[1/logrange 1]);
     legend(fw_labels,'Location','best');
+    %
+    %variance ratio for each eiv
+    %
+    vr_norm_fac=n_repts/(1-1/n_stims);
+    vr_norm=vr_norm_fac*var_ratios_eacheiv(:,:,meas_ptr);
+    subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
+    semilogy(vr_norm(1:eigs_to_show,:),'.-');
+    hold on;
+    xlabel('eigenvalue')
+    ylabel('normalized var ratio');
+    colors=get(gca,'ColorOrder');
+    %variance ratio for full data
+    for fw_ptr=1:n_fws
+        hp=plot([1 eigs_to_show],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
+        set(hp,'Color',colors(fw_ptr,:));
+    end
+    plot([1 eigs_to_show],[1 1],'k');
 end
 axes('Position',[0.01,0.01,0.01,0.01]);
 text(0,0,data_file,'Interpreter','none');
