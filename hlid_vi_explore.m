@@ -24,8 +24,11 @@ else
     sf_string='sf: none';
 end
 %
+if ~exist('if_timemark1') if_timemark1=0; end
+if ~exist('if_timemark2') if_timemark2=1; end
+%
 if_spatial_pattern=getinp('1 to plot spatial patterns','d',[0 1]);
-if_temporal_pattern=getinp('1 to plot temporal patterns','d',[0 1]);
+if_temporal_pattern=getinp('1 to plot temporal patterns (-1: with extended baseline)','d',[-1 1]);
 if_dist=getinp('1 to plot distances','d',[0 1]);
 %
 if_reorder=getinp('1 to reorder stimuli','d',[0 1]);
@@ -36,6 +39,11 @@ opts_read.data_path=data_path;
 opts_read.data_file=data_file;
 opts_read.stim_list=stim_list;
 opts_read.rept_list=rept_list;
+if if_temporal_pattern==-1
+    opts_read.if_keep_all_raw=1;
+else
+    opts_read.if_keep_all_raw=0;
+end
 [s,opts_read_used]=hlid_vi_read(opts_read);
 read_data_file_short=strrep(s.opts_read.data_file,'.hdf5','');
 rept_string=cat(2,'repts: ',sprintf(' %2.0f',opts_read.rept_list));
@@ -109,7 +117,7 @@ if if_spatial_pattern
     end
 end
 %
-if if_temporal_pattern
+if if_temporal_pattern~=0
     v_pertime=reshape(mean(v,1,'omitnan'),[resp_maxlength,s.n_repts_kept,s.n_stims_kept]); %average across space and repeat
     v_pertime_range=[min(v_pertime(:)) max(v_pertime(:))];
     %
@@ -124,6 +132,9 @@ if if_temporal_pattern
         stim_name=stims.names_short{stim_no};
         subplot(nrows,ncols,stim_ptr_seq);
         plot(v_pertime(:,:,stim_ptr));
+        hold on;
+        plot(mean(v_pertime(:,:,stim_ptr),2,'omitnan'),'k','LineWidth',1);
+        xlabel('response frame');
         set(gca,'XLim',[1 resp_maxlength]);
         set(gca,'YLim',v_pertime_range);
         title(sprintf('s %2.0f: %s',stim_no,stim_name));
@@ -131,6 +142,58 @@ if if_temporal_pattern
     axes('Position',[0.01,0.01,0.01,0.01]);
     text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
     axis off
+    if if_temporal_pattern==-1 %plot extended response with same vertical scale
+        tstring=cat(2,'extended ',tstring);
+        figure;
+        set(gcf,'Position',[100 100 1200 800]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',tstring);
+        for stim_ptr_seq=1:s.n_stims_kept
+            stim_ptr=display_ptr_order(stim_ptr_seq);
+            stim_no=opts_read.stim_list(stim_ptr);
+            stim_name=stims.names_short{stim_no};
+            %compute the response one stimulus at a time to save space
+            deltaF_stim=s.pixel_values_kept(:,:,:,stim_no)-repmat(reshape(s.baseline_means(:,:,stim_no),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+            switch resp_measure
+                 case 'deltaF/F'
+                     v_stim=deltaF_stim./repmat(reshape(s.baseline_means(:,:,stim_no),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+                 case 'z'
+                     v_stim=deltaF_stim./repmat(reshape(s.baseline_stdvs(:,:,stim_no),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+            end
+            v_stim=reshape(mean(v_stim,1,'omitnan'),[s.n_timepoints s.n_repts_kept]);
+            subplot(nrows,ncols,stim_ptr_seq);
+            plot(v_stim);
+            hold on;
+            plot(mean(v_stim,2,'omitnan'),'k','LineWidth',1);
+            %plot stimulus onsets and offsets
+            colors=get(gca,'ColorOrder');
+            for ir=1:s.n_repts_kept
+                frame_on=s.onset_indexes_kept(ir,stim_no)/s.n_planes;
+                frame_off=s.offset_indexes_kept(ir,stim_no)/s.n_planes;
+                if if_timemark1
+                    %method 1: cursors at each position
+                    ypos=v_pertime_range(1)+(ir-1)*diff(v_pertime_range)/s.n_repts_kept+[0 diff(v_pertime_range)/s.n_repts_kept];
+                    hp=plot(repmat(frame_on,1,2),ypos);
+                    set(hp,'Color',colors(ir,:));
+                    hp=plot(repmat(frame_off,1,2),ypos);
+                    set(hp,'Color',colors(ir,:));
+                end
+                if if_timemark2
+                    %method 2: bar for stim on
+                    ypos=v_pertime_range(1)+(ir/4)*diff(v_pertime_range)/s.n_repts_kept;
+                    hp=plot([frame_on frame_off],repmat(ypos,1,2),'k');
+                    set(hp,'Color',colors(ir,:));
+                end
+            end
+            xlabel('frame');
+            set(gca,'XLim',[1 s.n_timepoints]);
+            set(gca,'YLim',v_pertime_range);
+            title(sprintf('s %2.0f: %s',stim_no,stim_name));
+        end
+        axes('Position',[0.01,0.01,0.01,0.01]);
+        text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');
+        axis off
+    end
 end
 %
 if if_dist
