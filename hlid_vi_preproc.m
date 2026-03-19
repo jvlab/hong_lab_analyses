@@ -7,7 +7,9 @@ if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; en
 if ~exist('nstims') nstims=24; end
 if ~exist('nrepts') nrepts=5; end
 %
-resp_measures={'deltaF/F','z'};
+if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
+%
+if ~exist('eigs_to_show') eigs_to_show=50; end
 %
 opts_read.if_remnan=1;
 opts_read.if_log=0;
@@ -24,29 +26,95 @@ opts_read.rept_list=rept_list;
 stims=hlid_vi_stimnames;
 disp(data_file);
 %
-var_ratios=zeros(length(fw_list),length(resp_measures));
-for fw_ptr=1:length(fw_list)
+%
+n_repts=length(rept_list);
+n_stims=length(stim_list);
+n_fws=length(fw_list);
+n_meas=length(resp_measures);
+%
+var_ratios=zeros(n_fws,n_meas);
+eival_sqs=zeros(n_stims*n_repts,n_fws,n_meas);
+var_ratios_eacheiv=zeros(nstims*nrepts,n_fws,n_meas); %fariance ratio for each eigenvector
+%
+for fw_ptr=1:n_fws
     opts_read.sfilt_hw=fw_list(fw_ptr)/2;
     [s,opts_read_used]=hlid_vi_read(opts_read);
+    n_pixels=s.n_pixels_kept;
+    baseline_means=s.baseline_means;
+    baseline_stdvs=s.baseline_stdvs;
+    xyz=s.xyz_kept;
+    if n_repts~=s.n_repts_kept
+        warning('n_repts is inconsistent');
+    end
+    if n_stims~=s.n_stims_kept
+        warning('n_stims is inconsistent');
+    end
     resp_maxlength=size(s.responses,2);
-    deltaF=s.responses-repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
+    deltaF=s.responses-repmat(reshape(baseline_means,[n_pixels,1,n_repts,n_stims]),[1 resp_maxlength 1 1]);
+    clear s
     %
-    for idffz=1:length(resp_measures)
-        switch resp_measures{idffz}
+    for meas_ptr=1:n_meas
+        switch resp_measures{meas_ptr}
             case 'deltaF/F'
-                v=deltaF./repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
+                v=deltaF./repmat(reshape(baseline_means,[n_pixels,1,n_repts,n_stims]),[1 resp_maxlength 1 1]);
             case 'z'
-                v=deltaF./repmat(reshape(s.baseline_stdvs,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
+                v=deltaF./repmat(reshape(baseline_stdvs,[n_pixels,1,n_repts,n_stims]),[1 resp_maxlength 1 1]);
         end
         resp_minlength=sum(0==any(any(any(isnan(v),1),3),4));
         %
         % individual repeats
         %
-        v_indiv_repts=reshape(v,[s.n_pixels_kept,resp_maxlength,s.n_repts_kept*s.n_stims_kept]);
-        v_indiv_repts=reshape(v_indiv_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
+        v_indiv_repts=reshape(v,[n_pixels,resp_maxlength,n_repts*n_stims]);
+        v_indiv_repts=reshape(v_indiv_repts(:,[1:resp_minlength],:),[n_pixels*resp_minlength,n_repts*n_stims]);
         %
-        var_rats=hlid_varrats(reshape(v_indiv_repts,[s.n_pixels_kept*resp_minlength,s.n_repts_kept,s.n_stims_kept]));
-        var_ratios(fw_ptr,idffz)=var_rats.ratio;
+        var_rats=hlid_varrats(reshape(v_indiv_repts,[n_pixels*resp_minlength,n_repts,n_stims]));
+        var_ratios(fw_ptr,meas_ptr)=var_rats.ratio;
+        %
+        %svd
+        %
+        [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
+        eival_sqs(:,fw_ptr,meas_ptr)=(diag(svd_s)).^2;
+        %
+        for k=1:nstims*nrepts
+            wt=svd_v(:,k); %wweights for kth eigenvector
+            var_rats_each=hlid_varrats(reshape(wt,[1 n_repts n_stims]));
+            var_ratios_eacheiv(k,fw_ptr,meas_ptr)=var_rats_each.ratio;
+        end
     end
-    disp(sprintf(' kernel hw: %4.1f; total pixels kept: %7.0f; variance ratios for dff and z: %7.4f %7.4f',opts_read.sfilt_hw,sum(s.pixels_per_plane_kept),var_ratios(fw_ptr,:)));
+    clear deltaF v
+    clear svd*
+    disp(sprintf(' kernel hw: %4.1f; total pixels kept: %7.0f; variance ratios for dff and z: %7.4f %7.4f',opts_read.sfilt_hw,size(xyz,3),var_ratios(fw_ptr,:)));
 end
+%
+%plot
+%
+if ~exist('logrange') logrange=10^2; end
+eigs_to_show=min(eigs_to_show,n_repts*n_stims);
+fw_labels=cell(1,n_fws);
+for fw_ptr=1:n_fws
+    fw_labels{fw_ptr}=sprintf('fw %2.0f',fw_list(fw_ptr));
+end
+figure;
+set(gcf,'NumberTitle','off');
+set(gcf,'Position',[50 50 1400 800]);
+set(gcf,'Name','eigenvalue anlaysis');
+n_cols=3;
+for meas_ptr=1:n_meas
+    subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
+    semilogy(eival_sqs(1:eigs_to_show,:,meas_ptr),'.-');
+    xlabel('eigenvalue');
+    ylabel(cat(2,resp_measures{meas_ptr},' var explained'));
+    set(gca,'YLim',max(max(eival_sqs(:,:,meas_ptr)))*[1/logrange 1]);
+    legend(fw_labels,'Location','best');
+    %
+    totvar=sum(eival_sqs(:,:,meas_ptr),1);
+    subplot(n_meas,n_cols,2+(meas_ptr-1)*n_cols)
+    semilogy(eival_sqs(1:eigs_to_show,:,meas_ptr)./repmat(totvar,eigs_to_show,1),'.-');
+    xlabel('eigenvalue');
+    ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
+    set(gca,'YLim',0.5*[1/logrange 1]);
+    legend(fw_labels,'Location','best');
+end
+axes('Position',[0.01,0.01,0.01,0.01]);
+text(0,0,data_file,'Interpreter','none');
+axis off
