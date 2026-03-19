@@ -104,10 +104,11 @@ end
 vr_norm_fac=n_repts/(1-1/n_stims); %asymptotic mean and median of variance fraction
 if ~exist('eigs_show_list') eigs_show_list=[20 120]; end
 if ~exist('logrange') logrange=10^2; end
+if ~exist('n_fw_show') n_fw_show=n_fws; end
 for eigs_show_ptr=1:length(eigs_show_list)
     n_eigs=min(eigs_show_list(eigs_show_ptr),n_repts*n_stims);
-    fw_labels=cell(1,n_fws);
-    for fw_ptr=1:n_fws
+    fw_labels=cell(1,n_fw_show);
+    for fw_ptr=1:n_fw_show
         fw_labels{fw_ptr}=sprintf('fw %2.0f',fw_list(fw_ptr));
     end
     figure;
@@ -118,15 +119,15 @@ for eigs_show_ptr=1:length(eigs_show_list)
     for meas_ptr=1:n_meas
         %scree plots
         subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
-        semilogy(eival_sqs(1:n_eigs,:,meas_ptr),'.-');
+        semilogy(eival_sqs(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
         xlabel('eigenvalue');
         ylabel(cat(2,resp_measures{meas_ptr},' var explained'));
         set(gca,'YLim',max(max(eival_sqs(:,:,meas_ptr)))*[1/logrange 1]);
         legend(fw_labels,'Location','best');
         %
-        totvar=sum(eival_sqs(:,:,meas_ptr),1);
+        totvar=sum(eival_sqs(:,1:n_fw_show,meas_ptr),1);
         subplot(n_meas,n_cols,2+(meas_ptr-1)*n_cols)
-        semilogy(eival_sqs(1:n_eigs,:,meas_ptr)./repmat(totvar,n_eigs,1),'.-');
+        semilogy(eival_sqs(1:n_eigs,1:n_fw_show,meas_ptr)./repmat(totvar,n_eigs,1),'.-');
         xlabel('eigenvalue');
         ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
         set(gca,'YLim',0.5*[1/logrange 1]);
@@ -135,15 +136,15 @@ for eigs_show_ptr=1:length(eigs_show_list)
         %variance ratio for each eiv
         %
         subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
-        semilogy(vr_norm_fac*var_ratios_eacheiv(1:n_eigs,:,meas_ptr),'.-');
+        semilogy(vr_norm_fac*var_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
         xlabel('eigenvalue')
         ylabel('normalized variance ratio');
         hold on;
         %variance ratio for full data
         colors=get(gca,'ColorOrder');
-        for fw_ptr=1:n_fws
+        for fw_ptr=1:n_fw_show
             hp=plot([1 n_eigs],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
-            set(hp,'Color',colors(fw_ptr,:));
+            set(hp,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
         end
         plot([1 n_eigs],[1 1],'k');
         %should also be able to get variance ratio for full data by 
@@ -161,7 +162,7 @@ for eigs_show_ptr=1:length(eigs_show_list)
         %participation ratio for each eiv
         %
         subplot(n_meas,n_cols,5+(meas_ptr-1)*n_cols);
-        plot(part_ratios_eacheiv(1:n_eigs,:,meas_ptr),'.-');
+        plot(part_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
         set(gca,'YLim',[1 min(n_repts,n_stims)]);
         xlabel('eigenvalue')
         ylabel('participation ratio');
