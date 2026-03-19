@@ -83,8 +83,8 @@ for fw_ptr=1:n_fws
             wt=svd_v(:,k); %weights for kth eigenvector (repts and stims)
             var_rats_each=hlid_varrats(reshape(wt,[1 n_repts n_stims]));
             var_ratios_eacheiv(k,fw_ptr,meas_ptr)=var_rats_each.ratio;
-            var_ratios_eacheiv_num(k,fw_ptr,meas_ptr)=var_rats_each.across; %for later summing
-            var_ratios_eacheiv_den(k,fw_ptr,meas_ptr)=var_rats_each.within; %for later summing
+            var_ratios_eacheiv_num(k,fw_ptr,meas_ptr)=mean(var_rats_each.across); %for later summing
+            var_ratios_eacheiv_den(k,fw_ptr,meas_ptr)=mean(var_rats_each.within); %for later summing
             %
             %svd of wts and stims to get participation ratio
             [svd_wu,svd_ws,svd_wv]=svd(reshape(wt,[n_repts n_stims]));
