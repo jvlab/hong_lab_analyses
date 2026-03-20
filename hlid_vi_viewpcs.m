@@ -1,6 +1,6 @@
 %hlid_vi_viewpcs: view principal components of KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC.
+%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC, HLID_VI_VIEWPCS_UTIL.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
@@ -110,58 +110,33 @@ while (if_done==0)
         for tbin=1:n_tbins
             spatem_binned(:,tbin)=mean(spatem(:,[bin_ranges(1,tbin):bin_ranges(2,tbin)]),2);
         end
-        %plot with a plane in each row
+        %
+        %plot spatiotemporal component with a plane in each row
+        %
         figure;
         set(gcf,'NumberTitle','off');
-        set(gcf,'Name',cat(2,pc_string,' ',tstring));
+        set(gcf,'Name',cat(2,pc_string,' spatiotemp detail, ',tstring));
         set(gcf,'Position',[50 50 1400 800]);
-        spatem_binned_max=max(abs(spatem_binned(:)));
-        for iplane=1:n_planes
-            %code borrowed from hlid_vi_spatialfilter
-            pxls_sel=find(xyz(:,3)==planes(iplane));
-            xy_use=xyz(pxls_sel,[1:2]);
-            xy_min=min(xy_use,[],1);
-            xy_max=max(xy_use,[],1);
-            xy_mod=xy_use-xy_min+1;
-            data_mask=sparse(xy_mod(:,1),xy_mod(:,2),1);
-            data_mask_full=full(data_mask);
-            for tbin=1:n_tbins
-                f=sparse(xy_mod(:,1),xy_mod(:,2),spatem_binned(pxls_sel,tbin));
-                fu=full(f);
-                fu(data_mask_full==0)=NaN; %mask out the NaN's
-                subplot(n_planes,n_tbins,tbin+(iplane-1)*n_tbins);
-                switch if_hv
-                    case 1
-                        if if_unifscale
-                            imagesc(fu,spatem_binned_max*[-1 1]);
-                        else
-                            imagesc(fu,max(abs(fu(:)))*[-1 1]);
-                        end
-                        xlabel(sprintf('fr [%2.0f %2.0f]',bin_ranges(:,tbin)));
-                        ylabel(sprintf('plane %2.0f',planes(iplane)));
-                        axis equal;
-                        set(gca,'YTick',1+[0 xy_max(1)-xy_min(1)]);
-                        set(gca,'YTickLabels',[xy_min(1),xy_max(1)]);
-                        set(gca,'XTick',1+[0 xy_max(2)-xy_min(2)]);
-                        set(gca,'XTickLabels',[xy_min(2),xy_max(2)]);
-                        axis tight;
-                    case 2
-                        if if_unifscale
-                            imagesc(fu,spatem_binned_max*[-1 1]);
-                        else
-                            imagesc(fu,max(abs(fu(:)))*[-1 1]);
-                        end
-                        xlabel(sprintf('fr [%2.0f %2.0f]',bin_ranges(:,tbin)));
-                        ylabel(sprintf('plane %2.0f',planes(iplane)));
-                        axis equal;
-                        set(gca,'XTick',1+[0 xy_max(1)-xy_min(1)]);
-                        set(gca,'XTickLabels',[xy_min(1),xy_max(1)]);
-                        set(gca,'YTick',1+[0 xy_max(2)-xy_min(2)]);
-                        set(gca,'YTickLabels',[xy_min(2),xy_max(2)]);
-                        axis tight;
-                end %if_hv
-            end %tbin
-        end %iplane
+        %
+        hlid_vi_viewpcs_util(xyz,spatem_binned,if_hv,if_unifscale,bin_ranges,n_tbins,0); %final argument is column offset
+        %
+        axes('Position',[0.01,0.04,0.01,0.01]);
+        text(0,0,pc_string2,'Interpreter','none');
+        axis off
+        axes('Position',[0.01,0.01,0.01,0.01]);
+        text(0,0,tstring,'Interpreter','none');
+        axis off
+        %
+        %plot summary of spatiotemporal component 
+        %
+        figure;
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',cat(2,pc_string,' summary, ',tstring));
+        set(gcf,'Position',[50 50 1400 800]);
+        spatem_avg=mean(spatem,2);
+        %
+        n_sumcols=6;
+        hlid_vi_viewpcs_util(xyz,spatem_avg,if_hv,if_unifscale,[1 resp_minlength]',n_sumcols,0); %final argument is column offset
         axes('Position',[0.01,0.04,0.01,0.01]);
         text(0,0,pc_string2,'Interpreter','none');
         axis off
