@@ -7,6 +7,7 @@ if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; en
 if ~exist('nstims') nstims=24; end
 if ~exist('nrepts') nrepts=5; end
 if ~exist('n_tbins') n_tbins=5; end %default number of time bins to use
+if ~exist('n_stpcs') n_stpcs=2; end % number of pc's to show of each spatiotemporal PC
 %
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
 %
@@ -103,6 +104,12 @@ while (if_done==0)
         end
         if_hv=getinp('1 for horizontal, 2 for vertical','d',[1 2],if_hv);
         if_unifscale=getinp('1 for uniform scale, 0 to scale each to max','d',[0 1],if_unifscale);
+        opts_viewpcs=struct;
+        opts_viewpcs.if_hv=if_hv;
+        opts_viewpcs.if_unifscale=if_unifscale;
+        %
+        n_stpcs=getinp('number of spatiotemporal pcs to show','d',[0 n_stpcs],n_stpcs);
+        %
         bin_ranges=[(1+[0 cumsum(tbins(1:end-1))]);cumsum(tbins)];
         spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
         repstm=reshape(svd_v(:,ipc),[n_repts n_stims]);
@@ -118,7 +125,10 @@ while (if_done==0)
         set(gcf,'Name',cat(2,pc_string,' spatiotemp detail, ',tstring));
         set(gcf,'Position',[50 50 1400 800]);
         %
-        hlid_vi_viewpcs_util(xyz,spatem_binned,if_hv,if_unifscale,bin_ranges,n_tbins,0); %final argument is column offset
+        opts_viewpcs.bin_ranges=bin_ranges;
+        opts_viewpcs.n_cols=n_tbins;
+        opts_viewpcs.col_off=0;
+        hlid_vi_viewpcs_util(xyz,spatem_binned,opts_viewpcs);
         %
         axes('Position',[0.01,0.04,0.01,0.01]);
         text(0,0,pc_string2,'Interpreter','none');
@@ -135,8 +145,27 @@ while (if_done==0)
         set(gcf,'Position',[50 50 1400 800]);
         spatem_avg=mean(spatem,2);
         %
-        n_sumcols=6;
-        hlid_vi_viewpcs_util(xyz,spatem_avg,if_hv,if_unifscale,[1 resp_minlength]',n_sumcols,0); %final argument is column offset
+        n_sumcols=2*(1+n_stpcs);
+        opts_viewpcs.bin_ranges=[1 resp_minlength]';
+        opts_viewpcs.n_cols=n_sumcols;
+        opts_viewpcs.col_off=0;
+        handles=hlid_vi_viewpcs_util(xyz,spatem_avg,opts_viewpcs);
+        axpos=handles{1}.Position;
+        axes('Position',[axpos(1) axpos(2)+axpos(4)+0.02,0.01,0.01]);
+        text(0,0,'mean');
+        axis off
+        if n_stpcs>0
+            %svd of spatiotemporal part
+            [svd_stu,svd_sts,svd_stv]=svd(spatem,'econ');
+            svd_sts_dsq=diag(svd_sts).^2;
+            for istpc=1:n_stpcs
+                handles=hlid_vi_viewpcs_util(xyz,svd_stu(:,istpc),setfield(opts_viewpcs,'col_off',istpc));
+                axpos=handles{1}.Position;
+                axes('Position',[axpos(1) axpos(2)+axpos(4)+0.02,0.01,0.01]);
+                text(0,0,sprintf('stpc %1.0f',istpc));
+                axis off
+            end
+        end
         axes('Position',[0.01,0.04,0.01,0.01]);
         text(0,0,pc_string2,'Interpreter','none');
         axis off

@@ -1,6 +1,6 @@
-%hlid_vi_preproc: look at preprocessig options for KC volumetric imaging, data from George Barnum, Hong Lab
+%hlid_vi_preproc: look at preprocessing options for KC volumetric imaging, data from George Barnum, Hong Lab
 %
-%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC_PLOT.
+%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC_PLOT, HLID_VI_VIEWPCS.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
@@ -77,8 +77,7 @@ for fw_ptr=1:n_fws
         [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
         eival_sqs(:,fw_ptr,meas_ptr)=(diag(svd_s)).^2;
         part_ratios(fw_ptr,meas_ptr)=(sum(diag(svd_s)).^2)/sum(diag(svd_s).^2);
-  
-        %
+          %
         for k=1:nstims*nrepts
             wt=svd_v(:,k); %weights for kth eigenvector (repts and stims)
             var_rats_each=hlid_varrats(reshape(wt,[1 n_repts n_stims]));
