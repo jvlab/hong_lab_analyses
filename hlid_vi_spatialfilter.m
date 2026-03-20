@@ -32,15 +32,14 @@ for iplane=1:length(planes)
         disp(sprintf(' filtering plane %3.0f: %7.0f pixels, %3.0f timepoints, %3.0f repts, %3.0f stims',...
             planes(iplane),size(xy_use,1),nt,nrepts,nstims))
     end
-    xy_low=min(xy_use,[],1);
-    xy_mod=xy_use-xy_low+1;
+    xy_min=min(xy_use,[],1);
+    xy_mod=xy_use-xy_min+1;
     data_mask=sparse(xy_mod(:,1),xy_mod(:,2),1);
     data_mask_full=full(data_mask);
     for it=1:nt
         for ir=1:nrepts
             for is=1:nstims
                 f=sparse(xy_mod(:,1),xy_mod(:,2),pv(pxls_sel,it,ir,is));
-%                f(data_mask==0)=NaN;
                 fu=full(f);
                 fu(data_mask_full==0)=NaN; %mask out the NaN's
                 fc=conv2(fu,ker,'same');

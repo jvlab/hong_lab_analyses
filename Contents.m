@@ -71,6 +71,7 @@
 % hlid_vi_preproc_plot: plot outputs of hlid_vi_preproc
 % hlid_vi_read: read volumetric datasets from hdf5 files
 % hlid_vi_spatialfilter: spatial filter slices of volumetric data
-% hlid_vi_stimnames: set up stimulus names 
+% hlid_vi_stimnames: set up stimulus names
+% hlid_vi_viewpcs: view spatiotemporal pcs of volume image
 %
 %   Copyright (c) 2024, 2025, 2026 by J. Victor
