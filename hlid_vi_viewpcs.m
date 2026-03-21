@@ -185,6 +185,24 @@ while (if_done==0)
                     axis off
                 end
             end
+            %
+            %show mean and temporal parts of the spatiotemporal pcs
+            %
+            spatem_tavg=mean(spatem,1);
+            spatem_tavg_norm=spatem_tavg/sqrt(sum(spatem_tavg.^2));
+            subplot(2,2,2);
+            plot(spatem_tavg_norm)
+            xlabel('frame');
+            %also need to plot pcs
+            %
+            %here need to take into account stimulus reordering
+            subplot(2,2,4);
+            imagesc(reshape(repstm,[n_repts n_stims]));
+            xlabel('stimulus');
+            ylabel('repeat');
+            set(gca,'YTick',[1:n_repts]);
+            set(gca,'YTickLabel',rept_list);
+            %
             axes('Position',[0.01,0.04,0.01,0.01]);
             text(0,0,pc_string2,'Interpreter','none');
             axis off
