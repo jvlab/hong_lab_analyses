@@ -1,5 +1,7 @@
 %hlid_vi_viewpcs: view principal components of KC volumetric imaging, data from George Barnum, Hong Lab
 %
+% 20Mar26: convert from variance ratio to F ratio
+%
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC, HLID_VI_VIEWPCS_UTIL.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
@@ -108,7 +110,7 @@ while (if_done==0)
         opts_viewpcs.if_hv=if_hv;
         opts_viewpcs.if_unifscale=if_unifscale;
         %
-        n_stpcs=getinp('number of spatiotemporal pcs to show','d',[0 n_stpcs],n_stpcs);
+        n_stpcs=getinp('number of spatiotemporal pcs to show','d',[0 4],n_stpcs);
         %
         bin_ranges=[(1+[0 cumsum(tbins(1:end-1))]);cumsum(tbins)];
         spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
