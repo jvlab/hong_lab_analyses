@@ -12,6 +12,7 @@ if ~exist('n_tbins') n_tbins=5; end %default number of time bins to use
 if ~exist('n_stpcs') n_stpcs=2; end % number of pc's to show of each spatiotemporal PC
 %
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
+if ~exist('if_skewpos') if_skewpos=1; end %set to ensure that all spatiotemporal pcs have a positive skew
 %
 opts_read.if_remnan=1;
 opts_read.if_log=0;
@@ -80,23 +81,28 @@ v_indiv_repts=reshape(v_indiv_repts(:,[1:resp_minlength],:),[n_pixels*resp_minle
 disp('computing pcs')
 [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
 %
+if if_skewpos
+    flips=find(sum((svd_u-repmat(mean(svd_u,1),[size(svd_u,1) 1])).^3,1)<0);
+    svd_u(:,flips)=-svd_u(:,flips);
+    svd_s(:,flips)=-svd_s(:,flips);
+    svd_v(:,flips)=-svd_v(:,flips);
+    disp(sprintf(' %3.0f of %3.0f pcs flipped to have a positive skewness',length(flips),n_repts*n_stims));
+end
+%
 clear v v_indiv_repts deltaF baseline_means baseline_stdvs
 %
 if_done=0;
-ipc=[];
+pc_list=[];
 if_hv=1;
 if_unifscale=1;
 svd_v_max=max(abs(svd_v(:)));
 svd_u_max=max(abs(svd_u(:)));
 svd_s_dsq=diag(svd_s).^2;
 while (if_done==0)
-    ipc=getinp('pc to show (0 to end)','d',[0 n_repts*n_stims],ipc);
-    if ipc==0
+    pc_list=getinp('pcs to show (0 to end)','d',[0 n_repts*n_stims],pc_list);
+    if pc_list(1)==0
         if_done=1;
     else
-        pc_string=sprintf('pc %3.0f',ipc);
-        pc_string2=cat(2,pc_string,sprintf(' frac of variance: %8.6f, rel. frac vs. pc1: %8.6f',...
-            svd_s_dsq(ipc)/sum(svd_s_dsq),svd_s_dsq(ipc)/svd_s_dsq(1)));
         n_tbins=getinp('number of time bins','d',[1 resp_minlength],n_tbins);
         tbins=repmat(floor(resp_minlength/n_tbins),1,n_tbins);
         if_ok=0;
@@ -106,73 +112,85 @@ while (if_done==0)
         end
         if_hv=getinp('1 for horizontal, 2 for vertical','d',[1 2],if_hv);
         if_unifscale=getinp('1 for uniform scale, 0 to scale each to max','d',[0 1],if_unifscale);
+        n_stpcs=getinp('number of spatiotemporal components to show for each pc','d',[0 4],n_stpcs);
         opts_viewpcs=struct;
         opts_viewpcs.if_hv=if_hv;
         opts_viewpcs.if_unifscale=if_unifscale;
-        %
-        n_stpcs=getinp('number of spatiotemporal pcs to show','d',[0 4],n_stpcs);
-        %
-        bin_ranges=[(1+[0 cumsum(tbins(1:end-1))]);cumsum(tbins)];
-        spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
-        repstm=reshape(svd_v(:,ipc),[n_repts n_stims]);
-        spatem_binned=zeros(n_pixels,n_tbins);
-        for tbin=1:n_tbins
-            spatem_binned(:,tbin)=mean(spatem(:,[bin_ranges(1,tbin):bin_ranges(2,tbin)]),2);
-        end
-        %
-        %plot spatiotemporal component with a plane in each row
-        %
-        figure;
-        set(gcf,'NumberTitle','off');
-        set(gcf,'Name',cat(2,pc_string,' spatiotemp detail, ',tstring));
-        set(gcf,'Position',[50 50 1400 800]);
-        %
-        opts_viewpcs.bin_ranges=bin_ranges;
-        opts_viewpcs.n_cols=n_tbins;
-        opts_viewpcs.col_off=0;
-        hlid_vi_viewpcs_util(xyz,spatem_binned,opts_viewpcs);
-        %
-        axes('Position',[0.01,0.04,0.01,0.01]);
-        text(0,0,pc_string2,'Interpreter','none');
-        axis off
-        axes('Position',[0.01,0.01,0.01,0.01]);
-        text(0,0,tstring,'Interpreter','none');
-        axis off
-        %
-        %plot summary of spatiotemporal component 
-        %
-        figure;
-        set(gcf,'NumberTitle','off');
-        set(gcf,'Name',cat(2,pc_string,' summary, ',tstring));
-        set(gcf,'Position',[50 50 1400 800]);
-        spatem_avg=mean(spatem,2);
-        %
-        n_sumcols=2*(1+n_stpcs);
-        opts_viewpcs.bin_ranges=[1 resp_minlength]';
-        opts_viewpcs.n_cols=n_sumcols;
-        opts_viewpcs.col_off=0;
-        handles=hlid_vi_viewpcs_util(xyz,spatem_avg,opts_viewpcs);
-        axpos=handles{1}.Position;
-        axes('Position',[axpos(1) axpos(2)+axpos(4)+0.02,0.01,0.01]);
-        text(0,0,'mean');
-        axis off
-        if n_stpcs>0
+        for pc_ptr=1:length(pc_list)
+            ipc=pc_list(pc_ptr);
+            pc_string=sprintf('pc %3.0f',ipc);
+            pc_string2=cat(2,pc_string,sprintf(' frac of variance: %8.6f, rel. frac vs. pc1: %8.6f',...
+                svd_s_dsq(ipc)/sum(svd_s_dsq),svd_s_dsq(ipc)/svd_s_dsq(1)));
+            %
+            bin_ranges=[(1+[0 cumsum(tbins(1:end-1))]);cumsum(tbins)];
+            spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
+            repstm=reshape(svd_v(:,ipc),[n_repts n_stims]);
+            spatem_binned=zeros(n_pixels,n_tbins);
+            for tbin=1:n_tbins
+                spatem_binned(:,tbin)=mean(spatem(:,[bin_ranges(1,tbin):bin_ranges(2,tbin)]),2);
+            end
+            %
+            %plot spatiotemporal component with a plane in each row
+            %
+            figure;
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Name',cat(2,pc_string,' spatiotemp detail, ',tstring));
+            set(gcf,'Position',[50 50 1400 800]);
+            %
+            opts_viewpcs.bin_ranges=bin_ranges;
+            opts_viewpcs.n_cols=n_tbins;
+            opts_viewpcs.col_off=0;
+            hlid_vi_viewpcs_util(xyz,spatem_binned,opts_viewpcs);
+            %
+            axes('Position',[0.01,0.04,0.01,0.01]);
+            text(0,0,pc_string2,'Interpreter','none');
+            axis off
+            axes('Position',[0.01,0.01,0.01,0.01]);
+            text(0,0,tstring,'Interpreter','none');
+            axis off
+            %
+            %plot summary of spatiotemporal component 
+            %
+            figure;
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Name',cat(2,pc_string,' summary, ',tstring));
+            set(gcf,'Position',[50 50 1400 800]);
+            spatem_avg=mean(spatem,2);
+            %
+            n_sumcols=2*(1+n_stpcs);
+            opts_viewpcs.bin_ranges=[1 resp_minlength]';
+            opts_viewpcs.n_cols=n_sumcols;
+            opts_viewpcs.col_off=0;
+            handles=hlid_vi_viewpcs_util(xyz,spatem_avg,opts_viewpcs);
+            %
             %svd of spatiotemporal part
             [svd_stu,svd_sts,svd_stv]=svd(spatem,'econ');
             svd_sts_dsq=diag(svd_sts).^2;
-            for istpc=1:n_stpcs
-                handles=hlid_vi_viewpcs_util(xyz,svd_stu(:,istpc),setfield(opts_viewpcs,'col_off',istpc));
-                axpos=handles{1}.Position;
-                axes('Position',[axpos(1) axpos(2)+axpos(4)+0.02,0.01,0.01]);
-                text(0,0,sprintf('stpc %1.0f',istpc));
-                axis off
+            %
+            pr_sts=(sum(svd_sts_dsq))^2/sum(svd_sts_dsq.^2);
+            %
+            axpos=handles{1}.Position;
+            axes('Position',[axpos(1) axpos(2)+axpos(4)+0.02,0.01,0.01]);
+            text(0,0,'mean');
+            axis off
+            axes('Position',[axpos(1) axpos(2)+axpos(4)+0.05,0.01,0.01]);
+            text(0,0.,sprintf('particpation ratio for this component: %7.4f',pr_sts));
+            axis off
+            if n_stpcs>0
+                for istpc=1:n_stpcs
+                    handles=hlid_vi_viewpcs_util(xyz,svd_stu(:,istpc),setfield(opts_viewpcs,'col_off',istpc));
+                    axpos=handles{1}.Position;
+                    axes('Position',[axpos(1) axpos(2)+axpos(4)+0.02,0.01,0.01]);
+                    text(0,0,sprintf('stpc %1.0f',istpc));
+                    axis off
+                end
             end
-        end
-        axes('Position',[0.01,0.04,0.01,0.01]);
-        text(0,0,pc_string2,'Interpreter','none');
-        axis off
-        axes('Position',[0.01,0.01,0.01,0.01]);
-        text(0,0,tstring,'Interpreter','none');
-        axis off
+            axes('Position',[0.01,0.04,0.01,0.01]);
+            text(0,0,pc_string2,'Interpreter','none');
+            axis off
+            axes('Position',[0.01,0.01,0.01,0.01]);
+            text(0,0,tstring,'Interpreter','none');
+            axis off
+        end %ipc_ptr
     end
 end
