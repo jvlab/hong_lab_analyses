@@ -1,5 +1,7 @@
 %hlid_vi_explore: initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
+% 20Mar26: convert from variance ratio to F ratio
+%
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
@@ -271,7 +273,7 @@ if if_dist
     end
     %
     axes('Position',[0.01,0.04,0.01,0.01]);
-    text(0,0,sprintf('variance ratio: %8.4f',var_rats.ratio));
+    text(0,0,sprintf('F ratio: %8.4f',var_rats.frat));
     axis off
     axes('Position',[0.01,0.01,0.01,0.01]);
     text(0,0,cat(2,tstring,' ',rept_string),'Interpreter','none');

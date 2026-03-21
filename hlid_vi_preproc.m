@@ -1,11 +1,13 @@
 %hlid_vi_preproc: look at preprocessing options for KC volumetric imaging, data from George Barnum, Hong Lab
 %
+% 20Mar26: convert from variance ratio to F ratio
+%
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC_PLOT, HLID_VI_VIEWPCS.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
-if ~exist('nstims') nstims=24; end
-if ~exist('nrepts') nrepts=5; end
+if ~exist('n_stims') n_stims=24; end
+if ~exist('n_repts') n_repts=5; end
 %
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
 %
@@ -13,8 +15,8 @@ opts_read.if_remnan=1;
 opts_read.if_log=0;
 opts_read.if_spatialfilter=1;
 fw_list=getinp('spatial kernel full width list (0 is no filter)','d',[0 Inf],[0 1 2 4 8]);
-rept_list=getinp('repeat list','d',[1 nrepts],1:nrepts);
-stim_list=getinp('stimulus list','d',[1 nstims],1:nstims);
+rept_list=getinp('repeat list','d',[1 n_repts],1:n_repts);
+stim_list=getinp('stimulus list','d',[1 n_stims],1:n_stims);
 %
 opts_read.data_path=data_path;
 opts_read.data_file=data_file;
@@ -30,13 +32,13 @@ n_stims=length(stim_list);
 n_fws=length(fw_list);
 n_meas=length(resp_measures);
 %
-var_ratios=zeros(n_fws,n_meas);
+var_frats=zeros(n_fws,n_meas);
 part_ratios=zeros(n_fws,n_meas);
 eival_sqs=zeros(n_stims*n_repts,n_fws,n_meas);
-var_ratios_eacheiv=zeros(nstims*nrepts,n_fws,n_meas); %variance ratio for each eigenvector
-var_ratios_eacheiv_num=zeros(nstims*nrepts,n_fws,n_meas); %variance ratio for each eigenvector, numerator
-var_ratios_eacheiv_den=zeros(nstims*nrepts,n_fws,n_meas); %variance ratio for each eigenvector, denominator
-part_ratios_eacheiv=zeros(nstims*nrepts,n_fws,n_meas);
+var_ratios_eacheiv=zeros(n_stims*n_repts,n_fws,n_meas); %variance ratio for each eigenvector
+var_ratios_eacheiv_num=zeros(n_stims*n_repts,n_fws,n_meas); %variance ratio for each eigenvector, numerator
+var_ratios_eacheiv_den=zeros(n_stims*n_repts,n_fws,n_meas); %variance ratio for each eigenvector, denominator
+part_ratios_eacheiv=zeros(n_stims*n_repts,n_fws,n_meas);
 %
 for fw_ptr=1:n_fws
     opts_read.sfilt_hw=fw_list(fw_ptr)/2;
@@ -70,7 +72,7 @@ for fw_ptr=1:n_fws
         v_indiv_repts=reshape(v_indiv_repts(:,[1:resp_minlength],:),[n_pixels*resp_minlength,n_repts*n_stims]);
         %
         var_rats=hlid_varrats(reshape(v_indiv_repts,[n_pixels*resp_minlength,n_repts,n_stims]));
-        var_ratios(fw_ptr,meas_ptr)=var_rats.ratio;
+        var_frats(fw_ptr,meas_ptr)=var_rats.frat;
         %
         %svd
         %
@@ -78,7 +80,7 @@ for fw_ptr=1:n_fws
         eival_sqs(:,fw_ptr,meas_ptr)=(diag(svd_s)).^2;
         part_ratios(fw_ptr,meas_ptr)=(sum(diag(svd_s)).^2)/sum(diag(svd_s).^2);
           %
-        for k=1:nstims*nrepts
+        for k=1:n_stims*n_repts
             wt=svd_v(:,k); %weights for kth eigenvector (repts and stims)
             var_rats_each=hlid_varrats(reshape(wt,[1 n_repts n_stims]));
             var_ratios_eacheiv(k,fw_ptr,meas_ptr)=var_rats_each.ratio;
@@ -95,6 +97,6 @@ for fw_ptr=1:n_fws
     end
     clear deltaF v
     clear svd*
-    disp(sprintf(' kernel hw: %4.1f; total pixels kept: %7.0f; variance ratios for dff and z: %7.4f %7.4f',opts_read.sfilt_hw,size(xyz,3),var_ratios(fw_ptr,:)));
+    disp(sprintf(' kernel hw: %4.1f; total pixels kept: %7.0f; F ratios for dff and z: %7.4f %7.4f',opts_read.sfilt_hw,size(xyz,1),var_frats(fw_ptr,:)));
 end
-disp(sprintf(' suggest saving workspace as hlid_vi_preproc*.mat; can plot with hlid_vi_preproc_plot');
+disp(sprintf(' suggest saving workspace as hlid_vi_preproc*.mat; can plot with hlid_vi_preproc_plot'));

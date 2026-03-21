@@ -4,8 +4,8 @@
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='gbarnum_mb247_soma_20241027_a_test_1.hdf5'; end
-if ~exist('nstims') nstims=24; end
-if ~exist('nrepts') nrepts=5; end
+if ~exist('n_stims') n_stims=24; end
+if ~exist('n_repts') n_repts=5; end
 if ~exist('n_tbins') n_tbins=5; end %default number of time bins to use
 if ~exist('n_stpcs') n_stpcs=2; end % number of pc's to show of each spatiotemporal PC
 %
@@ -25,8 +25,8 @@ if opts_read.if_spatialfilter
 else
     sf_string='sf: none';
 end
-rept_list=getinp('repeat list','d',[1 nrepts],1:nrepts);
-stim_list=getinp('stimulus list','d',[1 nstims],1:nstims);
+rept_list=getinp('repeat list','d',[1 n_repts],1:n_repts);
+stim_list=getinp('stimulus list','d',[1 n_stims],1:n_stims);
 n_repts=length(rept_list);
 n_stims=length(stim_list);
 %

@@ -1,14 +1,16 @@
 % hlid_vi_preproc_plot: plot results from hlid_vi_preproc
 %
-%  See also:  HLID_VI_PREPROC.
+% 20Mar26: convert from variance ratio to F ratio
 %
+%  See also:  HLID_VI_PREPROC.
 %
 if ~exist('eigs_show_list') eigs_show_list=[20 120]; end
 if ~exist('logrange') logrange=10^2; end
 if ~exist('n_fw_show') n_fw_show=n_fws; end
 %
-vr_norm_fac=n_repts/(1-1/n_stims); %asymptotic mean and median of variance fraction
 var_ratios_cum=cumsum(var_ratios_eacheiv_num.*eival_sqs)./cumsum(var_ratios_eacheiv_den.*eival_sqs); %variance ratios as eigenvalues are added in
+frat_factor=n_repts/(1-1/n_stims); %to convert hlid_varrats.ratio to frt
+var_frats_cum=frat_factor*var_ratios_cum;
 %
 for eigs_show_ptr=1:length(eigs_show_list)
     n_eigs=min(eigs_show_list(eigs_show_ptr),n_repts*n_stims);
@@ -41,14 +43,14 @@ for eigs_show_ptr=1:length(eigs_show_list)
         %variance ratio for each eiv
         %
         subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
-        semilogy(vr_norm_fac*var_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
+        semilogy(frat_factor*var_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
         xlabel('eigenvalue')
-        ylabel('indiv normalized variance ratio');
+        ylabel('indiv F ratio');
         hold on;
         %variance ratio for full data
         colors=get(gca,'ColorOrder');
         for fw_ptr=1:n_fw_show
-            hp=plot([1 n_eigs],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
+            hp=plot([1 n_eigs],repmat(var_frats(fw_ptr,meas_ptr),2,1));
             set(hp,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
         end
         plot([1 n_eigs],[1 1],'k');
@@ -57,14 +59,14 @@ for eigs_show_ptr=1:length(eigs_show_list)
         %variance ratio, cumulative across eivs
         %
         subplot(n_meas,n_cols,4+(meas_ptr-1)*n_cols);
-        semilogy(vr_norm_fac*var_ratios_cum(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
+        semilogy(var_frats_cum(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
         xlabel('eigenvalue')
-        ylabel('cumul normalized variance ratio');
+        ylabel('cumul F ratio');
         hold on;
         %variance ratio for full data
         colors=get(gca,'ColorOrder');
         for fw_ptr=1:n_fw_show
-            hp=plot([1 n_eigs],vr_norm_fac*repmat(var_ratios(fw_ptr,meas_ptr),2,1));
+            hp=plot([1 n_eigs],repmat(var_frats(fw_ptr,meas_ptr),2,1));
             set(hp,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
         end
         plot([1 n_eigs],[1 1],'k');
@@ -74,7 +76,7 @@ for eigs_show_ptr=1:length(eigs_show_list)
         %
         subplot(n_meas,n_cols,5+(meas_ptr-1)*n_cols);
         plot(fw_list,part_ratios(:,meas_ptr),'k.-');
-        set(gca,'YLim',[1 nrepts*nstims]);
+        set(gca,'YLim',[1 n_repts*n_stims]);
         set(gca,'XTick',fw_list);
         xlabel('filtering width')
         ylabel('participation ratio');
