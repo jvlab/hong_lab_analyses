@@ -192,7 +192,7 @@ while (if_done==0)
                 end
             end
             %
-            %show mean and temporal parts of the spatiotemporal pcs
+            %mean across time and temporal parts of the spatiotemporal pcs
             %           
             subplot(2,2,2);
             lstring=[];
@@ -210,13 +210,24 @@ while (if_done==0)
             xlabel('frame');
             legend(lstring,'Location','best')
             %
+            %heatmap of component as function or repeat and stimulus
+            %
             %here need to take into account stimulus reordering
             subplot(2,2,4);
             imagesc(reshape(repstm,[n_repts n_stims]));
+            colorbar;
             xlabel('stimulus');
             ylabel('repeat');
+            set(gca,'XTick',[1:n_stims]);
+            set(gca,'XTickLabel',stims.names_short(stim_list));
             set(gca,'YTick',[1:n_repts]);
             set(gca,'YTickLabel',rept_list);
+            varrats=hlid_varrats(reshape(repstm,[1 n_repts n_stims]));
+            frat=varrats.frat;
+            pval=1-fcdf(frat,varrats.fdof(1),varrats.fdof(2));
+            axes('Position',[0.55 0.01,0.01,0.01])
+            text(0,0,sprintf(' F ratio: %6.4f, p: %6.4f (dof: %3.0f %3.0f)',frat,pval,varrats.fdof));
+            axis off
             %
             axes('Position',[0.01,0.04,0.01,0.01]);
             text(0,0,pc_string2,'Interpreter','none');
