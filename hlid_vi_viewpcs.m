@@ -94,6 +94,7 @@ if_done=0;
 pc_list=[];
 if_hv=1;
 if_unifscale=1;
+if_reorder=1;
 svd_v_max=max(abs(svd_v(:)));
 svd_u_max=max(abs(svd_u(:)));
 svd_s_dsq=diag(svd_s).^2;
@@ -112,9 +113,22 @@ while (if_done==0)
         if_hv=getinp('1 for horizontal, 2 for vertical','d',[1 2],if_hv);
         if_unifscale=getinp('1 for uniform scale, 0 to scale each to max','d',[0 1],if_unifscale);
         n_stpcs=getinp('number of spatiotemporal components to show for each pc','d',[0 4],n_stpcs);
+        %
+        if_reorder=getinp('1 to reorder stimuli','d',[0 1],if_reorder);
+        if if_reorder
+            display_sort=zeros(1,n_stims);
+            for k=1:n_stims
+                display_sort(k)=find(stims.display_order==stim_list(k));
+            end
+            [dsort,display_ptr_order]=sort(display_sort);
+        else
+            display_ptr_order=[1:n_stims];
+        end
+        %
         opts_viewpcs=struct;
         opts_viewpcs.if_hv=if_hv;
         opts_viewpcs.if_unifscale=if_unifscale;
+        %
         for pc_ptr=1:length(pc_list)
             ipc=pc_list(pc_ptr);
             pc_string=sprintf('pc %3.0f',ipc);
@@ -212,21 +226,28 @@ while (if_done==0)
             %
             %heatmap of component as function or repeat and stimulus
             %
-            %here need to take into account stimulus reordering
             subplot(2,2,4);
-            imagesc(reshape(repstm,[n_repts n_stims]));
+            heatmap=reshape(repstm,[n_repts n_stims]);
+            imagesc(heatmap(:,display_ptr_order));
             colorbar;
             xlabel('stimulus');
             ylabel('repeat');
             set(gca,'XTick',[1:n_stims]);
-            set(gca,'XTickLabel',stims.names_short(stim_list));
+            set(gca,'XTickLabel',stims.names_short(stim_list(display_ptr_order)));
             set(gca,'YTick',[1:n_repts]);
             set(gca,'YTickLabel',rept_list);
+            title(sprintf('weights of spatiotemporal pc %2.0f by resp and stim',ipc));
             varrats=hlid_varrats(reshape(repstm,[1 n_repts n_stims]));
+            %statistics
+            [svd_wu,svd_ws,svd_wv]=svd(reshape(repstm,[n_repts n_stims]));
+            w_dims=min(n_repts,n_stims);
+            svd_ws_eivs=diag(svd_ws(1:w_dims,1:w_dims));
+            pr_wt=(sum(svd_ws_eivs).^2)/sum(svd_ws_eivs.^2);
+            %
             frat=varrats.frat;
             pval=1-fcdf(frat,varrats.fdof(1),varrats.fdof(2));
             axes('Position',[0.55 0.01,0.01,0.01])
-            text(0,0,sprintf(' F ratio: %6.4f, p: %6.4f (dof: %3.0f %3.0f)',frat,pval,varrats.fdof));
+            text(0,0,sprintf(' F ratio: %6.4f, p: %6.4f (dof: %3.0f %3.0f); part ratio: %7.4f',frat,pval,varrats.fdof,pr_wt));
             axis off
             %
             axes('Position',[0.01,0.04,0.01,0.01]);
