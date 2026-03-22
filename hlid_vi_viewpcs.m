@@ -163,7 +163,14 @@ while (if_done==0)
             handles=hlid_vi_viewpcs_util(xyz,spatem_avg,opts_viewpcs);
             %
             %svd of spatiotemporal part
+            %
             [svd_stu,svd_sts,svd_stv]=svd(spatem,'econ');
+            if if_skewpos
+                flips=find(sum((svd_stu-repmat(mean(svd_stu,1),[size(svd_stu,1) 1])).^3,1)<0);
+                svd_stu(:,flips)=-svd_stu(:,flips);
+                svd_stv(:,flips)=-svd_stv(:,flips);
+                disp(sprintf(' in spatiotemporal svd for pc %3.0f: %3.0f of %3.0f pcs flipped to have a positive skewness',ipc,length(flips),n_repts*n_stims));
+            end
             svd_sts_dsq=diag(svd_sts).^2;
             %
             pr_sts=(sum(svd_sts_dsq))^2/sum(svd_sts_dsq.^2);
@@ -186,13 +193,22 @@ while (if_done==0)
             end
             %
             %show mean and temporal parts of the spatiotemporal pcs
-            %
+            %           
+            subplot(2,2,2);
+            lstring=[];
+            if n_stpcs>0
+                plot(svd_stv(:,[1:n_stpcs])); %orthoinormal
+                hold on;
+                for istpc=1:n_stpcs
+                    lstring=strvcat(lstring,sprintf('stpc %3.0f',istpc));
+                end
+            end
+            lstring=strvcat(lstring,'mean');
             spatem_tavg=mean(spatem,1);
             spatem_tavg_norm=spatem_tavg/sqrt(sum(spatem_tavg.^2));
-            subplot(2,2,2);
-            plot(spatem_tavg_norm)
+            plot(spatem_tavg_norm,'k');
             xlabel('frame');
-            %also need to plot pcs
+            legend(lstring,'Location','best')
             %
             %here need to take into account stimulus reordering
             subplot(2,2,4);
