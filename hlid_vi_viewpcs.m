@@ -84,7 +84,6 @@ disp('computing pcs')
 if if_skewpos
     flips=find(sum((svd_u-repmat(mean(svd_u,1),[size(svd_u,1) 1])).^3,1)<0);
     svd_u(:,flips)=-svd_u(:,flips);
-    svd_s(:,flips)=-svd_s(:,flips);
     svd_v(:,flips)=-svd_v(:,flips);
     disp(sprintf(' %3.0f of %3.0f pcs flipped to have a positive skewness',length(flips),n_repts*n_stims));
 end
