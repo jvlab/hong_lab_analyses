@@ -17,7 +17,7 @@ while(if_done==0)
         logrange=getinp('log range','f',[1 Inf],logrange);
         %
         var_ratios_cum=cumsum(var_ratios_eacheiv_num.*eival_sqs)./cumsum(var_ratios_eacheiv_den.*eival_sqs); %variance ratios as eigenvalues are added in
-        frat_factor=n_repts/(1-1/n_stims); %to convert hlid_varrats.ratio to frt
+        frat_factor=n_repts/(1-1/n_stims); %to convert hlid_varrats.ratio to frat
         var_frats_cum=frat_factor*var_ratios_cum;
         %
         for eigs_show_ptr=1:length(eigs_show_list)
@@ -96,10 +96,44 @@ while(if_done==0)
                 set(gca,'YLim',[1 min(n_repts,n_stims)]);
                 xlabel('eigenvalue')
                 ylabel('indiv participation ratio');
+            end %meas_ptr
+            axes('Position',[0.01,0.01,0.01,0.01]);
+            text(0,0,data_file,'Interpreter','none');
+            axis off
+            %
+            %composite scattergram of wt partipation ratios and F ratios
+            %
+            figure;
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Position',[50 100 1100 800]);
+            set(gcf,'Name',sprintf('eig characteristics: 1 to %1.0f',n_eigs));
+            z=hlid_varrats(rand(1,n_repts,n_stims));
+            for meas_ptr=1:n_meas
+                subplot(n_meas,1,meas_ptr);
+                for fw_ptr=1:n_fw_show
+                    pr=part_ratios_eacheiv(1:n_eigs,fw_ptr,meas_ptr);
+                    fr=frat_factor*var_ratios_eacheiv(1:n_eigs,fw_ptr,meas_ptr);
+                    frp=1-fcdf(fr,z.fdof(1),z.fdof(2));
+                    hs=plot3([1:n_eigs],frp,pr,'.','MarkerSize',10);
+                    hold on;
+                    set(hs,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
+                end
+                set(gca,'XLim',[0 n_eigs]);
+                set(gca,'YLim',[0 1]);
+                set(gca,'ZLim',[1 n_repts]); %largest possible range of participation ratio
+                set(gca,'ZTick',[1:n_repts]);
+                grid on
+                box on
+                xlabel('eiv');
+                ylabel('p(F)');
+                zlabel('participation ratio')
+                title(resp_measures{meas_ptr});
+                legend(fw_labels,'Location','Best');
+                set(gca,'View',[-15,10]);
             end
             axes('Position',[0.01,0.01,0.01,0.01]);
             text(0,0,data_file,'Interpreter','none');
             axis off
         end %eigs_show_list
-    end
+     end %if_done
 end
