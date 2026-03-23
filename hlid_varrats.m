@@ -7,7 +7,8 @@ function vr=hlid_varrats(v)
 % vr.across(1,nstims): variance between each within-repeat mean and the centroid
 % vr.centroid(npts,1): the centroid, i.e., the global mean
 % vr.ratio=mean(vr.across)/mean(vr.within)
-% vr.frat=vr.ratio*nrepts/(1-1/nstims), distributed like F with
+% vr.frat=vr.ratio*nrepts/(1-1/nstims), distributed like F with vr.dof degrees of freedom
+% vr.frat_factor: the factor nrepts/(1-1/nstims) to convert from vr.ratio to vr.frat
 % vr.fdof=[(nstims-1)*npts,(nrepts-1)*nstims*npts] degreess of freedom
 %
 % for large nrepts,nstims, the expected value of vr.ratio is (1-1/nstims)/nrepts
@@ -20,6 +21,7 @@ function vr=hlid_varrats(v)
 % finv([0.01 .1 0.5 .9 0.99],(s-1)*c,(r-1)*s*c) - 0.2194    0.4457    0.9773    2.0593    3.8049
 %
 % 20Mar26: add F ratio
+% 23Mar26: add f ratio factor
 %
 %   See also:  HLID_VI_EXPLORE.
 %
@@ -35,7 +37,9 @@ vr.centroid=reshape(mean(stim_means,3),[npts 1]);
 vr.across=sum((reshape(stim_means,[npts nstims])-repmat(vr.centroid,[1,nstims])).^2,1);
 %
 vr.ratio=mean(vr.across)/mean(vr.within);
-vr.frat=vr.ratio*nrepts/(1-1/nstims);
+vr.frat_factor=nrepts/(1-1/nstims);
+%vr.frat=vr.ratio*nrepts/(1-1/nstims);
+vr.frat=vr.ratio*vr.frat_factor;
 vr.fdof=[(nstims-1)*npts,(nrepts-1)*nstims*npts];
 return
 end

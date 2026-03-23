@@ -1,6 +1,7 @@
 %hlid_vi_preproc: look at preprocessing options for KC volumetric imaging, data from George Barnum, Hong Lab
 %
 % 20Mar26: convert from variance ratio to F ratio
+% 23Mar26: add particpation ratio for spatiotemporal part
 %
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC_PLOT, HLID_VI_VIEWPCS.
 %
@@ -39,6 +40,7 @@ var_ratios_eacheiv=zeros(n_stims*n_repts,n_fws,n_meas); %variance ratio for each
 var_ratios_eacheiv_num=zeros(n_stims*n_repts,n_fws,n_meas); %variance ratio for each eigenvector, numerator
 var_ratios_eacheiv_den=zeros(n_stims*n_repts,n_fws,n_meas); %variance ratio for each eigenvector, denominator
 part_ratios_eacheiv=zeros(n_stims*n_repts,n_fws,n_meas);
+part_ratios_st=zeros(n_stims*n_repts,n_fws,n_meas);
 %
 for fw_ptr=1:n_fws
     opts_read.sfilt_hw=fw_list(fw_ptr)/2;
@@ -79,7 +81,7 @@ for fw_ptr=1:n_fws
         [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
         eival_sqs(:,fw_ptr,meas_ptr)=(diag(svd_s)).^2;
         part_ratios(fw_ptr,meas_ptr)=(sum(diag(svd_s)).^2)/sum(diag(svd_s).^2);
-          %
+        %
         for k=1:n_stims*n_repts
             wt=svd_v(:,k); %weights for kth eigenvector (repts and stims)
             var_rats_each=hlid_varrats(reshape(wt,[1 n_repts n_stims]));
@@ -87,15 +89,20 @@ for fw_ptr=1:n_fws
             var_ratios_eacheiv_num(k,fw_ptr,meas_ptr)=mean(var_rats_each.across); %for later summing
             var_ratios_eacheiv_den(k,fw_ptr,meas_ptr)=mean(var_rats_each.within); %for later summing
             %
-            %svd of wts and stims to get participation ratio
+            %svd of wts and stims to get participation ratio for repts x stims
             [svd_wu,svd_ws,svd_wv]=svd(reshape(wt,[n_repts n_stims]));
             w_dims=min(n_repts,n_stims);
             svd_ws_eivs=diag(svd_ws(1:w_dims,1:w_dims));
             part_ratios_eacheiv(k,fw_ptr,meas_ptr)=(sum(svd_ws_eivs).^2)/sum(svd_ws_eivs.^2);
             %
+            %svd to get particpation ratio for spatioetemporal part
+            st=svd_u(:,k); %compute particpation ratios for spatioptemporal part
+            [svd_stu,svd_sts,svd_stv]=svd(reshape(st,[n_pixels resp_minlength]),'econ');
+            svd_sts_eivs=diag(svd_sts(1:resp_minlength,1:resp_minlength));
+            part_ratios_st(k,fw_ptr,meas_ptr)=(sum(svd_sts_eivs).^2)/sum(svd_sts_eivs.^2);
         end
     end
-    clear deltaF v
+    clear deltaF v v_indiv_repts;
     clear svd*
     disp(sprintf(' kernel hw: %4.1f; total pixels kept: %7.0f; F ratios for dff and z: %7.4f %7.4f',opts_read.sfilt_hw,size(xyz,1),var_frats(fw_ptr,:)));
 end

@@ -13,6 +13,11 @@ while(if_done==0)
     if n_fw_show==0
         if_done=1;
     else
+        for k=1:n_meas
+            disp(sprintf(' %1.0f->%s',k,resp_measures{k}));
+        end
+        meas_show_list=getinp('measures to show','d',[1 n_meas],[1:n_meas]);
+        n_meas_show=length(meas_show_list);
         eigs_show_list=getinp('eigenvalues to show','d',[1 n_repts*n_stims],eigs_show_list);
         logrange=getinp('log range','f',[1 Inf],logrange);
         %
@@ -31,9 +36,10 @@ while(if_done==0)
             set(gcf,'Position',[50 50 1400 800]);
             set(gcf,'Name',sprintf('eigenvalue anlaysis: 1 to %1.0f',n_eigs));
             n_cols=6;
-            for meas_ptr=1:n_meas
+            for meas_show_ptr=1:n_meas_show
+                meas_ptr=meas_show_list(meas_show_ptr);
                 %scree plots
-                subplot(n_meas,n_cols,1+(meas_ptr-1)*n_cols)
+                subplot(n_meas_show,n_cols,1+(meas_show_ptr-1)*n_cols)
                 semilogy(eival_sqs(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
                 xlabel('eigenvalue');
                 ylabel(cat(2,resp_measures{meas_ptr},' var explained'));
@@ -41,7 +47,7 @@ while(if_done==0)
                 legend(fw_labels,'Location','best');
                 %
                 totvar=sum(eival_sqs(:,1:n_fw_show,meas_ptr),1);
-                subplot(n_meas,n_cols,2+(meas_ptr-1)*n_cols)
+                subplot(n_meas_show,n_cols,2+(meas_show_ptr-1)*n_cols)
                 semilogy(eival_sqs(1:n_eigs,1:n_fw_show,meas_ptr)./repmat(totvar,n_eigs,1),'.-');
                 xlabel('eigenvalue');
                 ylabel(cat(2,resp_measures{meas_ptr},' frac var explained'));
@@ -50,7 +56,7 @@ while(if_done==0)
                 %
                 %variance ratio for each eiv
                 %
-                subplot(n_meas,n_cols,3+(meas_ptr-1)*n_cols);
+                subplot(n_meas_show,n_cols,3+(meas_show_ptr-1)*n_cols);
                 semilogy(frat_factor*var_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
                 xlabel('eigenvalue')
                 ylabel('indiv F ratio');
@@ -66,7 +72,7 @@ while(if_done==0)
                 %
                 %variance ratio, cumulative across eivs
                 %
-                subplot(n_meas,n_cols,4+(meas_ptr-1)*n_cols);
+                subplot(n_meas_show,n_cols,4+(meas_show_ptr-1)*n_cols);
                 semilogy(var_frats_cum(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
                 xlabel('eigenvalue')
                 ylabel('cumul F ratio');
@@ -82,7 +88,7 @@ while(if_done==0)
                 %
                 %participation ratio for as function of filtering
                 %
-                subplot(n_meas,n_cols,5+(meas_ptr-1)*n_cols);
+                subplot(n_meas_show,n_cols,5+(meas_show_ptr-1)*n_cols);
                 plot(fw_list,part_ratios(:,meas_ptr),'k.-');
                 set(gca,'YLim',[1 n_repts*n_stims]);
                 set(gca,'XTick',fw_list);
@@ -91,11 +97,12 @@ while(if_done==0)
                 %
                 %participation ratio for each eiv
                 %
-                subplot(n_meas,n_cols,6+(meas_ptr-1)*n_cols);
+                subplot(n_meas_show,n_cols,6+(meas_show_ptr-1)*n_cols);
                 plot(part_ratios_eacheiv(1:n_eigs,1:n_fw_show,meas_ptr),'.-');
                 set(gca,'YLim',[1 min(n_repts,n_stims)]);
+                set(gca,'YTick',[1:min(n_repts,n_stims)]);
                 xlabel('eigenvalue')
-                ylabel('indiv participation ratio');
+                ylabel('indiv participation ratio (wts)');
             end %meas_ptr
             axes('Position',[0.01,0.01,0.01,0.01]);
             text(0,0,data_file,'Interpreter','none');
@@ -103,33 +110,49 @@ while(if_done==0)
             %
             %composite scattergram of wt partipation ratios and F ratios
             %
+            zlabels={'indiv part ratios (rep*stm)','indiv part ratios (spatem)'};
+            zmax=[n_repts, resp_minlength];
+            if exist('part_ratios_st')
+                n_part=2;
+            else
+                n_part=1;
+            end
             figure;
             set(gcf,'NumberTitle','off');
             set(gcf,'Position',[50 100 1100 800]);
             set(gcf,'Name',sprintf('eig characteristics: 1 to %1.0f',n_eigs));
             z=hlid_varrats(rand(1,n_repts,n_stims));
-            for meas_ptr=1:n_meas
-                subplot(n_meas,1,meas_ptr);
-                for fw_ptr=1:n_fw_show
-                    pr=part_ratios_eacheiv(1:n_eigs,fw_ptr,meas_ptr);
-                    fr=frat_factor*var_ratios_eacheiv(1:n_eigs,fw_ptr,meas_ptr);
-                    frp=1-fcdf(fr,z.fdof(1),z.fdof(2));
-                    hs=plot3([1:n_eigs],frp,pr,'.','MarkerSize',10);
-                    hold on;
-                    set(hs,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
+            for ipart=1:n_part %show either participation ratio for rept*stim weights, or for spatiotemp
+                for meas_show_ptr=1:n_meas_show
+                    meas_ptr=meas_show_list(meas_show_ptr);
+                    subplot(n_meas_show,n_part,ipart+(meas_show_ptr-1)*n_part);
+                    for fw_ptr=1:n_fw_show
+                        if ipart==1
+                            pr=part_ratios_eacheiv(1:n_eigs,fw_ptr,meas_ptr);
+                        else
+                            pr=part_ratios_st(1:n_eigs,fw_ptr,meas_ptr);
+                        end
+                        fr=frat_factor*var_ratios_eacheiv(1:n_eigs,fw_ptr,meas_ptr);
+                        frp=1-fcdf(fr,z.fdof(1),z.fdof(2));
+                        hs=plot3([1:n_eigs],frp,pr,'.','MarkerSize',10);
+                        hold on;
+                        set(hs,'Color',colors(mod(fw_ptr-1,size(colors,1))+1,:));
+                    end
+                    set(gca,'XLim',[0 n_eigs]);
+                    set(gca,'YLim',[0 1]);
+                    set(gca,'ZLim',[1 zmax(ipart)]); %largest possible range of participation ratio
+                    if (ipart==1)
+                        set(gca,'ZTick',[1:zmax(ipart)]);
+                    end
+                    grid on
+                    box on
+                    xlabel('eiv');
+                    ylabel('p(F)');
+                    zlabel(zlabels{ipart});
+                    title(resp_measures{meas_ptr});
+                    legend(fw_labels,'Location','Best');
+                    set(gca,'View',[-15,10]);
                 end
-                set(gca,'XLim',[0 n_eigs]);
-                set(gca,'YLim',[0 1]);
-                set(gca,'ZLim',[1 n_repts]); %largest possible range of participation ratio
-                set(gca,'ZTick',[1:n_repts]);
-                grid on
-                box on
-                xlabel('eiv');
-                ylabel('p(F)');
-                zlabel('participation ratio')
-                title(resp_measures{meas_ptr});
-                legend(fw_labels,'Location','Best');
-                set(gca,'View',[-15,10]);
             end
             axes('Position',[0.01,0.01,0.01,0.01]);
             text(0,0,data_file,'Interpreter','none');
