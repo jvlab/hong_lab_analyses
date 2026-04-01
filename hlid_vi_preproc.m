@@ -2,6 +2,7 @@
 %
 % 20Mar26: convert from variance ratio to F ratio
 % 23Mar26: add particpation ratio for spatiotemporal part
+% 31Mar26: add max_timepoints
 %
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC_PLOT, HLID_VI_VIEWPCS.
 %
@@ -18,6 +19,8 @@ opts_read.if_spatialfilter=1;
 fw_list=getinp('spatial kernel full width list (0 is no filter)','d',[0 Inf],[0 1 2 4 8]);
 rept_list=getinp('repeat list','d',[1 n_repts],1:n_repts);
 stim_list=getinp('stimulus list','d',[1 n_stims],1:n_stims);
+%
+opts_read.max_timepoints=getinp('max timepoints to read (0: all)','d',[0 Inf]);
 %
 opts_read.data_path=data_path;
 opts_read.data_file=data_file;

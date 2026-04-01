@@ -1,6 +1,7 @@
 %hlid_vi_viewpcs: view principal components of KC volumetric imaging, data from George Barnum, Hong Lab
 %
 % 20Mar26: convert from variance ratio to F ratio
+% 31Mar26: add max_timepoints
 %
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VARRATS, HLID_VI_PREPROC, HLID_VI_VIEWPCS_UTIL.
 %
@@ -14,12 +15,15 @@ if ~exist('n_stpcs') n_stpcs=2; end % number of pc's to show of each spatiotempo
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
 if ~exist('if_skewpos') if_skewpos=1; end %set to ensure that all spatiotemporal pcs have a positive skew
 %
+if ~exist('opts_read') opts_read=struct;end
+%
 opts_read.if_remnan=1;
 opts_read.if_log=0;
 for k=1:length(resp_measures)
     disp(sprintf('%1.0f->response measure %s',k,resp_measures{k}));
 end
 resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
+opts_read.max_timepoints=getinp('max timepoints to read (0: all)','d',[0 Inf]);
 opts_read.if_spatialfilter=getinp('1 for spatial filter','d',[0 1],0);
 if opts_read.if_spatialfilter
     sfilt_fw=getinp('spatial kernel full width (0 is no filter)','d',[0 Inf],1);
@@ -44,7 +48,9 @@ opts_read.stim_list=stim_list;
 opts_read.rept_list=rept_list;
 [s,opts_read_used]=hlid_vi_read(opts_read);
 %
-tstring=cat(2,read_data_file_short,':',sf_string,',',resp_measure,', ',rept_string);
+sf_tp_string=cat(2,sf_string,sprintf('; timepoints: [0 %2.0f]',s.n_timepoints_read));
+%
+tstring=cat(2,read_data_file_short,':',sf_tp_string,',',resp_measure,', ',rept_string);
 disp(sprintf('read %s',tstring));
 %
 n_pixels=s.n_pixels_kept;

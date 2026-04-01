@@ -12,7 +12,6 @@ function [s,opts_read_used]=hlid_vi_read(opts_read)
 %  if_keep_all_raw: 1 to keep all raw data in s, 0 (default) to delete
 %  if_spatialfilter: 1 to apply spatial filter
 %  sfilt_hw: half-width of spatial kernel
-%  max_timepoints: maximum number of timepoints to read, 0 (default) means read all
 %
 % s: structure of data read from the HDF5 file
 %
@@ -21,8 +20,6 @@ function [s,opts_read_used]=hlid_vi_read(opts_read)
 % s.responses(pixel_number,frame,rept_ptr,stim_ptr): raw data values for the response to rept_list(rept_ptr) and stim_list(stim_ptr)
 %
 % opts_read_used: options used
-%
-% 31Mar26: add max_timepoints
 %
 %   See also:  HLID_VI_EXPLORE, hlid_VI_SPATIALFILTER, H5INFO, H5READ.
 %
@@ -38,7 +35,6 @@ opts_read=filldefault(opts_read,'if_remnan',1);
 opts_read=filldefault(opts_read,'if_keep_all_raw',0);
 opts_read=filldefault(opts_read,'if_spatialfilter',0);
 opts_read=filldefault(opts_read,'sfilt_hw',2); %corresponds to [1 2 1]/4
-opts_read=filldefault(opts_read,'max_timepoints',0);
 opts_read_used=opts_read;
 %
 s=struct;
@@ -67,15 +63,8 @@ if n_pixels_check~=s.n_pixels_all
 end
 %read pixel values
 %
-if opts_read.max_timepoints==0
-    s.n_timepoints_read=s.n_timepoints;
-else
-    s.n_timepoints_read=min(s.n_timepoints,opts_read.max_timepoints);
-end
-disp(sprintf('number of timepoints read: %4.0f, available: %4.0f',s.n_timepoints_read,s.n_timepoints));
-%
 if opts_read.if_remnan==1
-    pixel_values=h5read(fullname,'/pixel_values',[1 1 1 1],[s.n_pixels_all s.n_timepoints_read s.n_repts_all s.n_stims_all]); %read all repts and stims
+    pixel_values=h5read(fullname,'/pixel_values'); %read all repts and stims
     nan_pixels_prelim=any(any(any(isnan(pixel_values),2),3),4);
     if opts_read.if_log
         disp(sprintf('%10.0f pixel values read in %7.0f pixels across all repts and stims; %7.0f have a NaN in some frame',...
@@ -94,12 +83,12 @@ if opts_read.if_remnan==1
     pixels_keep=find(nan_pixels==0);
     pixel_values=pixel_values(:,:,opts_read.rept_list,opts_read.stim_list); %pixel values in requested repts and stims
 else
-    pixel_values=zeros(s.n_pixels_all,s.n_timepoints_read,s.n_repts_kept,s.n_stims_kept); %only read the repts and stims rquested
+    pixel_values=zeros(s.n_pixels_all,s.n_timepoints,s.n_repts_kept,s.n_stims_kept); %only read the repts and stims rquested
     for rept_ptr=1:s.n_repts_kept
         for stim_ptr=1:s.n_stims_kept
             rept=opts_read.rept_list(rept_ptr);
             stim=opts_read.stim_list(stim_ptr);
-            pixel_values(:,:,rept_ptr,stim_ptr)=h5read(fullname,'/pixel_values',[1 1 rept stim],[s.n_pixels_all s.n_timepoints_read 1 1]);
+            pixel_values(:,:,rept_ptr,stim_ptr)=h5read(fullname,'/pixel_values',[1 1 rept stim],[s.n_pixels_all s.n_timepoints 1 1]);
         end
     end
     nan_pixels_prelim=any(any(any(isnan(pixel_values),2),3),4);
@@ -148,7 +137,7 @@ s.plane_list_kept=s.plane_list_all(s.pixels_per_plane_all_kept>0);
 s.n_planes_with_data_kept=length(s.plane_list_kept);
 s.pixels_per_plane_kept=s.pixels_per_plane_all_kept(s.pixels_per_plane_all_kept>0);
 %
-% identify and extract baseline and stim values
+%Identify and extract baseline and stim values
 %
 % From George (with note that the last value of the range is to be excluced, Python notation)
 %To get the volume level intervals, the baseline period should be [1:floor(onset_index/n_planes)+1] and the stimulus period should be [ceil(onset_index/n_planes)+1:floor(offset_index/n_planes)+1].
@@ -157,7 +146,6 @@ s.pixels_per_plane_kept=s.pixels_per_plane_all_kept(s.pixels_per_plane_all_kept>
 %
 s.baseline_frame_range=cat(3,ones(s.n_repts_kept,s.n_stims_kept),floor(s.onset_indexes_kept/s.n_planes));
 s.response_frame_range=cat(3,ceil(s.onset_indexes_kept/s.n_planes)+1,floor(s.offset_indexes_kept./s.n_planes));
-s.response_frame_range(:,:,2)=min(s.response_frame_range(:,:,2),s.n_timepoints_read);
 s.response_lengths=1+diff(s.response_frame_range,1,3);
 response_max_length=max(s.response_lengths(:));
 %

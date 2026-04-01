@@ -1,12 +1,18 @@
 % hlid_vi_preproc_plot: plot results from hlid_vi_preproc
 %
 % 20Mar26: convert from variance ratio to F ratio
+% 31Mar26: add max_timepoints
 %
 %  See also:  HLID_VI_PREPROC.
 %
 if ~exist('eigs_show_list') eigs_show_list=[20 120]; end
 if ~exist('logrange') logrange=10^2; end
 if ~exist('n_fw_show') n_fw_show=n_fws; end
+opts_read=filldefault(opts_read,'max_timepoints',0);
+label_string=data_file;
+if opts_read.max_timepoints>0
+    label_string=cat(2,label_string,sprintf(' max timepoints: %2.0f',opts_read.max_timepoints));
+end
 if_done=0;
 while(if_done==0)
     n_fw_show=getinp('number of filter levels to show (0 to end)','d',[0 n_fws],n_fw_show);
@@ -105,7 +111,7 @@ while(if_done==0)
                 ylabel('indiv participation ratio (wts)');
             end %meas_ptr
             axes('Position',[0.01,0.01,0.01,0.01]);
-            text(0,0,data_file,'Interpreter','none');
+            text(0,0,label_string,'Interpreter','none');
             axis off
             %
             %composite scattergram of wt partipation ratios and F ratios
@@ -155,7 +161,7 @@ while(if_done==0)
                 end
             end
             axes('Position',[0.01,0.01,0.01,0.01]);
-            text(0,0,data_file,'Interpreter','none');
+            text(0,0,label_string,'Interpreter','none');
             axis off
         end %eigs_show_list
      end %if_done

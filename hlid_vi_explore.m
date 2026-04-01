@@ -1,6 +1,7 @@
 %hlid_vi_explore: initial exploration of KC volumetric imaging, data from George Barnum, Hong Lab
 %
 % 20Mar26: convert from variance ratio to F ratio
+% 31Mar26: add max_timepoints
 %
 %   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS.
 %
@@ -17,6 +18,10 @@ for k=1:length(resp_measures)
     disp(sprintf('%1.0f->response measure %s',k,resp_measures{k}));
 end
 resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
+%
+if ~exist('opts_read') opts_read=struct;end
+%
+opts_read.max_timepoints=getinp('max timepoints to read (0: all)','d',[0 Inf]);
 opts_read.if_remnan=getinp('1 to remove NaN, -1 for just from requested data','d',[-1 1],1);
 opts_read.if_spatialfilter=getinp('1 for spatial filter','d',[0 1],0);
 if opts_read.if_spatialfilter
@@ -49,6 +54,8 @@ end
 [s,opts_read_used]=hlid_vi_read(opts_read);
 read_data_file_short=strrep(s.opts_read.data_file,'.hdf5','');
 rept_string=cat(2,'repts: ',sprintf(' %2.0f',opts_read.rept_list));
+%
+sf_tp_string=cat(2,sf_string,sprintf('; timepoints: [0 %2.0f]',s.n_timepoints_read));
 %
 disp(s)
 %
@@ -83,13 +90,14 @@ end
 %
 %make a heatmap of each slice, for each stimulus, averaged across time
 %
+
 if if_spatial_pattern
     v_perstim=reshape(mean(mean(v,2,'omitnan'),3,'omitnan'),[s.n_pixels_kept,s.n_stims_kept]); %average across time and repeat
     v_perstim_range=[min(v_perstim(:)) max(v_perstim(:))];
     for plane_ptr=1:s.n_planes_with_data_kept
         plane=s.plane_list_kept(plane_ptr);
         pxls_inplane=find(s.xyz_kept(:,3)==plane);
-        tstring=sprintf('plane %2.0f: %s, %s, %s',plane,resp_measure,sf_string,read_data_file_short);
+        tstring=sprintf('plane %2.0f: %s, %s, %s',plane,resp_measure,sf_tp_string,read_data_file_short);
         figure;
         set(gcf,'Position',[100 100 1200 800]);
         set(gcf,'NumberTitle','off');
@@ -123,7 +131,7 @@ if if_temporal_pattern~=0
     v_pertime=reshape(mean(v,1,'omitnan'),[resp_maxlength,s.n_repts_kept,s.n_stims_kept]); %average across space and repeat
     v_pertime_range=[min(v_pertime(:)) max(v_pertime(:))];
     %
-    tstring=sprintf('timecourse: %s, %s, %s',resp_measure,sf_string,read_data_file_short);
+    tstring=sprintf('timecourse: %s, %s, %s',resp_measure,sf_tp_string,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
@@ -155,14 +163,14 @@ if if_temporal_pattern~=0
             stim_no=opts_read.stim_list(stim_ptr);
             stim_name=stims.names_short{stim_no};
             %compute the response one stimulus at a time to save space
-            deltaF_stim=s.pixel_values_kept(:,:,:,stim_ptr)-repmat(reshape(s.baseline_means(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+            deltaF_stim=s.pixel_values_kept(:,:,:,stim_ptr)-repmat(reshape(s.baseline_means(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints_read 1]);
             switch resp_measure
                  case 'deltaF/F'
-                     v_stim=deltaF_stim./repmat(reshape(s.baseline_means(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+                     v_stim=deltaF_stim./repmat(reshape(s.baseline_means(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints_read 1]);
                  case 'z'
-                     v_stim=deltaF_stim./repmat(reshape(s.baseline_stdvs(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints 1]);
+                     v_stim=deltaF_stim./repmat(reshape(s.baseline_stdvs(:,:,stim_ptr),[s.n_pixels_kept,1,s.n_repts_kept]),[1 s.n_timepoints_read 1]);
             end
-            v_stim=reshape(mean(v_stim,1,'omitnan'),[s.n_timepoints s.n_repts_kept]);
+            v_stim=reshape(mean(v_stim,1,'omitnan'),[s.n_timepoints_read s.n_repts_kept]);
             subplot(nrows,ncols,stim_ptr_seq);
             plot(v_stim);
             hold on;
@@ -188,7 +196,7 @@ if if_temporal_pattern~=0
                 end
             end
             xlabel('frame');
-            set(gca,'XLim',[1 s.n_timepoints]);
+            set(gca,'XLim',[1 s.n_timepoints_read]);
             set(gca,'YLim',v_pertime_range);
             title(sprintf('s %2.0f: %s',stim_no,stim_name));
         end
@@ -205,7 +213,7 @@ if if_dist
     v_across_repts=reshape(mean(v,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);
     v_across_repts=reshape(v_across_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_stims_kept]);
     %
-    tstring=sprintf('distances: %s, %s, %s',resp_measure,sf_string,read_data_file_short);
+    tstring=sprintf('distances: %s, %s, %s',resp_measure,sf_tp_string,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
@@ -247,7 +255,7 @@ if if_dist
     dpo_expanded=dpo_expanded(:)';
     tick_locs=[1:s.n_stims_kept]*s.n_repts_kept-(s.n_repts_kept-1)/2; %tick locations for a block of repeats
     %
-    tstring=sprintf('distances, each repeat: %s, %s, %s',resp_measure,sf_string,read_data_file_short);
+    tstring=sprintf('distances, each repeat: %s, %s, %s',resp_measure,sf_tp_string,read_data_file_short);
     figure;
     set(gcf,'Position',[100 100 1200 800]);
     set(gcf,'NumberTitle','off');
