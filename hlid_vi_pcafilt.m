@@ -17,7 +17,9 @@ if ~exist('data_file') data_file='20241027_a_30s_output_walk.hdf5'; end
 if ~exist('n_stims') n_stims=24; end
 if ~exist('n_repts') n_repts=5; end
 if ~exist('max_timepoints') max_timepoints=0; end %until end of file
-if ~exist('pcrits') pcrits=[0.001 0.01 0.05]; end
+%
+if ~exist('logrange') logrange=10^2; end %range of pc powers to plot
+if ~exist('pcrits') pcrits=[0.001 0.01 0.05]; end %critical values of F to plot
 %
 dist_names={'cosine','Pearson'};
 n_dists=length(dist_names);
