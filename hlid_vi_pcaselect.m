@@ -7,11 +7,8 @@ function [pc_sel,pc_sel_string,opts_pcasel_new]=hlid_vi_pcaselect(opts_pcasel)
 %   eiv_squared: (length is n_pc_max) power explained by each pc
 %   frats: (length is n_pc_max) f-ratio for excess variance, of across-stim differences
 %   fdof: degrees of freedom for frats
-%   pcrits: built-in critical p-values, can be omitted
 %
 %  See also:  HLID_VI_PCAFILT, HLID_VARRATS.
-%
-opts_pcasel=filldefault(opts_pcasel,'pcrits',[0.001 0.01 0.05]);
 %
 opts_pcasel_new=opts_pcasel;
 %
@@ -40,10 +37,10 @@ while (if_ok==0)
     end
     switch combine_meth
         case 1
-            combine_string='and';
+            combine_string='AND';
             pc_sel=[1:opts_pcasel.n_pc_max];
         case 2
-            combine_string='or';
+            combine_string='OR';
             pc_sel=[];
     end
     for k=1:length(sel_list)       
@@ -80,12 +77,18 @@ while (if_ok==0)
                         sel_meths{k}='minimum F-ratio';
                         sel_vals(k)=frat_min;
                     case 2 %p-value
+                        pval_max=getinp('maximum p-value','f',[0 1],0.05);
+                        frat_min=finv(1-pval_max,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
+                        pc_sel_add=sprintf('maximum p-value %6.4f (minimum F-ratio: %8.5f)',pval_max,frat_min);
+                        sel_sets{k}=find(opts_pcasel.frats>=frat_min);
+                        sel_meths{k}='maximum p-value';
+                        sel_vals(k)=pval_max;
                 end
         end
         switch combine_string
-            case 'and'
+            case 'AND'
                 pc_sel=intersect(pc_sel,sel_sets{k});
-            case 'or'
+            case 'OR'
                 pc_sel=union(pc_sel,sel_sets{k});
         end
         if k>1

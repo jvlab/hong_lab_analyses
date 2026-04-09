@@ -172,7 +172,6 @@ axis off
 %
 if ~exist('opts_pcasel') opts_pcasel=struct(); end
 opts_pcasel.n_pc_max=n_pc_max;
-opts_pcasel=filldefault(opts_pcasel,'pcrits',pcrits);
 opts_pcasel.eiv_squared=svd_s_dsq;
 opts_pcasel.frats=frats;
 opts_pcasel.fdof=varrats.fdof;
