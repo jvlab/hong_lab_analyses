@@ -11,6 +11,7 @@ if ~exist('n_stims') n_stims=24; end
 if ~exist('n_repts') n_repts=5; end
 if ~exist('n_tbins') n_tbins=5; end %default number of time bins to use
 if ~exist('n_stpcs') n_stpcs=2; end % number of pc's to show of each spatiotemporal PC
+if ~exist('logrange') logrange=10^2; end
 %
 if ~exist('resp_measures') resp_measures={'deltaF/F','z'}; end
 if ~exist('if_skewpos') if_skewpos=1; end %set to ensure that all spatiotemporal pcs have a positive skew

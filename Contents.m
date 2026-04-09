@@ -67,7 +67,8 @@
 %
 % hlid_varrats: compute within vs across repeat variances
 % hlid_vi_explore: prelim view of volumetric data
-% hlid_vi_preproc: look at preprocessing options for svd and spatial filtering
+% hlid_vi_pcafilt: filter by idividual principal components
+% hlid_vi_preproc: look at preprocessing options: svd and spatial filtering
 % hlid_vi_preproc_plot: plot outputs of hlid_vi_preproc
 % hlid_vi_read: read volumetric datasets from hdf5 files
 % hlid_vi_spatialfilter: spatial filter slices of volumetric data

@@ -40,7 +40,7 @@ while(if_done==0)
             figure;
             set(gcf,'NumberTitle','off');
             set(gcf,'Position',[50 50 1400 800]);
-            set(gcf,'Name',sprintf('eigenvalue anlaysis: 1 to %1.0f',n_eigs));
+            set(gcf,'Name',sprintf('eigenvalue analysis: 1 to %1.0f',n_eigs));
             n_cols=6;
             for meas_show_ptr=1:n_meas_show
                 meas_ptr=meas_show_list(meas_show_ptr);
