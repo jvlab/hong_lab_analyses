@@ -1,7 +1,5 @@
 %hlid_vi_pcafilt: KC volumetric imaging, data from George Barnum, Hong Lab,
 %
-%***to do* better eigenvalue selection
-%
 % derived from hlid_vi_explore, but allows filtering by characteristics of pcs
 %
 % * if_remnan forced to 1
@@ -10,7 +8,7 @@
 % * defaults set to enable all plots
 % * for extended time plots, all stimuli handled together, since this is needed for reconstruction from selected pcs
 % 
-%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS, HOLID_VI_EXPLORE.
+%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS, HLID_VI_EXPLORE, HLID_VI_PCASELECT.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='20241027_a_30s_output_walk.hdf5'; end
@@ -124,7 +122,7 @@ svd_v_max=max(abs(svd_v(:)));
 svd_u_max=max(abs(svd_u(:)));
 svd_s_dsq=diag(svd_s).^2;
 %
-frats=ones(1,n_pc_max);
+frats=ones(n_pc_max,1);
 for ipc=1:n_pc_max
     spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
     repstm=reshape(svd_v(:,ipc),[s.n_repts_kept s.n_stims_kept]);
@@ -172,18 +170,20 @@ axes('Position',[0.01,0.04,0.01,0.01]);
 text(0,0,get(gcf,'Name'),'Interpreter','none');
 axis off
 %
+if ~exist('opts_pcasel') opts_pcasel=struct(); end
+opts_pcasel.n_pc_max=n_pc_max;
+opts_pcasel=filldefault(opts_pcasel,'pcrits',pcrits);
+opts_pcasel.eiv_squared=svd_s_dsq;
+opts_pcasel.frats=frats;
+opts_pcasel.fdof=varrats.fdof;
+%
 if_done=0;
 while (if_done==0)
     %
-    %need to compute f-ratios for each, display frac of variance and f-ratios,
-    %and choose pc;s based on pc#, frac var, f-rat, f-rat p-val
-    %or set if_done=1
-        npc_sel=getinp('number of pcs to select','d',[0 n_pc_max]);
-        pc_sel=[1:npc_sel];
-        pc_sel_string=sprintf('pc selection: up to %3.0f',npc_sel);
-        if (npc_sel==0)
-            if_done=1;
-        end
+    [pc_sel,pc_sel_string,opts_pcasel]=hlid_vi_pcaselect(opts_pcasel);
+    if length(pc_sel)==0
+        if_done=1;
+    end
     if (if_done==0)
         %
         proj_pc=svd_v(:,pc_sel)*svd_v(:,pc_sel)'; %projection on selected pcs
