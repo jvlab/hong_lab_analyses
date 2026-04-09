@@ -136,7 +136,7 @@ frats_pvals=1-fcdf(frats,varrats.fdof(1),varrats.fdof(2));
 figure;
 set(gcf,'NumberTitle','off');
 set(gcf,'Position',[50 50 1200 800]);
-set(gcf,'Name',cat(2,sprintf(' eigenvalues: %2.0f, ',plane),tstring));
+set(gcf,'Name',cat(2,' eigenvalues: ',tstring));
 %
 subplot(2,3,1)
 semilogy(svd_s_dsq,'.-');
