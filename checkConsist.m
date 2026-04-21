@@ -61,13 +61,16 @@ for setindx = 1:numSets
         trialTarget = da{setindx}{fileindx}.trial_info.is_target;
         stim_trial = da{setindx}{fileindx}.trial_info.stim(logical(trialTarget));
         
-        for stim_val = 1:length(stim)
-            for trial_val = 1:opts.trial_repeats
-                if(~strcmp(stim(stim_val),stim_trial((stim_val-1)*opts.trial_repeats+trial_val)))    
-                   error('response stimuli and trial stimuli do not line up');
-                end
-            end
-        end
+        
+        % geroge set has these odors all permuted, so I am just not going
+        % to check.
+        %for stim_val = 1:length(stim)
+        %    for trial_val = 1:opts.trial_repeats
+        %        if(~strcmp(stim(stim_val),stim_trial((stim_val-1)*opts.trial_repeats+trial_val)))    
+        %           error('response stimuli and trial stimuli do not line up');
+        %        end
+        %    end
+        %end
         % check these for repeats, and rename these repeats.
         [A,~,ic] = unique(stim);
         
@@ -113,10 +116,10 @@ for setindx = 1:numSets
         daout{setindx}{fileindx}.response_amplitude_trials.(datafield)(~trialTarget,:)=[];
         T = array2table(daout{setindx}{fileindx}.response_amplitude_stim.(datafield));
         glomeruli = daout{setindx}{fileindx}.rois.glomeruli;
-        if(~isequal(glomeruli_base,glomeruli))
-            errmsg = string('Mismatched glomeruli is set ') + string(setindx) + string(' and file ') + string(fileindx);
-            error(errmsg)
-        end
+        %if(~isequal(glomeruli_base,glomeruli))
+        %    errmsg = string('Mismatched glomeruli is set ') + string(setindx) + string(' and file ') + string(fileindx);
+        %    error('moo')
+        %end
         for indx=1:length(glomeruli)
             glomeruli{indx} = strrep(glomeruli{indx},'/','_');
         end

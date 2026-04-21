@@ -16,7 +16,7 @@ opts.restore_size = true;
 opts.submean = false;
 opts.hist_quantiles = [0.05 .25 .5 .75 .96];
 opts.hist_bins = 50;
-opts.dataselect = 'all';
+opts.dataselect = 'standard';
 hlid_setup;
 
 
@@ -26,11 +26,14 @@ hlid_setup;
 % directory. There is not name checking, if a data file is in the folder
 % the code will attempt to load it into the set.
 %
-opts.set_names = {'kiTC','meTC','moSK','vaTC'};
+opts.set_names = {'kiTC','meTC','moSK','vaTC','wdGB'};
 Sraw{1} = fileToRaw('../orn_terminals_Oct25/kiwimix_and_controlmix');
 Sraw{2} = fileToRaw('../orn_terminals_Oct25/megamat17');
 Sraw{3} = fileToRaw('../orn_terminals_Oct25/monat');
 Sraw{4} = fileToRaw('../orn_terminals_Oct25/validation2');
+Sraw{5} = fileToRaw('../george_panel_mat');
+
+
 
 switch opts.dataselect
     case 'standard'
@@ -69,6 +72,7 @@ end
 % Select odorants according to the is_target logical array
 [~,Sall] = checkConsist(Sraw,opts);
 
+
 % First, I want to check that each stimulus has a non-NaN value somewhere
 % within a set. If an all NaN is found, that stimulus is removed. If there
 % are no examples of a glomerulus/stimulus pair, the stimulus is removed
@@ -78,6 +82,7 @@ end
 Strimmed = lookForSetWideHoles(Sall,opts);
 
 
+
 % This is a large set spread over many files.
 % This is a solution specific to the monat set. 
 % I do not know that this will work well anywhere else.
@@ -85,13 +90,17 @@ Strimmed = lookForSetWideHoles(Sall,opts);
 % Permute the inputs, and create a bunch of these. 
 % Ignore all of the above and reorder the Sall entries.
 
-Strimmed{3} = desparsify(Strimmed{3});
+Strimmed{3} = desparsify(Strimmed{3}); % This does the "Tetris-ing"
+
+Strimmed{3}(7:11) = [];
 
 % Fill in the remaining holes.
 % Calls the afalwt interpolator.
 % If there is a problem with the data, this is the area it is going to make
 % itself known.
 [Sfilled,afalwt_fit] = fillInNaNs(Strimmed,opts);
+
+
 
 % Generate the first set of plots (raw - trimmed - filled)
 makePlots_1(Sall,Strimmed,Sfilled);
@@ -109,29 +118,29 @@ merged_data = mergeSets(resps_set);
 
 
 % Pare these so that only stimuli with multiple appearances are included.
-repeat_stim = findRepeatStimuli(merged_data{1});
+%repeat_stim = findRepeatStimuli(merged_data{1});
 
 % When I remove non-repeaters, I misalign from the original.
 % Need to track what is removed, and apply the changes to the old tables.
 
 resps_set_BAK = resps_set;
 
-for setindx=1:length(Sfilled)
-    stimList = intersect(resps_set{setindx}.Properties.RowNames,repeat_stim);
-    resps_set{setindx}=resps_set{setindx}(stimList,:);
-end
+%for setindx=1:length(Sfilled)
+%    stimList = intersect(resps_set{setindx}.Properties.RowNames,repeat_stim);
+%    resps_set{setindx}=resps_set{setindx}(stimList,:);
+%end
     
 
 
-merged_all_repeat{1} = merged_data{1}(repeat_stim,:);
+%merged_all_repeat{1} = merged_data{1}(repeat_stim,:);
 
-repeat_stim = findRepeatStimuli(merged_data{2}); % I think these lists are the same.
+%repeat_stim = findRepeatStimuli(merged_data{2}); % I think these lists are the same.
 
-merged_all_repeat{2} = merged_data{2}(repeat_stim,:);
+%merged_all_repeat{2} = merged_data{2}(repeat_stim,:);
 
-merged_data_BAK = merged_data;
+%merged_data_BAK = merged_data;
 
-merged_data = merged_all_repeat;
+%merged_data = merged_all_repeat;
 
 
 % All good to here. The merged sets are in the merged data cell array.

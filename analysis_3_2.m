@@ -7,14 +7,16 @@ Xarray_rm = Xarray - repmat(mean(Xarray,2),[1 size(Xarray,2)]);
 % Scale each of the odors to "unit variance"
 Xdot = sqrt(diag(Xarray_rm*Xarray_rm'));
 Xarray_scaled = Xarray_rm./repmat(Xdot,[1 size(Xarray_rm,2)]);
+
+% Put it back into a table.
 X1 = X;
 X1{:,:} = Xarray_scaled;
 
-
-%[U,S,V] = svd(Xarray_scaled,'econ');
+% These two odors only appear in one of the data sets.
 X1('diag_CO2(0.0)meTC',:) = [];
 X1('diag_aphe(-5.0)meTC',:) = [];
-
+X('diag_CO2(0.0)meTC',:) = [];
+X('diag_aphe(-5.0)meTC',:) = [];
 indx = startsWith(X1.Properties.RowNames,'diag');
 indxend = endsWith(X1.Properties.RowNames,'vaTC');
 dvaArray = X1{indx & indxend,:};
@@ -24,18 +26,26 @@ indxmeTC_end = endsWith(X1.Properties.RowNames,'meTC');
 
 dmeArray = X1{indxmeTC & indxmeTC_end,:};
 
-scaleFactor = 1.0;
+
 shiftVal = 0.0;
 
-dvaArray = dvaArray*scaleFactor;
-dvaArray = dvaArray - repmat(shiftVal,size(dvaArray));
+%dvaArray = dvaArray*scaleFactor;
+%dvaArray = dvaArray - repmat(shiftVal,size(dvaArray));
 
-X1{indx & indxend,:} = dvaArray;
+%X1{indx & indxend,:} = dvaArray;
 
-[U,S,V] = svd(X1{:,:},'econ');
+[U,S,V] = svd(dmeArray,'econ');
 
-A1 = dvaArray*V;
+%A1 = dvaArray*V;
 A2 = dmeArray*V;
-
-Adiff = A1(:,1:3)-A2(:,1:3);
+Adiff = cell(50,1);
+RMSdiff = zeros(50,2);
+for inc=1:100
+    scaleFactor = 2*(inc-1)/99;
+    dvatmp = dvaArray*scaleFactor;
+    A1 = dvatmp * V;
+    Adiff{inc} = sum((A1(:,1:3)-A2(:,1:3)).^2,2);
+    RMSdiff(inc,2) = sum(Adiff{inc}.^2);
+    RMSdiff(inc,1) = scaleFactor;
+end
 
