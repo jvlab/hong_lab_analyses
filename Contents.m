@@ -27,7 +27,7 @@
 % hlid_geom_transform_stats_label: utility labeling for hlid_geom_traansform_stats_summ
 % hlid_geom_transform_stats: analysis of transformations between datasets, with shuffle statistics
 % hlid_geom_transform_stats_3dplot: plot of representational spaces for hlid_geom_transform_stats
-% hlid_geom_transform_stats_summ: summary plot for hli_geom_transform_stats
+% hlid_geom_transform_stats_summ: summary plot for hlid_geom_transform_stats
 % hlid_kc_mdlcomp: compare kc space constructed via nested or non-nested pipeline
 % hlid_majaxes: examine axes identified in a transformation
 % hlid_majaxes_compare: compare axes identified in a transformation with axes from connectivity
@@ -35,7 +35,7 @@
 % hlid_majaxes_eval:  compare axes identified in a transformation with principal components
 % hlid_majaxes_eval2: as in hlid_majazxes_eval, but add analysis of fitted transformation, other params
 % hlid_mds_coords_geomodels: transformations between spaces constructed via mds and nonstandard embeddings, e.g., Pearson, cosine
-% hlid_mds_transform_comparefits: comparison of fits (d), across dimensoins and embedding methods
+% hlid_mds_transform_comparefits: comparison of fits (d), across dimensions and embedding methods
 % hlid_mds_transform_jackstats: statistics related to hlid_mds_coords_geomodels, jackknife by stimuli
 % hlid_mds_transform_jackstats_summ: summary and plots of hlid_mds_transform_jackstats: magnif factors
 % hlid_mds_transform_jackstats_summ2: summary and plots of hlid_mds_transform_jackstats: direction of axes of transformation
