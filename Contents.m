@@ -77,4 +77,14 @@
 % hlid_vi_viewpcs: view spatiotemporal pcs of volume image
 % hlid_vi_viewpcs_util: plotting utility for hlid_vi_viewpcs
 %
+%  Figures for APL manuscript (files with _rs make maximal use of rs library)
+%
+% zheng_apl_align_stats(_rs): compute alignments within experimental groups and do statistics
+% zheng_apl_embed_plot(_rs): show embedding of experimental groups and individual flies
+% zheng_apl_files: list of files for each condition
+% zheng_apl_read_align(_rs): read coordinate files
+% zheng_apl_read_make_consensus: read coordinate files, make consensus, geometric modeling
+% zheng_apl_read_make_consensus_rs: read coordinate files, make consensus, geometric modeling and statistics; rotate to principal axes
+% zheng_apl_vara_stats: analysis of variance between control conditions, and between 3 controls and active label
+%
 %   Copyright (c) 2024, 2025, 2026 by J. Victor

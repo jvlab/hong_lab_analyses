@@ -1,14 +1,20 @@
 %zheng_apl_read_align: read, and align TNT and control files 
 %
-hlid_setup;
+if ~exist('hlid_opts')
+    hlid_setup;
+end
 zheng_apl_files; %get file names
 if ~exist('pathname') pathname='./data/kc_tnt/'; end
 %
-if_debug=getinp('1 for debug mode','d',[0 1],0);
+if ~exist('if_debug')
+    if_debug=getinp('1 for debug mode','d',[0 1],0);
+end
 if if_debug
     opts_pcon.max_niters=50;
 end
-if_sm=getinp('1 to use subtract-mean datasets','d',[0 1]);
+if ~exist('if_sm')
+    if_sm=getinp('1 to use subtract-mean datasets','d',[0 1]);
+end
 if if_sm
     sm_string='-sm';
     dim_reduce=1; %one less dimension
@@ -18,11 +24,13 @@ else
 end
 %
 datasets=fieldnames(filenames);
-disp('data to use:')
-for k=1:length(datasets)
-    disp(sprintf('%1.0f->%15s (%2.0f files)',k,datasets{k},length(filenames.(datasets{k}))));
+if ~exist('data_use')
+    disp('data to use:')
+    for k=1:length(datasets)
+        disp(sprintf('%1.0f->%15s (%2.0f files)',k,datasets{k},length(filenames.(datasets{k}))));
+    end
+    data_use=datasets{getinp('choice','d',[1 length(datasets)])};
 end
-data_use=datasets{getinp('choice','d',[1 length(datasets)])};
 % 
 if ~exist('opts_read') opts_read=struct();end %for psg_read_coord_data
 if ~exist('opts_rays') opts_rays=struct(); end %for psg_findrays

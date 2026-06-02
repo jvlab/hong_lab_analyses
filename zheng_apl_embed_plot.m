@@ -7,7 +7,11 @@
 if ~exist('axis_view') axis_view=[-37.5000   30.0000]; end
 if_unif=getinp('1 for uniform coloring of each control category','d',[0 1],0);
 if_indiv=getinp('1 to also plot individual datasets','d',[0 1],0);
-indiv_list=getinp('list (consensus alwauys plotted)','d',[1 length(filenames.(data_use))]);
+if if_indiv
+    indiv_list=getinp('list (consensus alwauys plotted)','d',[1 length(filenames.(data_use))]);
+else
+    indiv_list=[];
+end
 if_c2p=getinp('1 to rotate consensus into PCA space','d',[0 1],0);
 %colors for plot:  first entry is for consensus
 set_colors.TNT_label=opts_multm_def.color_norays_list; % {'k'  'b'  'c'  'm'  'r'  [0.7000 0.7000 0]  'g'  [0 0.5000 0]  [0.5000 0.5000 0.5000]};
