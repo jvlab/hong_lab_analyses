@@ -131,10 +131,11 @@ fig_handles=aux_out_dgeo.opts_dgeo.fig_handles;
 fig_names=aux_out_dgeo.opts_dgeo.fig_names;
 for k=1:length(fig_handles)
     file_name_fig=cat(2,file_name_base,'_',fig_names{k});
-    axes('Position',[0.01,0.03,0.01,0.01]);
-    text(0,0,file_name_fig,'Interpreter','none');
-    axis off
     if (if_savefig)
+        figure(fig_handles{k});
+        axes('Position',[0.01,0.03,0.01,0.01]);
+        text(0,0,file_name_fig,'Interpreter','none');
+        axis off
         savefig(fig_handles{k},file_name_fig);
         disp(sprintf('figure saved as %s',file_name_fig));
     end
