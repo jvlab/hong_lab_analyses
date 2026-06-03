@@ -131,6 +131,9 @@ fig_handles=aux_out_dgeo.opts_dgeo.fig_handles;
 fig_names=aux_out_dgeo.opts_dgeo.fig_names;
 for k=1:length(fig_handles)
     file_name_fig=cat(2,file_name_base,'_',fig_names{k});
+    axes('Position',[0.01,0.03,0.01,0.01]);
+    text(0,0,file_name_fig,'Interpreter','none');
+    axis off
     if (if_savefig)
         savefig(fig_handles{k},file_name_fig);
         disp(sprintf('figure saved as %s',file_name_fig));
@@ -163,6 +166,11 @@ disp('    dim      affine    unif sc  p(unif sc)    no sc    p(no sc)');
 axisrats=zeros(model_dim_max,1);
 axisrats_vs_uniscale=zeros(model_dim_max,nshuffs);
 axisrats_vs_noscale=zeros(model_dim_max,nshuffs);
+figure; %figure for histograms of axis ratio
+set(gcf,'Position',[50 100 1200 800]);
+set(gcf,'Name','histograms of axis ratios');
+set(gcf,'NumberTitle','off');
+hist_edges=[0.3:0.02:1.0];
 for k=1:model_dim_max
     A=gfs{1}.gf{k,k}.transforms{ptr_affine}.T;
     eivals=eigs(A'*A);
@@ -178,8 +186,32 @@ for k=1:model_dim_max
     end
     vars=[k axisrats(k) geomean(axisrats_vs_uniscale(k,:)) sum(double(axisrats(k)>=axisrats_vs_uniscale(k,:)))/nshuffs geomean(axisrats_vs_uniscale(k,:)) sum(double(axisrats(k)>=axisrats_vs_noscale(k,:)))/nshuffs];
     disp(sprintf('%8.4f   ',vars))
+    if (k>1)
+        subplot(2,model_dim_max-1,k-1);
+        histogram(axisrats_vs_uniscale(k,:),hist_edges);
+        hold on;
+        plot(repmat(axisrats(k),1,2),get(gca,'YLim'),'r-');
+        title(sprintf('dim %1.0f (vs unif scale)',k));
+        xlabel('axis ratio')
+        ylabel('counts');
+        %
+        subplot(2,model_dim_max-1,k-1+(model_dim_max-1));
+        histogram(axisrats_vs_noscale(k,:),hist_edges);
+        hold on;
+        plot(repmat(axisrats(k),1,2),get(gca,'YLim'),'r-');
+        title(sprintf('dim %1.0f (vs no scale)',k));
+        xlabel('axis ratio')
+        ylabel('counts');
+    end
 end
-
+file_name_fig=cat(2,file_name_base,'_histos');
+axes('Position',[0.01,0.03,0.01,0.01]);
+text(0,0,file_name_fig,'Interpreter','none');
+axis off
+if (if_savefig)
+savefig(gcf,file_name_fig);
+disp(sprintf('figure saved as %s',file_name_fig));
+end
 %
 %create transform structures from geometric models so that model
 %predictions can be plotted along with control data
@@ -221,6 +253,9 @@ end
 %
 rs_disp_coordsets(data_disp,setfield(struct(),'opts_disp',opts_disp));
 file_name_fig=cat(2,file_name_base,'_models');
+axes('Position',[0.01,0.03,0.01,0.01]);
+text(0,0,file_name_fig,'Interpreter','none');
+axis off
 if (if_savefig)
     savefig(gcf,file_name_fig);
     disp(sprintf('figure saved as %s',file_name_fig));
@@ -255,6 +290,9 @@ else
 end
 rs_disp_coordsets(model_xform,setfield(struct(),'opts_disp',opts_disp_pa));
 file_name_fig=cat(2,file_name_base,'_pa');
+axes('Position',[0.01,0.03,0.01,0.01]);
+text(0,0,file_name_fig,'Interpreter','none');
+axis off
 if (if_savefig)
     savefig(gcf,file_name_fig);
     disp(sprintf('figure saved as %s',file_name_fig));
