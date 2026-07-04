@@ -1,8 +1,6 @@
 %zheng_apl_vara_stats: statistics of comparison of subsets, TNT and control files 
 %run after zheng_apl_read_align.m, adapted from psg_align_vara_demo.m
 %
-% 04Jul26: fix bug with rmsdev_setwise_shuff, rmsdev_stmwise_gp_shuff, does not influence the anova plots
-%
 if ~isfield(preptypes,data_use)
     error('These files have only one kind of prep and is not suitable for this analysis.');
 end
@@ -241,11 +239,8 @@ for allow_scale=0:1
                     disp(sprintf('  grp %2.0f: %3.0f datasets, %3.0f of %3.0f stimuli, Procrustes consensus iterations: %4.0f, final total rms dev per coordinate: %8.5f',...
                         igp,nsets_gp(igp),length(stims_gp),nstims_all,length(details_gp.rms_change),r));
                 else
-                  %  rmsdev_setwise_gp(ip,[1:nsets_gp(igp)],ia,igp,ishuff)=rms_setwise_gp;
-                  %  rmsdev_stmwise_gp(ip,stims_gp,ia,igp)=rms_stmwise_gp;
-                  % below fixed 04Jul26
-                    rmsdev_setwise_gp_shuff(ip,[1:nsets_gp(igp)],ia,igp,ishuff)=rms_setwise_gp;
-                    rmsdev_stmwise_gp_shuff(ip,stims_gp,ia,igp,ishuff)=rms_stmwise_gp;
+                    rmsdev_setwise_gp(ip,[1:nsets_gp(igp)],ia,igp,ishuff)=rms_setwise_gp;
+                    rmsdev_stmwise_gp(ip,stims_gp,ia,igp)=rms_stmwise_gp;
                     rmsdev_overall_gp_shuff(ip,1,ia,igp,ishuff)=rms_overall_gp;
                 end
                 if (ishuff==nshuffs)

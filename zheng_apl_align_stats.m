@@ -18,7 +18,7 @@ if ~exist('opts_pcon') opts_pcon=struct(); end % for procrustes_consensus
 opts_pcon=filldefault(opts_pcon,'allow_reflection',1);
 opts_pcon=filldefault(opts_pcon,'allow_offset',1);
 opts_pcon=filldefault(opts_pcon,'allow_scale',0);
-opts_pcon=filldefault(opts_pcon,'max_niters',1000); %nonstandard max
+opts_pcon=filldefault(opts_pcon,'max_niters',1000);
 %
 if ~exist('shuff_quantiles') shuff_quantiles=[0.01 0.05 0.5 0.95 0.99]; end %quantiles for showing shuffled data
 nquantiles=length(shuff_quantiles);

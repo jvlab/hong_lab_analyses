@@ -1,4 +1,5 @@
 %zheng_apl_embed_plot: plot embeddings of TNT and control files 
+% Modular version of zheng_apl_embed_stats
 %run after zheng_apl_read_align_rs.m
 %
 %   See also: RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY.
@@ -44,7 +45,7 @@ opts_knit.allow_reflection=1;
 opts_knit.allow_offset=1;
 opts_knit.allow_scale=0;
 opts_knit.if_normscale=1;
-opts_knit.max_iters=1000; %nonstandard max
+opts_knit.max_niters=1000;
 opts_knit.pcon_init_method=0;
 opts_knit.if_stats=0; %no statistics
 opts_knit.if_frozen=1;
