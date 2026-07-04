@@ -1,7 +1,7 @@
 %zheng_apl_read_make_consensus: read, and align TNT and control files and make consensus
 % no option for pca rotation, scaling, or normalization
 %
-%   See also:  RS_GEOFIT.
+%   See also:  RS_GEOFIT, RS_XFORM_APPLY.
 %
 %read a set to use as the adjusted dataset
 data_uses.adj='TNT_label';
@@ -68,9 +68,8 @@ for iar=1:2
     end
     cons.(iar_string)=consensus;
 end %iar
-%%%%%%%%%%%%%%%%split out from here down to allow for bootstrap analyses,
-%%%%%%%%%%%%%%%%projections of principal axes
-%%%%ask about saving mat file and figures
+%
+%geometric analyses
 %
 %now construct geometric models
 %
@@ -82,6 +81,8 @@ else
 end
 %
 model_list={'procrustes_noscale_offset'  'procrustes_scale_offset'  'affine_offset'};
+colors_models={'k','b','c'};
+color_tnt3c={'g'};
 data_in=struct;
 data_in.ds{1}=cons.adj;
 data_in.sas{1}=d.adj.sas{1};
@@ -107,7 +108,7 @@ opts_geof.if_log=0;
 [gfs,xs,aux_out]=rs_geofit(data_in,data_out,setfield(aux,'opts_geof',opts_geof));
 %
 opts_dgeo=struct;
-opts_dgeo.colors_models={'k','c','m'};
+opts_dgeo.colors_models=colors_models;
 if ~exist('if_showquant') if_showquant=0; end %set to show the 0.05 quantile
 opts_dgeo.if_showquant=if_showquant;
 %

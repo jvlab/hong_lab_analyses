@@ -32,7 +32,7 @@ opts_vara.if_stats=1;
 opts_vara.if_frozen=1;
 opts_vara.if_log=1;
 %
-opts_vara.if_exhaust=0;
+opts_vara.if_exhaust=0; %crucial so that nshuffs is used
 if if_debug
     opts_vara.nshuffs=10;
 else
