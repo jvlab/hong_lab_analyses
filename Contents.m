@@ -68,6 +68,8 @@
 % hlid_varrats: compute within vs across repeat variances
 % hlid_vi_explore: prelim view of volumetric data
 % hlid_vi_pcafilt: filter by individual principal components
+% hlid_vi_pcafilt_auto: automated version of hlid_vi_pcafilt, across datasets; several p-value criteria
+% hlid_vi_pcafilt_summ: summarize output of hlid_vi_pcafilt_auto
 % hlid_vi_pcaselect: select idividual principal components based on power and f-ratio for variance between stimuli
 % hlid_vi_preproc: look at preprocessing options: svd and spatial filtering
 % hlid_vi_preproc_plot: plot outputs of hlid_vi_preproc

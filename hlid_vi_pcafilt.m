@@ -8,7 +8,7 @@
 % * defaults set to enable all plots
 % * for extended time plots, all stimuli handled together, since this is needed for reconstruction from selected pcs
 % 
-%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS, HLID_VI_EXPLORE, HLID_VI_PCASELECT.
+%   See also:  HLID_VI_READ, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS, HLID_VI_EXPLORE, HLID_VI_PCASELECT, HLID_VI_PCAFILT_AUTO.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('data_file') data_file='20241027_a_30s_output_walk.hdf5'; end
