@@ -8,11 +8,13 @@ function [pc_sel,pc_sel_string,opts_pcasel_new]=hlid_vi_pcaselect(opts_pcasel)
 %   frats: (length is n_pc_max) f-ratio for excess variance, of across-stim differences
 %   fdof: degrees of freedom for frats
 %
-%  See also:  HLID_VI_PCAFILT, HLID_VARRATS.
+% 21Aug26: add fdr-corrected p-value
+%
+%  See also:  HLID_VI_PCAFILT, HLID_VARRATS, FDR.
 %
 opts_pcasel_new=opts_pcasel;
 %
-sel_types_avail={'eigenvalue number or cumulative power','F-ratio for across-stimulus differences'};
+sel_types_avail={'eigenvalue number or cumulative power','F-ratio or p-value for across-stimulus differences'};
 sel_types_brief={'power','frat'};
 %
 if_ok=0;
@@ -68,7 +70,7 @@ while (if_ok==0)
                         sel_vals(k)=vmin_expl;   
                 end  
             case 'frat'
-                fmeth=getinp('1 by min F-ratio, 2 by max p-value','d',[1 2]);
+                fmeth=getinp('1 by min F-ratio, 2 by max p-value, 3 by fdr-corrected max p-value','d',[1 3]);
                 switch fmeth
                     case 1 %F-ratio
                         frat_min=getinp('minimum F-ratio','f',[0 Inf]);
@@ -77,12 +79,30 @@ while (if_ok==0)
                         sel_meths{k}='minimum F-ratio';
                         sel_vals(k)=frat_min;
                     case 2 %p-value
-                        pval_max=getinp('maximum p-value','f',[0 1],0.05);
-                        frat_min=finv(1-pval_max,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
-                        pc_sel_add=sprintf('maximum p-value %6.4f (minimum F-ratio: %8.5f)',pval_max,frat_min);
+                        pval_raw_max=getinp('maximum raw p-value','f',[0 1],0.05);
+                        frat_min=finv(1-pval_raw_max,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
+                        pc_sel_add=sprintf('max raw p-value %6.4f (minimum F-ratio: %8.5f)',pval_raw_max,frat_min);
                         sel_sets{k}=find(opts_pcasel.frats>=frat_min);
-                        sel_meths{k}='maximum p-value';
-                        sel_vals(k)=pval_max;
+                        sel_meths{k}='max raw p-value';
+                        sel_vals(k)=pval_raw_max;
+                    case 3 %fdr-corrected p-value
+                        pval_fdr_max=getinp('maximum p-value before fdr correction','f',[0 1],0.05);
+                        %recover f-ratios from p-values
+                        pvals=1-fcdf(opts_pcasel.frats,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
+                 %       frats_check=finv(1-pvals,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
+                 %       disp(max(abs(frats_check,opts_pcasel.frats)))
+                        pval_cor_max=fdr(pvals,pval_fdr_max);
+                        disp(sprintf('raw p-value of %6.4f corresponds to fdr-corrected p-value of %6.4f',pval_fdr_max,pval_cor_max));
+                        if ~isempty(pval_cor_max)
+                            frat_min=finv(1-pval_cor_max,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
+                            pc_sel_add=sprintf('max pre-fdr p-value %6.4f corr to %6.4f by fdr (minimum F-ratio: %8.5f)',pval_fdr_max,pval_cor_max,frat_min);
+                            sel_sets{k}=find(opts_pcasel.frats>=frat_min);
+                        else
+                            pc_sel_add=sprintf('max pre-fdr p-value %6.4f leads to no significant pcs',pval_fdr_max);
+                            sel_sets{k}=[];
+                        end
+                        sel_meths{k}='max fdr p-value';
+                        sel_vals(k)=pval_fdr_max;
                 end
         end
         switch combine_string
@@ -98,7 +118,7 @@ while (if_ok==0)
         end
     end
     disp(sprintf('%2.0f pcs chosen (%s), %7.3f of total power',length(pc_sel),pc_sel_string,sum(opts_pcasel.eiv_squared(pc_sel))/sum(opts_pcasel.eiv_squared(:))));
-    if_ok=getinp('1 if ok','d',[0 1]);
+    if_ok=getinp('1 if ok','d',[0 1],double(length(pc_sel)>0));
 end
 opts_pcasel_new.sel_sets=sel_sets;
 opts_pcasel_new.sel_meths=sel_meths;
