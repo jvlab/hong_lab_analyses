@@ -57,7 +57,8 @@ resp_measures={'deltaF/F','z'};
 if ~exist('resp_measure_list') resp_measure_list=1; end
 if ~exist('meth_list') meth_list=[1 2 3 4]; end
 %
-if ~exist('pcrit_list') pcrit_list=[1 0.05]; end %critical values of p for pca filtering
+if ~exist('pcrits') pcrits=[1 0.05]; end %critical values of p for pca filtering
+if ~exist('logrange') logrange=10^2; end %range of pc powers to plot
 %
 while (if_ok==0)
     for k=1:length(data_files)
@@ -75,7 +76,7 @@ while (if_ok==0)
     end
     resp_measure_list=getinp('choices','d',[1 length(resp_measures)],resp_measure_list);
     %
-    pcrit_list=getinp('list of critical p-values for pca filtering','f',[0 1],pcrit_list);
+    pcrits=getinp('list of critical p-values for pca filtering','f',[0 1],pcrits);
     %
     for k=1:length(meths)
         disp(sprintf('%1.0f->%s',k,meths{k}.name_full));
@@ -119,6 +120,21 @@ for file_ptr=1:n_files
         if opts_read.if_log
             disp(s)
         end
+        %
+        xyz_range=double([min(s.xyz_kept);max(s.xyz_kept)]);
+        x_len=xyz_range(2,1)-xyz_range(1,1)+1;
+        y_len=xyz_range(2,2)-xyz_range(1,2)+1;
+        xyz_rel=double(s.xyz_kept)-repmat(xyz_range(1,:),s.n_pixels_kept,1)+1; %relative index of all kept pixels
+        %
+        display_ptr_order=[1:s.n_stims_kept];
+        if if_reorder
+            display_sort=zeros(1,s.n_stims_kept);
+            for k=1:s.n_stims_kept
+                display_sort(k)=find(stims.display_order==s.opts_read.stim_list(k));
+            end
+            [dsort,display_ptr_order]=sort(display_sort);
+        end
+        %
         for rm_ptr=1:length(resp_measure_list)
             rm=resp_measure_list(rm_ptr);
             resp_measure=resp_measures{rm};
@@ -145,22 +161,65 @@ for file_ptr=1:n_files
             v_indiv_repts=reshape(v(:,[1:resp_minlength],:),[n_pixels*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
             disp('individual responses computed prior to pc filtering');
             %
-            xyz_range=double([min(s.xyz_kept);max(s.xyz_kept)]);
-            x_len=xyz_range(2,1)-xyz_range(1,1)+1;
-            y_len=xyz_range(2,2)-xyz_range(1,2)+1;
-            xyz_rel=double(s.xyz_kept)-repmat(xyz_range(1,:),s.n_pixels_kept,1)+1; %relative index of all kept pixels
+            %do pca and show properties
             %
-            display_ptr_order=[1:s.n_stims_kept];
-            if if_reorder
-                display_sort=zeros(1,s.n_stims_kept);
-                for k=1:s.n_stims_kept
-                    display_sort(k)=find(stims.display_order==s.opts_read.stim_list(k));
-                end
-                [dsort,display_ptr_order]=sort(display_sort);
+            n_pc_max=s.n_repts_kept*s.n_stims_kept;
+            [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
+            %
+            disp('computed pcs')
+            svd_v_max=max(abs(svd_v(:)));
+            svd_u_max=max(abs(svd_u(:)));
+            svd_s_dsq=diag(svd_s).^2;
+            %
+            frats=ones(n_pc_max,1);
+            for ipc=1:n_pc_max
+                spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
+                repstm=reshape(svd_v(:,ipc),[s.n_repts_kept s.n_stims_kept]);
+                varrats=hlid_varrats(reshape(repstm,[1 s.n_repts_kept,s.n_stims_kept]));
+                frats(ipc)=varrats.frat;
             end
+            frats_pvals=1-fcdf(frats,varrats.fdof(1),varrats.fdof(2));
+            %  
+            hf=figure;
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Position',[50 50 1400 800]);
+            set(gcf,'Name',cat(2,' pca sel: ',tstring));
+            n_cols=3; %columns for pca plots
             %
-            for pcrit_ptr=1:length(pcrit_list)
-                pcrit=pcrit_list(pcrit_ptr);
+            subplot(3,n_cols,1)
+            semilogy(svd_s_dsq,'.-');
+            xlabel('eigenvalue');
+            set(gca,'XLim',[0 n_pc_max]);
+            ylabel(cat(2,resp_measure,' var explained'));
+            set(gca,'YLim',max(svd_s_dsq)*[1/logrange 1]);
+            %
+            subplot(3,n_cols,1+n_cols);
+            semilogy(frats);
+            hold on;
+            for icrit=1:length(pcrits)
+                finv_crit=finv(1-pcrits(icrit),varrats.fdof(1),varrats.fdof(2));
+                semilogy([0 n_pc_max],repmat(finv_crit,1,2),'k:');
+            end
+            xlabel('eigenvalue');
+            set(gca,'XLim',[0 n_pc_max]);
+            ylabel('F ratio');
+            set(gca,'YLim',[.1 100]);
+            %
+            subplot(3,n_cols,1+2*n_cols);
+            semilogy(frats_pvals);
+            hold on;
+            for icrit=1:length(pcrits)
+                semilogy([0 n_pc_max],repmat(pcrits(icrit),1,2),'k:');
+            end
+            xlabel('eigenvalue');
+            set(gca,'XLim',[0 n_pc_max]);
+            ylabel('p(F ratio)');
+            set(gca,'YLim',[10^-5 1]);
+            %
+            %now analyze for each level of pca selection
+            %
+            for pcrit_ptr=1:length(pcrits)
+                pcrit=pcrits(pcrit_ptr);
                 %convert p=1 to pall, p=0.05 to p050, p=0.001 to p001, %p=.123 to p123, p=0.0001 to p00010
                 if pcrit==1
                     pcrit_string='pall';
@@ -179,67 +238,12 @@ for file_ptr=1:n_files
                     if if_debug>0
                         disp(coord_file_extend)                       
                     end
-    
-                    %
                 end %dim reduction method
             end %pcrit_ptr
         end %rm_ptr (response measure)
+        clear s
     end % sf_ptr
 end %file_ptr
-%     %
-%     %do pca and show properties
-%     %
-%     n_pc_max=s.n_repts_kept*s.n_stims_kept;
-%     [svd_u,svd_s,svd_v]=svd(v_indiv_repts,'econ'); %data=u*s*v'
-%     %
-%     disp('computed pcs')
-%     svd_v_max=max(abs(svd_v(:)));
-%     svd_u_max=max(abs(svd_u(:)));
-%     svd_s_dsq=diag(svd_s).^2;
-%     %
-%     frats=ones(n_pc_max,1);
-%     for ipc=1:n_pc_max
-%         spatem=reshape(svd_u(:,ipc),[n_pixels resp_minlength]);
-%         repstm=reshape(svd_v(:,ipc),[s.n_repts_kept s.n_stims_kept]);
-%         varrats=hlid_varrats(reshape(repstm,[1 s.n_repts_kept,s.n_stims_kept]));
-%         frats(ipc)=varrats.frat;
-%     end
-%     frats_pvals=1-fcdf(frats,varrats.fdof(1),varrats.fdof(2));
-%     %  
-%     hf=figure;
-%     set(gcf,'NumberTitle','off');
-%     set(gcf,'Position',[50 50 1400 800]);
-%     set(gcf,'Name',cat(2,' pca sel: ',tstring));
-%     %
-%     subplot(3,n_cols,1)
-%     semilogy(svd_s_dsq,'.-');
-%     xlabel('eigenvalue');
-%     set(gca,'XLim',[0 n_pc_max]);
-%     ylabel(cat(2,resp_measure,' var explained'));
-%     set(gca,'YLim',max(svd_s_dsq)*[1/logrange 1]);
-%     %
-%     subplot(3,n_cols,1+n_cols);
-%     semilogy(frats);
-%     hold on;
-%     for icrit=1:length(pcrits)
-%         finv_crit=finv(1-pcrits(icrit),varrats.fdof(1),varrats.fdof(2));
-%         semilogy([0 n_pc_max],repmat(finv_crit,1,2),'k:');
-%     end
-%     xlabel('eigenvalue');
-%     set(gca,'XLim',[0 n_pc_max]);
-%     ylabel('F ratio');
-%     set(gca,'YLim',[.1 100]);
-%     %
-%     subplot(3,n_cols,1+2*n_cols);
-%     semilogy(frats_pvals);
-%     hold on;
-%     for icrit=1:length(pcrits)
-%         semilogy([0 n_pc_max],repmat(pcrits(icrit),1,2),'k:');
-%     end
-%     xlabel('eigenvalue');
-%     set(gca,'XLim',[0 n_pc_max]);
-%     ylabel('p(F ratio)');
-%     set(gca,'YLim',[10^-5 1]);
 %     %
 %     %reconstruct with pcas selected based on F-ratio for stims x repeats
 %     %
