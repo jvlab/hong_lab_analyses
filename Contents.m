@@ -40,6 +40,7 @@
 % hlid_mds_transform_jackstats_summ: summary and plots of hlid_mds_transform_jackstats: magnif factors
 % hlid_mds_transform_jackstats_summ2: summary and plots of hlid_mds_transform_jackstats: direction of axes of transformation
 % hlid_mds_transform_stats: statistics related to hlid_mds_coords_geomodels: shuffles and bootstraps
+% hlid_meths_define: define ways of creating representational spaces from response vectors
 % hlid_orn_kc_check: check on variances, etc, from coordinates for orn and kc for overlapping stimuli
 % hlid_orn_kc_mdlsum: basic goodness of fit via Procrustes for orn->kc transformation
 % hlid_participation_ratio: compute participation ratio from single-trial datasets
