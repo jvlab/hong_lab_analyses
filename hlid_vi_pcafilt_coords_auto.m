@@ -58,7 +58,9 @@ if ~exist('resp_measure_list') resp_measure_list=1; end
 if ~exist('meth_list') meth_list=[1 2 3 4]; end
 %
 if ~exist('pcrits') pcrits=[1 0.05]; end %critical values of p for pca filtering
-if ~exist('logrange') logrange=10^2; end %range of pc powers to plot
+ p_prefix='pr'; %for raw probability (could also be total prob, fdr corrected, etc)
+ncols_input=1; %columns for pca plots
+if ~exist('logrange') logrange=10^3; end %range of pc powers to plot
 %
 while (if_ok==0)
     for k=1:length(data_files)
@@ -96,6 +98,7 @@ end
 %
 stims=hlid_vi_stimnames;
 %
+results=cell(n_files,n_sfs,length(resp_measure_list),length(pcrits),length(meth_list));
 for file_ptr=1:n_files
     ifile=data_files_selected(file_ptr);
     data_file=data_files{ifile};
@@ -116,8 +119,8 @@ for file_ptr=1:n_files
         rept_string=cat(2,'repts: ',sprintf(' %2.0f',opts_read.rept_list));
         sf_tp_string=cat(2,sprintf('sf fw=%2.0f',sfilt),sprintf('; timepoints: [0 %2.0f]',s.n_timepoints_read));
         %
-        tstring=cat(2,read_data_file_short,':',sf_tp_string,', ',rept_string);
-        disp(sprintf('read %s',tstring));
+        tstring_input=cat(2,read_data_file_short,':',sf_tp_string,', ',rept_string);
+        disp(sprintf('read %s',tstring_input));
         disp(sprintf('planes kept: %3.0f, total pixels kept: %7.0f, pixels per plane kept: %s',...
             s.n_pixels_kept,s.n_pixels_kept,sprintf(' %5.0f',s.pixels_per_plane_kept)))
         %
@@ -187,17 +190,16 @@ for file_ptr=1:n_files
             hf=figure;
             set(gcf,'NumberTitle','off');
             set(gcf,'Position',[50 50 1400 800]);
-            set(gcf,'Name',cat(2,' pca sel: ',tstring));
-            n_cols=1; %columns for pca plots
+            set(gcf,'Name',tstring_input);
             %
-            subplot(3,n_cols,1)
+            subplot(3,ncols_input,1)
             semilogy(svd_s_dsq,'.-');
             xlabel('eigenvalue');
             set(gca,'XLim',[0 n_pc_max]);
             ylabel(cat(2,resp_measure,' var explained'));
             set(gca,'YLim',max(svd_s_dsq)*[1/logrange 1]);
             %
-            subplot(3,n_cols,1+n_cols);
+            subplot(3,ncols_input,1+ncols_input);
             semilogy(frats);
             hold on;
             for icrit=1:length(pcrits)
@@ -209,7 +211,7 @@ for file_ptr=1:n_files
             ylabel('F ratio');
             set(gca,'YLim',[.1 100]);
             %
-            subplot(3,n_cols,1+2*n_cols);
+            subplot(3,ncols_input,1+2*ncols_input);
             semilogy(frats_pvals);
             hold on;
             for icrit=1:length(pcrits)
@@ -220,28 +222,44 @@ for file_ptr=1:n_files
             ylabel('p(F ratio)');
             set(gca,'YLim',[10^-5 1]);
             %
+            axes('Position',[0.01,0.01,0.01,0.01]);
+            text(0,0,cat(2,tstring_input,' ',resp_measure),'Interpreter','none');
+            axis off
+            %
             %now analyze for each level of pca selection
             %
             for pcrit_ptr=1:length(pcrits)
                 pcrit=pcrits(pcrit_ptr);
-                %convert p=1 to pall, p=0.05 to p050, p=0.001 to p001, %p=.123 to p123, p=0.0001 to p00010
+                %convert p=1 to all, p=0.05 to 050, p=0.001 to 001, p=.123 to 123, p=0.0001 to 00010
                 if pcrit==1
-                    pcrit_string='pall';
+                    pcrit_string=cat(2,p_prefix,'-all');
                 elseif pcrit<0.001
                         pdec=5;
-                        pcrit_string=cat(2,'p',zpad(round(pcrit*10^pdec),pdec));
+                        pcrit_string=cat(2,p_prefix,zpad(round(pcrit*10^pdec),pdec));
                 else
                     pdec=3;
-                    pcrit_string=cat(2,'p',zpad(round(pcrit*10^pdec),pdec));
+                    pcrit_string=cat(2,p_prefix,zpad(round(pcrit*10^pdec),pdec));
                 end
                 for meth_ptr=1:length(meth_list)
                     meth=meth_list(meth_ptr);
                     meth_string=meths{meth}.name_file;
                     %
-                    coord_file_extend=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',rm_string,'_',pcrit_string,'_',meth_string);
+                    coord_file=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',rm_string,'_',pcrit_string,'_',meth_string);
                     if if_debug>0
-                        disp(coord_file_extend)                       
+                        disp(coord_file)                       
                     end
+                    r=struct;
+                    r.data_file=data_file;
+                    r.sfilt=sfilt;
+                    r.resp_measure=resp_measure;
+                    r.pcrit=pcrit;
+                    r.meth_string=meth_string;
+                    %
+                    r.coord_file=coord_file;
+                    %
+                    r.stims=stims;
+                    %
+                    results{file_ptr,sf_ptr,rm_ptr,pcrit_ptr,meth_ptr}=r;
                 end %dim reduction method
             end %pcrit_ptr
         end %rm_ptr (response measure)
@@ -253,9 +271,6 @@ end %file_ptr
 %     %
 %     stim_names=stims.names_short(s.opts_read.stim_list(display_ptr_order));
 %     %
-%     results{file_ptr}.stim_names=stim_names;
-%     results{file_ptr}.dist_names=dist_names;
-%     results{file_ptr}.resp_measure=resp_measure;
 %     results{file_ptr}.eiv_squared=svd_s_dsq;
 %     %statistics for each pc
 %     results{file_ptr}.frats=frats;
