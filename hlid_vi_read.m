@@ -24,7 +24,7 @@ function [s,opts_read_used]=hlid_vi_read(opts_read)
 %
 % 31Mar26: add max_timepoints
 %
-%   See also:  HLID_VI_EXPLORE, hlid_VI_SPATIALFILTER, H5INFO, H5READ.
+%   See also:  HLID_VI_EXPLORE, HLID_VI_SPATIALFILTER, H5INFO, H5READ.
 %
 if nargin<1
     opts_read=struct;
@@ -128,7 +128,7 @@ s.xyz_kept=s.xyz_all(pixels_keep,:);
 s.plane_list_all=double(unique(s.xyz_all(:,3)));
 s.n_planes_with_data_all=length(s.plane_list_all);
 s.pixels_per_plane_all=zeros(1,s.n_planes_with_data_all);
-s.pixels_per_plane_all_kept=zeros(1,s.n_planes_with_data_all); %the count of the no-Nan pixels in all planes prior to removal of NaN, but may include planes in wich all pixels have been removed
+s.pixels_per_plane_all_kept=zeros(1,s.n_planes_with_data_all); %the count of the no-NaN pixels in all planes prior to removal of NaN, but may include planes in wich all pixels have been removed
 for plane_ptr=1:s.n_planes_with_data_all
     plane=s.plane_list_all(plane_ptr);
     s.pixels_per_plane_all(plane_ptr)=sum(sum(s.xyz_all(:,3)==plane));

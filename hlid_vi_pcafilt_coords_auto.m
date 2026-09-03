@@ -7,7 +7,31 @@
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VI_EXPLORE, HLID_VI_PCASELECT,
 % HLID_METHS_DEFINE, HLID_RASTIM_MDS_COORDS_MAKE.
 %
+if_debug=getinp('1 for debug mode,','d',[0 1],0);
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
+if ~exist('coord_file_infix') coord_file_infix='vi';end
+if ~exist('meths')
+    meths=hlid_meths_define;
+end
+if ~exist('n_stims') n_stims=24; end
+if ~exist('n_repts') n_repts=5; end
+if ~exist('max_timepoints') max_timepoints=0; end %until end of file
+if ~exist('d_range_avg') d_range_avg=[-1 1]; end %colormap range for average responses
+%
+if_dist=1; % getinp('1 to plot distances','d',[0 1],1);
+if_reorder=1; % getinp('1 to reorder stimuli','d',[0 1],1);
+rept_list=[1:n_repts]; % getinp('repeat list','d',[1 n_repts],1:n_repts);
+stim_list=[1:n_stims]; % getinp('stimulus list','d',[1 n_stims],1:n_stims);
+%
+if ~exist('opts_read') opts_read=struct;end
+opts_read.max_timepoints=0; %read all time points
+opts_read.if_remnan=1; %remove NaN's looking at all of the data
+opts_read.data_path=data_path;
+opts_read.stim_list=stim_list;
+opts_read.rept_list=rept_list;
+opts_read.if_keep_all_raw=0;
+opts_read.if_log=0;
+%
 if ~exist('data_files') data_files={...
     '20240502_a_30s_output_walk_mc_2.hdf5',...
     '20240502_a_med_30s_output_walk_mc_2.hdf5',...
@@ -25,128 +49,143 @@ if ~exist('data_files') data_files={...
     '20250102_a_med_30s_output_mc_2.hdf5'};
 end
 data_files_med=find(contains(data_files,'_med'));
-for k=1:length(data_files)
-    disp(sprintf(' %2.0f->%s',k,data_files{k}));
-end
-data_files_selected=getinp('choices','d',[1 length(data_files)],data_files_med);
-n_files=length(data_files_selected);
-%
-if ~exist('meths')
-    meths=hlid_meths_define;
-end
-% 
-% Euclidean
-% Cosine
-% Pearson
-% Chord
-% 
-if ~exist('d_range_avg') d_range_avg=[-1 1]; end %colormap range for average responses
-if ~exist('d_range_indiv') d_range_indiv=d_range_avg; end %colormap range for average responses
-if ~exist('n_stims') n_stims=24; end
-if ~exist('n_repts') n_repts=5; end
-if ~exist('max_timepoints') max_timepoints=0; end %until end of file
-%
-
-% %
-% dist_names={'cosine'};
-% n_dists=1;
-% %dist_names={'cosine','Pearson'};
-% %n_dists=length(dist_names);
-%
+if_ok=0;
+%starting values
+data_files_selected=data_files_med;
+if ~exist('sf_list') sf_list=[0:2]; end
 resp_measures={'deltaF/F','z'};
-for k=1:length(resp_measures)
-    disp(sprintf('%1.0f->response measure %s',k,resp_measures{k}));
-end
-resp_measure=resp_measures{getinp('choice','d',[1 length(resp_measures)],1)};
-% %
-% if ~exist('opts_read') opts_read=struct;end
-% %
-% opts_read.max_timepoints=0; %read all time points
-% opts_read.if_remnan=1; %remove NaN's looking at all of the data
-
-if_dist=1; % getinp('1 to plot distances','d',[0 1],1);
-if_reorder=1; % getinp('1 to reorder stimuli','d',[0 1],1);
-rept_list=[1:n_repts]; % getinp('repeat list','d',[1 n_repts],1:n_repts);
-stim_list=[1:n_stims]; % getinp('stimulus list','d',[1 n_stims],1:n_stims);
+if ~exist('resp_measure_list') resp_measure_list=1; end
+if ~exist('meth_list') meth_list=[1 2 3 4]; end
 %
-opts_read.data_path=data_path;
-opts_read.stim_list=stim_list;
-opts_read.rept_list=rept_list;
-opts_read.if_keep_all_raw=0;
-opts_read.if_log=0;
-% %
-% n_pcasels=length(pcrits); %number of ways to select PC's
-% n_cols=n_pcasels+1; %first col for pc plots, rest for correlations
-% %
-% results=cell(1,n_files);\
-sf_list=getinp('spatial filtering list (full-widths)','d',[0 6],[0:2]);
-n_sfs=length(sf_list);
+if ~exist('pcrit_list') pcrit_list=[1 0.05]; end %critical values of p for pca filtering
+%
+while (if_ok==0)
+    for k=1:length(data_files)
+        disp(sprintf(' %2.0f->%s',k,data_files{k}));
+    end
+    data_files_selected=getinp('choices','d',[1 length(data_files)],data_files_selected);
+    n_files=length(data_files_selected);
+    coord_file_infix=getinp('output file name infix','s',[],coord_file_infix);
+    %
+    sf_list=getinp('spatial filtering list full-widths','d',[0 6],sf_list);
+    n_sfs=length(sf_list);
+    %
+    for k=1:length(resp_measures)
+        disp(sprintf('%1.0f->response measure %s',k,resp_measures{k}));
+    end
+    resp_measure_list=getinp('choices','d',[1 length(resp_measures)],resp_measure_list);
+    %
+    pcrit_list=getinp('list of critical p-values for pca filtering','f',[0 1],pcrit_list);
+    %
+    for k=1:length(meths)
+        disp(sprintf('%1.0f->%s',k,meths{k}.name_full));
+    end
+    meth_list=getinp('list of methods for dimension reduction','d',[1 length(meths)],meth_list);
+    %
+    coord_file_base=cell(1,n_files);
+    for file_ptr=1:n_files
+        ifile=data_files_selected(file_ptr);
+        data_file=data_files{ifile};
+        coord_file_id=cat(2,data_file(1:4),'-',data_file(5:6),'-',data_file(7:8),'-',data_file(10));
+        coord_file_base{file_ptr}=cat(2,'hlid_',coord_file_infix,'_coords_',coord_file_id);
+        disp(sprintf(' coords from from %-40s will be put into files %s*.mat',data_file,coord_file_base{file_ptr}));
+    end
+    if_ok=getinp('1 if ok','d',[0 1]);
+end
+%
+stims=hlid_vi_stimnames;
+%
 for file_ptr=1:n_files
-    ifile=data_files_selected(file_ptr);
     data_file=data_files{ifile};
-    results{file_ptr}.data_file=data_file;
     %
     for sf_ptr=1:n_sfs
         sfilt=sf_list(sf_ptr);
         opts_read.if_spatialfilter=double(sfilt>0);
         opts_read.sfilt_hw=0.5*sfilt;
-        sf_string=sprintf('sf: kernel hw=%3.1f',opts_read.sfilt_hw);
+        opts_read.data_file=data_file;
         %
         disp('***********');
-        disp(sprintf('processing file %3.0f of %3.0f: %s',file_ptr,n_files,data_file));
-        opts_read.data_file=data_file;
+        disp(sprintf('processing file %3.0f of %3.0f: %-30s, reading with sf%1.0f',file_ptr,n_files,data_file,sfilt));
+        %
         [s,opts_read_used]=hlid_vi_read(opts_read);
         n_pixels=s.n_pixels_kept;
         %
         read_data_file_short=strrep(s.opts_read.data_file,'.hdf5','');
         rept_string=cat(2,'repts: ',sprintf(' %2.0f',opts_read.rept_list));
-        sf_tp_string=cat(2,sf_string,sprintf('; timepoints: [0 %2.0f]',s.n_timepoints_read));
+        sf_tp_string=cat(2,sprintf('sf fw=%2.0f',sfilt),sprintf('; timepoints: [0 %2.0f]',s.n_timepoints_read));
         %
-        tstring=cat(2,read_data_file_short,':',sf_tp_string,',',resp_measure,', ',rept_string);
+        tstring=cat(2,read_data_file_short,':',sf_tp_string,', ',rept_string);
         disp(sprintf('read %s',tstring));
         if opts_read.if_log
             disp(s)
         end
-%     %
-%     stims=hlid_vi_stimnames;
-%     %
-%     %compute mean response measure (delta-F/F or z), averaged over repeats
-%     %
-%     resp_maxlength=size(s.responses,2);
-%     deltaF=s.responses-repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
-%     switch resp_measure
-%         case 'deltaF/F'
-%             v=deltaF./repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
-%         case 'z'
-%             v=deltaF./repmat(reshape(s.baseline_stdvs,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
-%     end
-%     clear deltaF
-%     resp_minlength=sum(0==any(any(any(isnan(v),1),3),4));
-%     v_indiv_repts=reshape(v(:,[1:resp_minlength],:),[n_pixels*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
-%     %
-%     if if_temporal_pattern==-1
-%         deltaF_alltime=s.pixel_values_kept-repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 s.n_timepoints_read 1 1]);
-%         switch resp_measure
-%             case 'deltaF/F'
-%                 v_alltime=deltaF_alltime./repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 s.n_timepoints_read 1 1]);
-%             case 'z'
-%                 v_alltime=deltaF_alltime./repmat(reshape(s.baseline_stdvs,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 s.n_timepoints_read 1 1]);
-%         end
-%         clear deltaF_alltime
-%     end
-%     xyz_range=double([min(s.xyz_kept);max(s.xyz_kept)]);
-%     x_len=xyz_range(2,1)-xyz_range(1,1)+1;
-%     y_len=xyz_range(2,2)-xyz_range(1,2)+1;
-%     xyz_rel=double(s.xyz_kept)-repmat(xyz_range(1,:),s.n_pixels_kept,1)+1; %relative index of all kept pixels
-%     %
-%     display_ptr_order=[1:s.n_stims_kept];
-%     if if_reorder
-%         display_sort=zeros(1,s.n_stims_kept);
-%         for k=1:s.n_stims_kept
-%             display_sort(k)=find(stims.display_order==s.opts_read.stim_list(k));
-%         end
-%         [dsort,display_ptr_order]=sort(display_sort);
-%     end
+        for rm_ptr=1:length(resp_measure_list)
+            rm=resp_measure_list(rm_ptr);
+            resp_measure=resp_measures{rm};
+            switch resp_measure
+                case 'deltaF/F'
+                    rm_string='dff';
+                case 'z'
+                    rm_string='z';
+            end
+            %
+            %compute individual trial responses before pc filtering
+            %
+            %compute mean response measure (delta-F/F or z), averaged over repeats
+            resp_maxlength=size(s.responses,2);
+            deltaF=s.responses-repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
+            switch resp_measure
+                case 'deltaF/F'
+                    v=deltaF./repmat(reshape(s.baseline_means,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
+                case 'z'
+                    v=deltaF./repmat(reshape(s.baseline_stdvs,[s.n_pixels_kept,1,s.n_repts_kept,s.n_stims_kept]),[1 resp_maxlength 1 1]);
+            end
+            clear deltaF
+            resp_minlength=sum(0==any(any(any(isnan(v),1),3),4));
+            v_indiv_repts=reshape(v(:,[1:resp_minlength],:),[n_pixels*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
+            disp('individual responses computed prior to pc filtering');
+            %
+            xyz_range=double([min(s.xyz_kept);max(s.xyz_kept)]);
+            x_len=xyz_range(2,1)-xyz_range(1,1)+1;
+            y_len=xyz_range(2,2)-xyz_range(1,2)+1;
+            xyz_rel=double(s.xyz_kept)-repmat(xyz_range(1,:),s.n_pixels_kept,1)+1; %relative index of all kept pixels
+            %
+            display_ptr_order=[1:s.n_stims_kept];
+            if if_reorder
+                display_sort=zeros(1,s.n_stims_kept);
+                for k=1:s.n_stims_kept
+                    display_sort(k)=find(stims.display_order==s.opts_read.stim_list(k));
+                end
+                [dsort,display_ptr_order]=sort(display_sort);
+            end
+            %
+            for pcrit_ptr=1:length(pcrit_list)
+                pcrit=pcrit_list(pcrit_ptr);
+                %convert p=1 to pall, p=0.05 to p050, p=0.001 to p001, %p=.123 to p123, p=0.0001 to p00010
+                if pcrit==1
+                    pcrit_string='pall';
+                elseif pcrit<0.001
+                        pdec=5;
+                        pcrit_string=cat(2,'p',zpad(round(pcrit*10^pdec),pdec));
+                else
+                    pdec=3;
+                    pcrit_string=cat(2,'p',zpad(round(pcrit*10^pdec),pdec));
+                end
+                for meth_ptr=1:length(meth_list)
+                    meth=meth_list(meth_ptr);
+                    meth_string=meths{meth}.name_file;
+                    %
+                    coord_file_extend=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',rm_string,'_',pcrit_string,'_',meth_string);
+                    if if_debug>0
+                        disp(coord_file_extend)                       
+                    end
+    
+                    %
+                end %dim reduction method
+            end %pcrit_ptr
+        end %rm_ptr (response measure)
+    end % sf_ptr
+end %file_ptr
 %     %
 %     %do pca and show properties
 %     %
@@ -314,5 +353,3 @@ for file_ptr=1:n_files
 %     %
 %     clear s svd_u v v_indiv_repts v_indiv_repts_dist vfilt*
 %     %
-    end % isf_ptr
-end %file_ptr
