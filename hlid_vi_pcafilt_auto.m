@@ -25,6 +25,12 @@ if ~exist('data_files') data_files={...
     '20250807_b_2_30s_output_fixed.hdf5',...
     '20250808_b_30s_output_fixed.hdf5'};
 end
+data_files_med=find(contains(data_files,'_med'));
+for k=1:length(data_files)
+    disp(sprintf(' %2.0f->%s',k,data_files{k}));
+end
+data_files_selected=getinp('choices','d',[1 length(data_files)],data_files_med);
+n_files=length(data_files_selected);
 %
 if ~exist('d_range_avg') d_range_avg=[-1 1]; end %colormap range for average responses
 if ~exist('d_range_indiv') d_range_indiv=d_range_avg; end %colormap range for average responses
