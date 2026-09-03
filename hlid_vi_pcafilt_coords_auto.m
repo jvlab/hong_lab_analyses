@@ -97,6 +97,7 @@ end
 stims=hlid_vi_stimnames;
 %
 for file_ptr=1:n_files
+    ifile=data_files_selected(file_ptr);
     data_file=data_files{ifile};
     %
     for sf_ptr=1:n_sfs
@@ -117,6 +118,9 @@ for file_ptr=1:n_files
         %
         tstring=cat(2,read_data_file_short,':',sf_tp_string,', ',rept_string);
         disp(sprintf('read %s',tstring));
+        disp(sprintf('planes kept: %3.0f, total pixels kept: %7.0f, pixels per plane kept: %s',...
+            s.n_pixels_kept,s.n_pixels_kept,sprintf(' %5.0f',s.pixels_per_plane_kept)))
+        %
         if opts_read.if_log
             disp(s)
         end
@@ -159,7 +163,7 @@ for file_ptr=1:n_files
             clear deltaF
             resp_minlength=sum(0==any(any(any(isnan(v),1),3),4));
             v_indiv_repts=reshape(v(:,[1:resp_minlength],:),[n_pixels*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
-            disp('individual responses computed prior to pc filtering');
+            disp(sprintf('individual responses computed prior to pc filtering for response measure %s',resp_measure));
             %
             %do pca and show properties
             %
@@ -184,7 +188,7 @@ for file_ptr=1:n_files
             set(gcf,'NumberTitle','off');
             set(gcf,'Position',[50 50 1400 800]);
             set(gcf,'Name',cat(2,' pca sel: ',tstring));
-            n_cols=3; %columns for pca plots
+            n_cols=1; %columns for pca plots
             %
             subplot(3,n_cols,1)
             semilogy(svd_s_dsq,'.-');
