@@ -232,14 +232,16 @@ for file_ptr=1:n_files
                 pcrit=pcrits(pcrit_ptr);
                 %convert p=1 to all, p=0.05 to 050, p=0.001 to 001, p=.123 to 123, p=0.0001 to 00010
                 if pcrit==1
-                    pcrit_string=cat(2,p_prefix,'-all');
+                    pnum='all';
                 elseif pcrit<0.001
-                        pdec=5;
-                        pcrit_string=cat(2,p_prefix,zpad(round(pcrit*10^pdec),pdec));
+                    pdec=5;
+                    pnum=zpad(round(pcrit*10^pdec),pdec);
                 else
                     pdec=3;
-                    pcrit_string=cat(2,p_prefix,zpad(round(pcrit*10^pdec),pdec));
+                    pnum=zpad(round(pcrit*10^pdec),pdec);
                 end
+                pcrit_string=cat(2,p_prefix,'-',pnum);
+                %
                 for meth_ptr=1:length(meth_list)
                     meth=meth_list(meth_ptr);
                     meth_string=meths{meth}.name_file;
