@@ -7,6 +7,8 @@
 % * key variables saved in results
 % * pca selection based on p-value of f-ratio of stim x repeat array
 % 
+% 03Sep26: change var_rats to varrats_indiv to avoid confusion with varrats
+%
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_PCAFILT_SUMM, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VARRATS, HLID_VI_EXPLORE, HLID_VI_PCASELECT.
 %
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
@@ -271,9 +273,9 @@ for file_ptr=1:n_files
         v_indiv_repts_dist=reshape(vfilt,[s.n_pixels_kept,resp_maxlength,s.n_repts_kept*s.n_stims_kept]);
         v_indiv_repts_dist=reshape(v_indiv_repts_dist(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
         %
-        var_rats=hlid_varrats(reshape(v_indiv_repts_dist,[s.n_pixels_kept*resp_minlength,s.n_repts_kept,s.n_stims_kept]));
-        disp(var_rats);
-        results{file_ptr}.var_rats{i_pcasel}=rmfield(var_rats,'centroid');
+        varrats_indiv=hlid_varrats(reshape(v_indiv_repts_dist,[s.n_pixels_kept*resp_minlength,s.n_repts_kept,s.n_stims_kept]));
+        disp(varrats_indiv);
+        results{file_ptr}.varrats_indiv{i_pcasel}=rmfield(varrats_indiv,'centroid');
         %
         dpo_expanded=s.n_repts_kept*repmat(display_ptr_order-1,s.n_repts_kept,1); %expand the display pointer order to take into account blocks of repeats
         dpo_expanded=dpo_expanded+repmat([1:s.n_repts_kept]',1,s.n_stims_kept);
@@ -298,7 +300,7 @@ for file_ptr=1:n_files
             set(gca,'YTick',tick_locs);
             set(gca,'YTickLabels',stim_names);
             axis square;
-            title(sprintf('overall F ratio: %8.4f',var_rats.frat),'FontSize',8,'FontWeight','normal');
+            title(sprintf('overall F ratio: %8.4f',varrats_indiv.frat),'FontSize',8,'FontWeight','normal');
         end
         %
     end %i_pcasel

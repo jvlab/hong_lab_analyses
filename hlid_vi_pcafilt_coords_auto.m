@@ -79,6 +79,7 @@ while (if_ok==0)
     resp_measure_list=getinp('choices','d',[1 length(resp_measures)],resp_measure_list);
     %
     pcrits=getinp('list of critical p-values for pca filtering','f',[0 1],pcrits);
+    n_pcrits=length(pcrits);
     %
     for k=1:length(meths)
         disp(sprintf('%1.0f->%s',k,meths{k}.name_full));
@@ -91,14 +92,14 @@ while (if_ok==0)
         data_file=data_files{ifile};
         coord_file_id=cat(2,data_file(1:4),'-',data_file(5:6),'-',data_file(7:8),'-',data_file(10));
         coord_file_base{file_ptr}=cat(2,'hlid_',coord_file_infix,'_coords_',coord_file_id);
-        disp(sprintf(' coords from from %-40s will be put into files %s*.mat',data_file,coord_file_base{file_ptr}));
+        disp(sprintf(' data file  %-40s will be used for coordinate files %s*.mat',data_file,coord_file_base{file_ptr}));
     end
     if_ok=getinp('1 if ok','d',[0 1]);
 end
 %
 stims=hlid_vi_stimnames;
 %
-results=cell(n_files,n_sfs,length(resp_measure_list),length(pcrits),length(meth_list));
+results=cell(n_files,n_sfs,length(resp_measure_list),n_pcrits,length(meth_list));
 for file_ptr=1:n_files
     ifile=data_files_selected(file_ptr);
     data_file=data_files{ifile};
@@ -186,11 +187,12 @@ for file_ptr=1:n_files
                 frats(ipc)=varrats.frat;
             end
             frats_pvals=1-fcdf(frats,varrats.fdof(1),varrats.fdof(2));
-            %  
-            hf=figure;
+            %
+            tstring_input_resp=cat(2,tstring_input,' ',resp_measure);
+            figh_pca=figure;
             set(gcf,'NumberTitle','off');
             set(gcf,'Position',[50 50 1400 800]);
-            set(gcf,'Name',tstring_input);
+            set(gcf,'Name',tstring_input_resp);
             %
             subplot(3,ncols_input,1)
             semilogy(svd_s_dsq,'.-');
@@ -202,7 +204,7 @@ for file_ptr=1:n_files
             subplot(3,ncols_input,1+ncols_input);
             semilogy(frats);
             hold on;
-            for icrit=1:length(pcrits)
+            for icrit=1:n_pcrits
                 finv_crit=finv(1-pcrits(icrit),varrats.fdof(1),varrats.fdof(2));
                 semilogy([0 n_pc_max],repmat(finv_crit,1,2),'k:');
             end
@@ -214,7 +216,7 @@ for file_ptr=1:n_files
             subplot(3,ncols_input,1+2*ncols_input);
             semilogy(frats_pvals);
             hold on;
-            for icrit=1:length(pcrits)
+            for icrit=1:n_pcrits
                 semilogy([0 n_pc_max],repmat(pcrits(icrit),1,2),'k:');
             end
             xlabel('eigenvalue');
@@ -223,11 +225,18 @@ for file_ptr=1:n_files
             set(gca,'YLim',[10^-5 1]);
             %
             axes('Position',[0.01,0.01,0.01,0.01]);
-            text(0,0,cat(2,tstring_input,' ',resp_measure),'Interpreter','none');
+            text(0,0,tstring_input_resp,'Interpreter','none');
             axis off
             %
             %now analyze for each level of pca selection
             %
+            figh_pcrits=figure;
+            set(gcf,'NumberTitle','off');
+            set(gcf,'Position',[50 50 1400 800]);
+            set(gcf,'Name',cat(2,'pc filtering ',tstring_input_resp));
+            [nrows_pcrits,ncols_pcrits]=nicesubp(n_pcrits,0.7);
+            %
+            stim_names=stims.names_short(s.opts_read.stim_list(display_ptr_order));
             for pcrit_ptr=1:length(pcrits)
                 pcrit=pcrits(pcrit_ptr);
                 %convert p=1 to all, p=0.05 to 050, p=0.001 to 001, p=.123 to 123, p=0.0001 to 00010
@@ -241,6 +250,46 @@ for file_ptr=1:n_files
                     pnum=zpad(round(pcrit*10^pdec),pdec);
                 end
                 pcrit_string=cat(2,p_prefix,'-',pnum);
+                %logic of hlid_vi_pcaselect, based on max p-value
+                opts_pcasel=struct();
+                opts_pcasel.n_pc_max=n_pc_max;
+                opts_pcasel.eiv_squared=svd_s_dsq;
+                opts_pcasel.frats=frats;
+                opts_pcasel.fdof=varrats.fdof;
+                pval_max=pcrit;
+                frat_min=finv(1-pval_max,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
+                pc_sel=find(opts_pcasel.frats>=frat_min);
+                frac_var_used=sum(opts_pcasel.eiv_squared(pc_sel))/sum(opts_pcasel.eiv_squared(:));
+                pc_sel_string=sprintf('p %5.3f F %5.3f npc %3.0f pfrac %5.3f',pval_max,frat_min,length(pc_sel),frac_var_used);
+                disp(sprintf('pca set %2.0f: %s',pcrit_ptr,pc_sel_string));
+                %
+                %reconstruct from selected pc;s
+                proj_pc=svd_v(:,pc_sel)*svd_v(:,pc_sel)'; %projection on selected pcs
+                vfilt_indiv_repts=v_indiv_repts*proj_pc;
+                vfilt=reshape(reshape(v,[n_pixels*resp_maxlength,s.n_repts_kept*s.n_stims_kept])*proj_pc,size(v));
+                % average across repeats
+                v_across_repts=reshape(mean(vfilt,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);
+                v_across_repts=reshape(v_across_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_stims_kept]);
+                % indiv repeats to compute F
+                v_indiv_repts_dist=reshape(vfilt,[s.n_pixels_kept,resp_maxlength,s.n_repts_kept*s.n_stims_kept]);
+                v_indiv_repts_dist=reshape(v_indiv_repts_dist(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
+                varrats_indiv=hlid_varrats(reshape(v_indiv_repts_dist,[s.n_pixels_kept*resp_minlength,s.n_repts_kept,s.n_stims_kept]));
+                %
+                dot_prods=v_across_repts'*v_across_repts;
+                mags=sqrt(diag(dot_prods));
+                heatmap=dot_prods./(mags*mags');
+                figure(figh_pcrits);
+                subplot(nrows_pcrits,ncols_pcrits,pcrit_ptr);
+                heatmap_ordered=heatmap(display_ptr_order,display_ptr_order);
+                imagesc(heatmap_ordered-diag(diag(heatmap_ordered)),d_range_avg); %remove the diagonal so as not to inflate the scale
+                colorbar;
+                set(gca,'XTick',[1:s.n_stims_kept]);
+                set(gca,'XTickLabels',stim_names);
+                set(gca,'YTick',[1:s.n_stims_kept]);
+                set(gca,'YTickLabels',stim_names);
+                xlabel(sprintf('overall f-ratio: %6.3f',varrats_indiv.frat));
+                axis square;
+                title(pc_sel_string,'FontSize',8,'FontWeight','normal');
                 %
                 for meth_ptr=1:length(meth_list)
                     meth=meth_list(meth_ptr);
@@ -252,60 +301,34 @@ for file_ptr=1:n_files
                     end
                     r=struct;
                     r.data_file=data_file;
+                    r.coord_file=coord_file;
+                    r.stims=stims;
+                    %
                     r.sfilt=sfilt;
                     r.resp_measure=resp_measure;
+                    r.eiv_squared=svd_s_dsq;
+                    %
                     r.pcrit=pcrit;
+                    r.pc_sel=pc_sel;
+                    r.frat_min=frat_min;%min f-ratio for a component to be kept
+                    r.frac_var_used=frac_var_used;
+                    r.frat_overall=varrats_indiv.frat;
+                    %
                     r.meth_string=meth_string;
-                    %
-                    r.coord_file=coord_file;
-                    %
-                    r.stims=stims;
                     %
                     results{file_ptr,sf_ptr,rm_ptr,pcrit_ptr,meth_ptr}=r;
                 end %dim reduction method
             end %pcrit_ptr
+            figure(figh_pcrits);
+            axes('Position',[0.01,0.01,0.01,0.01]);
+            text(0,0,cat(2,'dot products ',tstring_input_resp),'Interpreter','none');
+            axis off
         end %rm_ptr (response measure)
         clear s
     end % sf_ptr
 end %file_ptr
-%     %
-%     %reconstruct with pcas selected based on F-ratio for stims x repeats
-%     %
-%     stim_names=stims.names_short(s.opts_read.stim_list(display_ptr_order));
-%     %
-%     results{file_ptr}.eiv_squared=svd_s_dsq;
-%     %statistics for each pc
-%     results{file_ptr}.frats=frats;
-%     results{file_ptr}.frats_pvals=frats_pvals;
-%     results{file_ptr}.fdof=varrats.fdof;
-%     %
-%     for i_pcasel=1:n_pcasels
-%         %logic of hlid_vi_pcaselect, based on max p-value
-%         opts_pcasel=struct();
-%         opts_pcasel.n_pc_max=n_pc_max;
-%         opts_pcasel.eiv_squared=svd_s_dsq;
-%         opts_pcasel.frats=frats;
-%         opts_pcasel.fdof=varrats.fdof;
-%         pval_max=pcrits(i_pcasel);
-%         frat_min=finv(1-pval_max,opts_pcasel.fdof(1),opts_pcasel.fdof(2));
-%         pc_sel=find(opts_pcasel.frats>=frat_min);
-%         %
-%         frac_var_used=sum(opts_pcasel.eiv_squared(pc_sel))/sum(opts_pcasel.eiv_squared(:));
-%         pc_sel_string=sprintf('p %5.3f F %5.3f npc %3.0f pfrac %5.3f',pval_max,frat_min,length(pc_sel),frac_var_used);
-%         disp(sprintf('pca set %2.0f: %s',i_pcasel,pc_sel_string));
-%         %
-%         proj_pc=svd_v(:,pc_sel)*svd_v(:,pc_sel)'; %projection on selected pcs
-%         vfilt_indiv_repts=v_indiv_repts*proj_pc;
-%         vfilt=reshape(reshape(v,[n_pixels*resp_maxlength,s.n_repts_kept*s.n_stims_kept])*proj_pc,size(v));
-%         %
-%         results{file_ptr}.pcrit(i_pcasel)=pval_max;
-%         results{file_ptr}.frac_var_used(i_pcasel)=frac_var_used;
-%         results{file_ptr}.npc(i_pcasel)=length(pc_sel);
-%         %
-%         % average across repeats
-%         %
-%         v_across_repts=reshape(mean(vfilt,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);
-%         v_across_repts=reshape(v_across_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_stims_kept]);
+
+
 %         %
 %         for idist=1:n_dists
 %             switch dist_names{idist}
