@@ -295,10 +295,69 @@ for file_ptr=1:n_files
                     meth=meth_list(meth_ptr);
                     meth_string=meths{meth}.name_file;
                     %
+                    %from hlid_rastim_mds_coords_make, but eliminating
+                    %* options for subtracting mean
+                    % comparison of pca with mds, jackknifing,
+                    % normalization of distances
+                    %
+                    %
+                    maxdim_coords=s.n_stims_kept;
+                    ru=v_across_repts'; %in ru, stimuli are dimension 1; size(ru,2) is number of voxels * number of time points
+                    %
+                    ru_norm=ru./repmat(sqrt(sum(ru.^2,2)),1,size(ru,2));
+                    ru_centered=ru-repmat(mean(ru,2),1,size(ru,2));
+                    ru_centered_norm=ru_centered./repmat(sqrt(sum(ru_centered.^2,2)),1,size(ru,2));
+                    %
+                    dists=[];
+                    switch meths{meth}.name_full
+                        case {'Euclidean distance via SVD','Euclidean distance via MDS'}
+                            dists=sqrt(cootodsq(ru));
+                        case {'cosine similarity','cosine similarity as angle','cosine similarity as chord'}
+                            dp=ru_norm*ru_norm';
+                        case {'Pearson similarity','Pearson similarity as angle','Pearson similarity as chord'}
+                            dp=ru_centered_norm*ru_centered_norm';
+                        otherwise
+                            disp(sprintf('distance %s not recognized',meths{meth}.name_full));
+                    end
+                    switch meths{meth}.xform
+                        case 'none'
+                        case '1-dp'
+                            dists=1-dp;
+                        case 'acos(dp)'
+                            dists=acos(dp);
+                        case 'sqrt(2)*sqrt(1-dp)'
+                            dists=sqrt(2)*sqrt(1-dp);
+                        otherwise
+                            disp(sprintf('transform %s not recognized',meths{meth}.xform));
+                    end
+                    switch meths{meth}.dimred
+                        case 'mds'
+                            %code borrowed from psg_isomap
+                            [eivals_raw,eivecs_raw]=domds(dists,1); % [eival,eivec]=domds(distmtx,p) does a multidimensional scaling
+                            [eivals_sort,ix]=sort(abs(eivals_raw),'descend');
+                            eivals_raw=eivals_raw(ix);
+                            eivecs_raw=eivecs_raw(:,ix);
+                            eivals=real(eivals_raw)/2; %per do_mds, the eigenvalues need to be divided by 2, prior to square root, to obtain coords that recapitulate the distances.
+                            coords=eivecs_raw.*repmat(sqrt(abs(eivals')),[size(eivecs_raw,1),1]); %scale by eivals
+                       case 'svd'
+                           [u_svd,s_svd,v_svd]=svd(ru,'econ');
+                           sdiag_sq=(diag(s_svd)).^2; %square to match mds convention
+                           [eivals_sort,ix]=sort(abs(sdiag_sq),'descend');
+                           eivals=sdiag_sq(ix);
+                           coords=u_svd*s_svd;
+                    end
+                    if if_debug
+                        disp(meths{meth})
+                        disp('size of dists, size of coords:')
+                        disp(size(dists));
+                        disp(size(coords));
+                    end
+                    %
                     coord_file=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',rm_string,'_',pcrit_string,'_',meth_string);
                     if if_debug>0
                         disp(coord_file)                       
                     end
+                    %%%%%%%%%%%%pca and mds don't match
                     r=struct;
                     r.data_file=data_file;
                     r.coord_file=coord_file;

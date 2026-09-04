@@ -48,5 +48,11 @@ meths{8}.name_short='Pearson chord';
 meths{8}.xform='sqrt(2)*sqrt(1-dp)';
 meths{8}.name_file='pears_chord';
 %
+for imeth=1:length(meths)
+    if ~isfield(meths{imeth},'dimred')
+        meths{imeth}.dimred='mds';
+    end
+end
+%
 return
 end
