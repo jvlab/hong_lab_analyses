@@ -357,7 +357,6 @@ for file_ptr=1:n_files
                     if if_debug>0
                         disp(coord_file)                       
                     end
-                    %%%%%%%%%%%%pca and mds don't match
                     r=struct;
                     r.data_file=data_file;
                     r.coord_file=coord_file;
@@ -377,6 +376,8 @@ for file_ptr=1:n_files
                     %
                     results{file_ptr,sf_ptr,rm_ptr,pcrit_ptr,meth_ptr}=r;
                 end %dim reduction method
+                %note that MDS and PC won't match, because this is NOT centered across stimuli
+
             end %pcrit_ptr
             figure(figh_pcrits);
             axes('Position',[0.01,0.01,0.01,0.01]);
