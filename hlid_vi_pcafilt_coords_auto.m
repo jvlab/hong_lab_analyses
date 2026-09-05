@@ -309,10 +309,10 @@ for file_ptr=1:n_files
                         ru=v_across_repts'; %in ru, stimuli are dimension 1; size(ru,2) is number of voxels * number of time points
                         %
                         if submean
-                            sm_string=[];
-                        else
                             sm_string='-sm';
                             ru=ru-repmat(mean(ru,1),size(ru,1),1);
+                        else
+                            sm_string='';
                         end
                         %
                         ru_norm=ru./repmat(sqrt(sum(ru.^2,2)),1,size(ru,2));
