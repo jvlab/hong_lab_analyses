@@ -375,7 +375,7 @@ for file_ptr=1:n_files
                         %
                         r.sfilt=sfilt;
                         r.resp_measure=resp_measure;
-                        r.eiv_squared=svd_s_dsq;
+                        r.eiv_squared=svd_s_dsq; %for global pca
                         %
                         r.pcrit=pcrit;
                         r.pc_sel=pc_sel;
@@ -385,6 +385,8 @@ for file_ptr=1:n_files
                         %
                         r.meth_string=meth_string;
                         r.submean=submean;
+                        %
+                        r.eiv_squared_dimred=eivals; %for dimension reduction
                         %
                         results{file_ptr,sf_ptr,rm_ptr,pcrit_ptr,meth_ptr,1+submean}=r;
                     end %submean
