@@ -1,7 +1,8 @@
 %hlid_vi_pcafilt_coords_auto: create coordinates from KC volumetric imaging, data from George Barnum, Hong Lab,
 %
 % multiple methods of creating coordinates, from hlid_rastim_mds_coords_make.m
-% derived from hlid_vi_pca_filt_auto,and can run over several datasets
+% derived from hlid_vi_pca_filt_auto,
+% can run over several datasets
 % can customize pcrits
 %  
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VI_EXPLORE, HLID_VI_PCASELECT,
@@ -31,6 +32,10 @@ opts_read.stim_list=stim_list;
 opts_read.rept_list=rept_list;
 opts_read.if_keep_all_raw=0;
 opts_read.if_log=0;
+%
+%for creating coordinate files
+dim_text='dim'; %leadin for fields of d
+fields_remove={'baseline_frame_range','response_frame_range','response_lengths','baseline_means','baseline_stdvs','responses'};
 %
 if ~exist('data_files') data_files={...
     '20240502_a_30s_output_walk_mc_2.hdf5',...
@@ -62,6 +67,8 @@ p_prefix='pr'; %for raw probability (could also be total prob, fdr corrected, et
 %
 ncols_input=1; %columns for pca plots
 if ~exist('logrange') logrange=10^3; end %range of pc powers to plot
+%
+if ~exist('coord_file_path') coord_file_path='./'; end
 %
 while (if_ok==0)
     for k=1:length(data_files)
@@ -100,6 +107,13 @@ while (if_ok==0)
         coord_file_base{file_ptr}=cat(2,'hlid_',coord_file_infix,'_coords_',coord_file_id);
         disp(sprintf(' data file  %-40s will be used for coordinate files %s*.mat',data_file,coord_file_base{file_ptr}));
     end
+    if_write=getinp('1 to write coordinate files','d',[0 1]);
+    if if_write
+        coord_file_path=strrep(coord_file_path,'\','/');
+        coord_file_path=getinp('coordinate file path','s',[],coord_file_path);
+        coord_file_path=strrep(strrep(coord_file_path,'/',filesep),'\',filesep);
+    end
+    %
     if_ok=getinp('1 if ok','d',[0 1]);
 end
 %
@@ -368,6 +382,44 @@ for file_ptr=1:n_files
                         if if_debug>0
                             disp(coord_file)                       
                         end
+                        %
+                        %initialize the quantities to save
+                        %
+                        f=struct;
+                        f.metadata=s;
+                        for k=1:length(fields_remove)
+                            if isfield(s,fields_remove{k})
+                                f.metadata=rmfield(f.metadata,fields_remove{k});
+                            end
+                        end
+                        f.stimulus_names=strvcat(stim_names);
+                        f.stim_labels=strvcat(stim_names); %short form of stimulus names, but stim_names are already shortened
+                        f.dsid=coord_file_id;
+                        f.coord_opts.resp_type=resp_measure; % 'deltaF/F' or 'z'
+                        f.coord_opts.maxdim=maxdim_coords;
+                        f.coord_opts.method=meths{meth}.dimred;
+                        f.coord_opts.name_full=meths{meth}.name_full;
+                        f.coord_opts.xform=meths{meth}.xform;
+                        switch meths{meth}.dimred                           
+                            case 'mds'
+                                f.coord_opts.aux.desc='coords=eivecs*sqrt(eivals'')';
+                                f.coord_opts.eivals=eivals;
+                                f.coord_opts.eivecs=eivecs_raw;
+                            case 'svd'
+                                f.coord_opts.aux.desc='coords= u*s, resps = u*s*transpose(v)';
+                                f.coord_opts.aux.u=u_svd;
+                                f.coord_opts.aux.s=s_svd;
+                                % f.coord_opts.aux.v=v_svd; this is very large
+                        end
+                        for idim=1:maxdim_coords
+                            f.(cat(2,dim_text,sprintf('%1.0f',idim)))=coords(:,1:idim);
+                        end
+                        if if_write
+                            coord_file_fullname=cat(2,coord_file_path,filesep,coord_file);
+                            save(coord_file_fullname,'-struct','f');
+                            disp(sprintf('wrote %s',coord_file_fullname));
+                        end
+                        %
                         r=struct;
                         r.data_file=data_file;
                         r.coord_file=coord_file;
