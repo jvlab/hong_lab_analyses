@@ -6,7 +6,7 @@
 % can customize pcrits
 %  
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VI_EXPLORE, HLID_VI_PCASELECT,
-% HLID_METHS_DEFINE, HLID_RASTIM_MDS_COORDS_MAKE.
+% HLID_METHS_DEFINE, HLID_RASTIM_MDS_COORDS_MAKE, HLID_VI_COORDS_KNIT_RS.
 %
 if_debug=getinp('1 for debug mode,','d',[0 1],0);
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end

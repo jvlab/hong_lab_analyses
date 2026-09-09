@@ -67,9 +67,11 @@
 %   Volumetric data
 %
 % hlid_varrats: compute within vs across repeat variances
+% hlid_vi_coords_knit_rs: read and knit coordinate files from hlid_vi_pcafilt_coords_auto
 % hlid_vi_explore: prelim view of volumetric data
-% hlid_vi_pcafilt: filter by individual principal components
+% hlid_vi_pcafilt: spatial filtering and filter by individual principal components
 % hlid_vi_pcafilt_auto: automated version of hlid_vi_pcafilt, across datasets; several p-value criteria
+% hlid_vi_pcafilt_coords_auto: create coordinate sets with various response measures, spatial and pca filtering, dimensoin reduction methods
 % hlid_vi_pcafilt_summ: summarize output of hlid_vi_pcafilt_auto
 % hlid_vi_pcaselect: select idividual principal components based on power and f-ratio for variance between stimuli
 % hlid_vi_preproc: look at preprocessing options: svd and spatial filtering
