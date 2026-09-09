@@ -392,8 +392,8 @@ for file_ptr=1:n_files
                                 f.metadata=rmfield(f.metadata,fields_remove{k});
                             end
                         end
-                        f.stimulus_names=strvcat(stim_names);
-                        f.stim_labels=strvcat(stim_names); %short form of stimulus names, but stim_names are already shortened
+                        f.stimulus_names=strvcat(stims.names); %names in original order, without renumbering
+                        f.stim_labels=strvcat(stims.names_short);
                         f.dsid=coord_file_id;
                         f.coord_opts.resp_type=resp_measure; % 'deltaF/F' or 'z'
                         f.coord_opts.maxdim=maxdim_coords;
