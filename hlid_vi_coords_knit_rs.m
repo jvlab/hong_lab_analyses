@@ -10,6 +10,7 @@ if ~exist('axis_view') axis_view=[-37.5000   30.0000]; end
 if ~exist('markersize_consensus') markersize_consensus=24; end
 if ~exist('markersize_component') markersize_component=16; end
 if ~exist('linewidth') linewidth=2; end
+if ~exist('callout_amount') callout_amount=0.5; end
 %
 if ~exist('prefix_remove') prefix_remove='hlid_vi_'; end
 %
@@ -92,6 +93,7 @@ data_disp=rs_concat_coordsets(data_consensus,aux_knit_out.components); %for disp
 opts_disp=struct;
 opts_disp.connect_sets_linewidths=linewidth;
 opts_disp.set_labels{1}='consensus';
+opts_disp.callout_amount=callout_amount;
 %shorten the labels
 for k=1:nsets
     opts_disp.set_labels{1+k}=data_read.sets{k}.label(strfind(data_read.sets{k}.label,prefix_remove)+length(prefix_remove):end);
