@@ -11,6 +11,7 @@
 if_debug=getinp('1 for debug mode,','d',[0 1],0);
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('coord_file_infix') coord_file_infix='vi';end
+if ~exist('coord_file_suffix') coord_file_suffix='';end
 if ~exist('meths')
     meths=hlid_meths_define;
 end
@@ -21,8 +22,10 @@ if ~exist('d_range_avg') d_range_avg=[-1 1]; end %colormap range for average res
 %
 if_dist=1; % getinp('1 to plot distances','d',[0 1],1);
 if_reorder=1; % getinp('1 to reorder stimuli','d',[0 1],1);
-rept_list=[1:n_repts]; % getinp('repeat list','d',[1 n_repts],1:n_repts);
-stim_list=[1:n_stims]; % getinp('stimulus list','d',[1 n_stims],1:n_stims);
+if ~exist('rept_list') rept_list=[1:n_repts]; end % getinp('repeat list','d',[1 n_repts],1:n_repts);
+if ~exist('stim_list') stim_list=[1:n_stims]; end % getinp('stimulus list','d',[1 n_stims],1:n_stims);
+stim_list=sort(stim_list);
+n_stims=length(stim_list);
 %
 if ~exist('opts_read') opts_read=struct;end
 opts_read.max_timepoints=0; %read all time points
@@ -76,7 +79,8 @@ while (if_ok==0)
     end
     data_files_selected=getinp('choices','d',[1 length(data_files)],data_files_selected);
     n_files=length(data_files_selected);
-    coord_file_infix=getinp('output file name infix','s',[],coord_file_infix);
+    coord_file_infix=getinp('coord file name infix','s',[],coord_file_infix);
+    coord_file_suffix=getinp('coord file name suffix','s',[],coord_file_suffix);
     %
     sf_list=getinp('spatial filtering list full-widths','d',[0 6],sf_list);
     n_sfs=length(sf_list);
@@ -105,7 +109,7 @@ while (if_ok==0)
         data_file=data_files{ifile};
         coord_file_id=cat(2,data_file(1:4),'-',data_file(5:6),'-',data_file(7:8),'-',data_file(10));
         coord_file_base{file_ptr}=cat(2,'hlid_',coord_file_infix,'_coords_',coord_file_id);
-        disp(sprintf(' data file  %-40s will be used for coordinate files %s*.mat',data_file,coord_file_base{file_ptr}));
+        disp(sprintf(' data file  %-40s will be used for coordinate files %s*%s.mat',data_file,coord_file_base{file_ptr},coord_file_suffix));
     end
     if_write=getinp('1 to write coordinate files','d',[0 1]);
     if if_write
@@ -378,7 +382,7 @@ for file_ptr=1:n_files
                             disp(size(coords));
                         end
                         %
-                        coord_file=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',respmeas_string,'_',pcrit_string,'_',meth_string,sm_string);
+                        coord_file=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',respmeas_string,'_',pcrit_string,'_',meth_string,sm_string,coord_file_suffix);
                         if if_debug>0
                             disp(coord_file)                       
                         end
@@ -392,8 +396,8 @@ for file_ptr=1:n_files
                                 f.metadata=rmfield(f.metadata,fields_remove{k});
                             end
                         end
-                        f.stimulus_names=strvcat(stims.names); %names in original order, without renumbering
-                        f.stim_labels=strvcat(stims.names_short);
+                        f.stimulus_names=strvcat(stims.names(stim_list)); %names in original order, without renumbering
+                        f.stim_labels=strvcat(stims.names_short(stim_list));
                         f.dsid=coord_file_id;
                         f.coord_opts.resp_type=resp_measure; % 'deltaF/F' or 'z'
                         f.coord_opts.sfilt_fullwidth=sfilt;
