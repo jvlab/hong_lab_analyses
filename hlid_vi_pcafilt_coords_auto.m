@@ -168,9 +168,9 @@ for file_ptr=1:n_files
             resp_measure=resp_measures{rm};
             switch resp_measure
                 case 'deltaF/F'
-                    rm_string='dff';
+                    respmeas_string='dff';
                 case 'z'
-                    rm_string='z';
+                    respmeas_string='z';
             end
             %
             %compute individual trial responses before pc filtering
@@ -378,7 +378,7 @@ for file_ptr=1:n_files
                             disp(size(coords));
                         end
                         %
-                        coord_file=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',rm_string,'_',pcrit_string,'_',meth_string,sm_string);
+                        coord_file=cat(2,coord_file_base{file_ptr},'_sf',sprintf('%1.0f',sfilt),'_',respmeas_string,'_',pcrit_string,'_',meth_string,sm_string);
                         if if_debug>0
                             disp(coord_file)                       
                         end
@@ -396,10 +396,14 @@ for file_ptr=1:n_files
                         f.stim_labels=strvcat(stims.names_short);
                         f.dsid=coord_file_id;
                         f.coord_opts.resp_type=resp_measure; % 'deltaF/F' or 'z'
+                        f.coord_opts.sfilt_fullwidth=sfilt;
+                        f.coord_opts.pcrit=pcrit;
+                        f.coord_opts.pcrit_string=pcrit_string;
                         f.coord_opts.maxdim=maxdim_coords;
                         f.coord_opts.method=meths{meth}.dimred;
-                        f.coord_opts.name_full=meths{meth}.name_full;
-                        f.coord_opts.xform=meths{meth}.xform;
+                        f.coord_opts.method_name_full=meths{meth}.name_full;
+                        f.coord_opts.method_xform=meths{meth}.xform;
+                        f.coord_opts.if_submean=if_submean;
                         switch meths{meth}.dimred                           
                             case 'mds'
                                 f.coord_opts.aux.desc='coords=eivecs*sqrt(eivals'')';
