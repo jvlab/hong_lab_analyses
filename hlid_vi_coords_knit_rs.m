@@ -34,6 +34,13 @@ disp(sprintf('total stimuli: %3.0f',nstims_all));
 %aux_disp.opts_disp.set_select=1;
 %rs_disp_coordsets(data_read,aux_disp);
 %
+if ~exist('dim_max_in') dim_max_in=10; end
+if ~exist('nshuffs') nshuffs=100; end
+if_stats=getinp('1 to do statistics','d',[0 1],0);
+if if_stats
+    dim_max_in=getinp('maximum dimension to consider','d',[1 24],dim_max_in);
+    nshuffs=getinp('number of shuffles','d',[5 1000],nshuffs);
+end
 if_indiv=getinp('1 to also plot individual datasets','d',[0 1],0);
 if if_indiv
     indiv_list=getinp('list (consensus always plotted)','d',[1 nsets]);
@@ -41,8 +48,9 @@ else
     indiv_list=[];
 end
 if_c2p=getinp('1 to rotate consensus into PCA space','d',[0 1],0);
-%colors for plot:  first entry is for consensus
-%set_colors=[];
+%
+if ~exist('dim_select_list') dim_select_list=[2:5];end
+dim_select_list=getinp('dimensions to plot','d',[2 dim_max_in],dim_select_list);
 %
 opts_disp=struct;
 opts_disp.connect_sets_linewidths=linewidth;
@@ -54,14 +62,15 @@ opts_knit.allow_scale=0;
 opts_knit.if_normscale=1;
 opts_knit.max_niters=1000;
 opts_knit.pcon_init_method=0;
-opts_knit.if_stats=0; %no statistics
+opts_knit.if_stats=if_stats;
+opts_knit.dim_max_in=dim_max_in;
+opts_knit.nshuffs=nshuffs;
 opts_knit.if_frozen=1;
 opts_knit.if_log=1;
 %
 opts_knit.allow_scale=getinp('1 to allow scaling','d',[0 1],opts_knit.allow_scale);
 %
-if ~exist('pcon_dim_max') pcon_dim_max=10; end
-disp(sprintf('pcon_dim_max=%3.0f, pcon_init_method=%3.0f, allow_scale=%1.0f',pcon_dim_max,opts_knit.pcon_init_method,opts_knit.allow_scale));
+disp(sprintf('dim_max_in=%3.0f, pcon_init_method=%3.0f, allow_scale=%1.0f',opts_knit.dim_max_in,opts_knit.pcon_init_method,opts_knit.allow_scale));
 %
 if if_c2p
     c2p_string='-pc';
@@ -97,6 +106,11 @@ for k=1:nsets
     opts_disp.set_labels{1+k}=data_disp.sets{1+k}.label(strfind(data_disp.sets{1+k}.label,'hlid_vi_')+8:end);
     opts_disp.set_labels{1+k}=strrep(opts_disp.set_labels{1+k},'_','-');
 end
+if k==1
+    consensus_set_label=opts_disp.set_labels{2};
+else
+    consensus_set_label=cat(2,'consensus (',opts_disp.set_labels{2},'...',opts_disp.set_labels{end},')');
+end
 %
 %plot consensus and individual datasets together
 %
@@ -105,35 +119,49 @@ opts_disp.connect_sets_method='star';
 opts_disp.axis_label_prefix=cat(2,'coord',c2p_string);
 opts_disp.axis_view=axis_view;
 %
-%if isfield(set_colors,data_use)
-%    opts_disp.set_colors=set_colors.(data_use);
-%end
+%may want to control opts_disp.set_colors; first entry is for consensus
+%
 opts_disp.connect_sets_color_mode='last';
-aux_out=rs_disp_coordsets(data_disp,setfield(struct(),'opts_disp',opts_disp));
-axis_range=zeros(3,2);
-axis_range(1,:)=get(gca,'XLim');
-axis_range(2,:)=get(gca,'YLim');
-axis_range(3,:)=get(gca,'ZLim');
-%
-%plot individual datasets
-%
-if if_indiv
-    for kptr=0:length(indiv_list)
-        if (kptr==0)
-            k=1;
-        else
-            k=1+indiv_list(kptr);
-        end
-        opts_disp_indiv=opts_disp;
-        opts_disp_indiv.axis_range='list';
-        opts_disp_indiv.axis_range_list=axis_range;
-        opts_disp_indiv.set_select=k;
-        rs_disp_coordsets(data_disp,setfield(struct(),'opts_disp',opts_disp_indiv));
-        % file_name_fig=cat(2,file_name_base,'_',opts_disp.set_labels{k});
-        % if (if_savefig)
-        %     savefig(gcf,file_name_fig);
-        %     disp(sprintf('figure saved as %s',file_name_fig));
-        % end
-        % set(gcf,'Name',file_name_fig);
+for dim_select=dim_select_list
+    opts_disp.dim_select=dim_select;
+    opts_disp.fig_name=cat(2,sprintf('dim %1.0f, ',dim_select),consensus_set_label);
+    opts_disp.coord_group_method='keeplow';
+    if dim_select>3
+        opts_disp.if_legend=-1;
+    else
+        opts_disp.if_legend=1;
     end
-end
+    %
+    aux_out=rs_disp_coordsets(data_disp,setfield(struct(),'opts_disp',opts_disp));
+    %
+    axis_range=zeros(3,2);
+    axis_range(1,:)=get(gca,'XLim');
+    axis_range(2,:)=get(gca,'YLim');
+    axis_range(3,:)=get(gca,'ZLim');
+    %
+    axes('Position',[0.01,0.01,0.01,0.01]);
+    text(0,0,consensus_set_label);
+    axis off
+    %
+    %plot individual datasets
+    %
+    if if_indiv
+        for kptr=0:length(indiv_list)
+            if (kptr==0)
+                k=1;
+            else
+                k=1+indiv_list(kptr);
+            end
+            opts_disp_indiv=opts_disp;
+            opts_disp_indiv.axis_range='list';
+            opts_disp_indiv.axis_range_list=axis_range;
+            opts_disp_indiv.set_select=k;
+            opts_disp_indiv.fig_name=cat(2,sprintf('dim %1.0f, ',dim_select),opts_disp.set_labels{k});
+            rs_disp_coordsets(data_disp,setfield(struct(),'opts_disp',opts_disp_indiv));
+            %
+            axes('Position',[0.01,0.01,0.01,0.01]);
+            text(0,0,opts_disp.set_labels{k});
+            axis off
+        end
+    end
+end %plot+dim_list
