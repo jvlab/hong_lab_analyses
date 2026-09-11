@@ -8,7 +8,7 @@
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VI_EXPLORE, HLID_VI_PCASELECT,
 % HLID_METHS_DEFINE, HLID_RASTIM_MDS_COORDS_MAKE, HLID_VI_COORDS_KNIT_RS.
 %
-if_debug=getinp('1 for debug mode,','d',[0 1],0);
+if_debug=getinp('1 for debug mode','d',[0 1],0);
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
 if ~exist('coord_file_infix') coord_file_infix='vi';end
 if ~exist('coord_file_suffix') coord_file_suffix='';end
@@ -80,7 +80,11 @@ while (if_ok==0)
     data_files_selected=getinp('choices','d',[1 length(data_files)],data_files_selected);
     n_files=length(data_files_selected);
     coord_file_infix=getinp('coord file name infix','s',[],coord_file_infix);
-    coord_file_suffix=getinp('coord file name suffix','s',[],coord_file_suffix);
+    if getinp('1 for file name suffix','d',[0 1])
+        coord_file_suffix=getinp('coord file name suffix','s',[],coord_file_suffix);
+    else
+        coord_file_suffix=[];
+    end
     %
     sf_list=getinp('spatial filtering list full-widths','d',[0 6],sf_list);
     n_sfs=length(sf_list);
