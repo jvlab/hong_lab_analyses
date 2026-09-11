@@ -4,6 +4,8 @@
 % derived from hlid_vi_pca_filt_auto,
 % can run over several datasets
 % can customize pcrits
+%
+% coordinates saved in files, eigenvalues of dimension reduction saved in results
 %  
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VI_EXPLORE, HLID_VI_PCASELECT,
 % HLID_METHS_DEFINE, HLID_RASTIM_MDS_COORDS_MAKE, HLID_VI_COORDS_KNIT_RS.
@@ -423,6 +425,8 @@ for file_ptr=1:n_files
                                 f.coord_opts.aux.s=s_svd;
                                 % f.coord_opts.aux.v=v_svd; this is very large
                         end
+                        r=f; %for results
+                        r.coords=coords;
                         for idim=1:maxdim_coords
                             f.(cat(2,dim_text,sprintf('%1.0f',idim)))=coords(:,1:idim);
                         end
@@ -432,7 +436,6 @@ for file_ptr=1:n_files
                             disp(sprintf('wrote %s',coord_file_fullname));
                         end
                         %
-                        r=struct;
                         r.data_file=data_file;
                         r.coord_file=coord_file;
                         r.stims=stims;
@@ -455,8 +458,7 @@ for file_ptr=1:n_files
                         results{file_ptr,sf_ptr,rm_ptr,pcrit_ptr,meth_ptr,1+submean}=r;
                     end %submean
                 end %dim reduction method
-                %note that MDS and PC won't match, because this is NOT centered across stimuli
-
+                %note that MDS and PC eigenvalues will only match if mean is subtracted
             end %pcrit_ptr
             figure(figh_pcrits);
             axes('Position',[0.01,0.01,0.01,0.01]);
@@ -466,3 +468,5 @@ for file_ptr=1:n_files
         clear s
     end % sf_ptr
 end %file_ptr
+disp('consider saving ''results''');
+
