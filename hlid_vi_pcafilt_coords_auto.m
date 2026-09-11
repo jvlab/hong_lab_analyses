@@ -6,13 +6,16 @@
 % can customize pcrits
 %
 % coordinates saved in files, eigenvalues of dimension reduction saved in results
+%
+% AFter filtering, but before dimension reduction, averaging across frames
+% can be applied.  These values are used for the illustrated dot-products.
 %  
 %   See also:  HLID_VI_READ, HLID_VI_PCAFILT, HLID_VI_SPATIALFILTER, HLID_VI_STIMNAMES, HLID_VI_EXPLORE, HLID_VI_PCASELECT,
 % HLID_METHS_DEFINE, HLID_RASTIM_MDS_COORDS_MAKE, HLID_VI_COORDS_KNIT_RS.
 %
 if_debug=getinp('1 for debug mode','d',[0 1],0);
 if ~exist('data_path') data_path='C:\Users\jdvicto\OneDrive - Weill Cornell Medicine\CloudStorage\From_HongLab\HongLabOrig_for_jdv\volumetric_KC\'; end
-if ~exist('coord_file_infix') coord_file_infix='vi';end
+if ~exist('coord_file_infix_def') coord_file_infix_def='vi';end
 if ~exist('coord_file_suffix') coord_file_suffix='';end
 if ~exist('meths')
     meths=hlid_meths_define;
@@ -70,6 +73,9 @@ if ~exist('if_submean') if_submean=1; end
 if ~exist('pcrits') pcrits=[1 0.05]; end %critical values of p for pca filtering
 p_prefix='pr'; %for raw probability (could also be total prob, fdr corrected, etc)
 %
+if ~exist('if_average') if_average=0; end
+if ~exist('av_range') av_range=[1 22]; end
+%
 ncols_input=1; %columns for pca plots
 if ~exist('logrange') logrange=10^3; end %range of pc powers to plot
 %
@@ -81,6 +87,17 @@ while (if_ok==0)
     end
     data_files_selected=getinp('choices','d',[1 length(data_files)],data_files_selected);
     n_files=length(data_files_selected);
+    %
+    if_average=getinp('1 to average across frames prior to computing distances (0 uses spatiotemporal pattern)','d',[0 1]);
+    if if_average
+        av_range=getinp('first and last frame to average','d',[1 Inf],av_range);
+        coord_file_infix=cat(2,coord_file_infix_def,'_av',zpad(av_range(1),2),'-',zpad(av_range(2),2));
+        av_string=sprintf('frames averaged: [%2.0f %2.0f]',av_range);
+    else
+        coord_file_infix=coord_file_infix_def;
+        av_range=[];
+        av_string='frames not averaged';
+    end
     coord_file_infix=getinp('coord file name infix','s',[],coord_file_infix);
     if getinp('1 for file name suffix','d',[0 1])
         coord_file_suffix=getinp('coord file name suffix','s',[],coord_file_suffix);
@@ -298,14 +315,26 @@ for file_ptr=1:n_files
                 vfilt_indiv_repts=v_indiv_repts*proj_pc;
                 vfilt=reshape(reshape(v,[n_pixels*resp_maxlength,s.n_repts_kept*s.n_stims_kept])*proj_pc,size(v));
                 % average across repeats
-                v_across_repts=reshape(mean(vfilt,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);
+                v_across_repts=reshape(mean(vfilt,3,'omitnan'),[s.n_pixels_kept,resp_maxlength,s.n_stims_kept]);              
                 v_across_repts=reshape(v_across_repts(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_stims_kept]);
                 % indiv repeats to compute F
                 v_indiv_repts_dist=reshape(vfilt,[s.n_pixels_kept,resp_maxlength,s.n_repts_kept*s.n_stims_kept]);
                 v_indiv_repts_dist=reshape(v_indiv_repts_dist(:,[1:resp_minlength],:),[s.n_pixels_kept*resp_minlength,s.n_repts_kept*s.n_stims_kept]);
                 varrats_indiv=hlid_varrats(reshape(v_indiv_repts_dist,[s.n_pixels_kept*resp_minlength,s.n_repts_kept,s.n_stims_kept]));
                 %
-                dot_prods=v_across_repts'*v_across_repts;
+                %now apply averaging across frames
+                %
+                if if_average
+                    vsep=reshape(v_across_repts,[s.n_pixels_kept,resp_minlength,s.n_stims_kept]);
+                    vavg=mean(vsep(:,av_range(1):av_range(2),:),2);
+                    v_across_repts_avg=reshape(vavg,s.n_pixels_kept,s.n_stims_kept);
+                    if (if_debug)
+                        disp(sprintf(' applied averaging, %s',av_string));
+                    end
+                else
+                    v_across_repts_avg=v_across_repts;
+                end
+                dot_prods=v_across_repts_avg'*v_across_repts_avg;
                 mags=sqrt(diag(dot_prods));
                 heatmap=dot_prods./(mags*mags');
                 figure(figh_pcrits);
@@ -330,7 +359,7 @@ for file_ptr=1:n_files
                         % jackknifing and normalization of distances
                         %
                         maxdim_coords=s.n_stims_kept;
-                        ru=v_across_repts'; %in ru, stimuli are dimension 1; size(ru,2) is number of voxels * number of time points
+                        ru=v_across_repts_avg'; %in ru, stimuli are dimension 1; size(ru,2) is number of voxels * number of time points
                         %
                         if submean
                             sm_string='-sm';
@@ -413,7 +442,10 @@ for file_ptr=1:n_files
                         f.coord_opts.method=meths{meth}.dimred;
                         f.coord_opts.method_name_full=meths{meth}.name_full;
                         f.coord_opts.method_xform=meths{meth}.xform;
-                        f.coord_opts.if_submean=if_submean;
+                        f.coord_opts.if_submean=submean;
+                        f.coord_opts.if_average=if_average;
+                        f.coord_opts.av_range=av_range;
+                        f.coord_opts.av_string=av_string;
                         switch meths{meth}.dimred                           
                             case 'mds'
                                 f.coord_opts.aux.desc='coords=eivecs*sqrt(eivals'')';
@@ -462,7 +494,7 @@ for file_ptr=1:n_files
             end %pcrit_ptr
             figure(figh_pcrits);
             axes('Position',[0.01,0.01,0.01,0.01]);
-            text(0,0,cat(2,'dot products ',tstring_input_resp),'Interpreter','none');
+            text(0,0,cat(2,'dot products ',tstring_input_resp,' ',av_string),'Interpreter','none');
             axis off
         end %rm_ptr (response measure)
         clear s
