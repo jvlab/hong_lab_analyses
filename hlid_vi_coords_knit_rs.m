@@ -1,7 +1,7 @@
 % hlid_vi_coords_knit_rs: read volumetric imaging coordinates set files,
 % knit and compare
 %
-%   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,
+%   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,HLID_VI_COORDS_KNIT_AUTO_RS,
 %   ZHENG_APL_EMBED_PLOT_RS, Rs_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY.
 %
 hlid_setup;
@@ -28,9 +28,10 @@ fullnames=[];
 nsets=length(data_read.ds);
 %
 if ~exist('opts_align') opts_align=struct(); end %for psg_align_coordsets
-opts_align=struct();
+if ~exist('opts_check') opts_check=struct(); end
+opts_check.if_warn=0;
 %
-[data_aligned,aux_align_out]=rs_align_coordsets(data_read,setfield(struct(),'opts_align',opts_align));
+[data_aligned,aux_align_out]=rs_align_coordsets(data_read,setfields(struct(),{'opts_align','opts_check'},{opts_align,opts_check}));
 nstims_all=data_aligned.sets{1}.nstims;
 disp(sprintf('total stimuli: %3.0f',nstims_all));
 %
@@ -84,6 +85,7 @@ end
 %
 aux=struct;
 aux.opts_knit=opts_knit;
+aux.opts_check=opts_check;
 for k=1:nsets
     data_aligned.sets{k}.label=strrep(data_aligned.sets{k}.label,prefix_remove,'');
 end
