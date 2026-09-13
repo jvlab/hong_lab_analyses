@@ -1,6 +1,10 @@
 % hlid_vi_coords_knit_auto_rs: read volumetric imaging coordinates set files,
 % automated knit and compare, based on outputs of hlid_vi_pcafilt_coords_auto.
 %
+% Uses results from hlid_vi_pcafilt_coords_auto to determine names of coordinate files and the options usef for conversion to coordinates
+% Reads these coordinate files
+% Consensus information kept in results_knit
+%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,
 %   HLID_VI_COORDS_KNIT_RS, HLID_METHS_DEFINE,
 %   ZHENG_APL_EMBED_PLOT_RS, Rs_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY.
@@ -87,6 +91,7 @@ opts_knit.if_frozen=1;
 opts_knit.if_log=0;
 %
 results_knit=cell(1,nvariants);
+warnings=[];
 for ivariant=1:nvariants
     fullnames=cell(1,nsets);
     for iset=1:nsets
@@ -104,11 +109,24 @@ for ivariant=1:nvariants
     nstims_all=data_aligned.sets{1}.nstims;
     disp('aligned');
     %
-    aux.opts_knit=opts_knit;
-    [data_consensus,aux_knit_out]=rs_knit_coordsets(data_aligned,setfields(struct(),{'opts_knit','opts_check'},{opts_knit,opts_check}));
-    disp(sprintf('knit with dim_max_in=%3.0f, pcon_init_method=%3.0f, allow_scale=%1.0f',opts_knit.dim_max_in,opts_knit.pcon_init_method,opts_knit.allow_scale));
-    %collect key rmsw variance and shuffle stats
-    results_knit{ivariant}.rmsavail_overall=aux_knit_out.knit_stats.rmsavail_overall;
-    results_knit{ivariant}.rmsdev_overall=aux_knit_out.knit_stats.rmsdev_overall;
-    results_knit{ivariant}.rmsdev_overall_shuff=reshape(aux_knit_out.knit_stats.rmsdev_overall_shuff(:,1,1,:,1),[dim_max_in nshuffs]); %d1: dimension, d2: which shuffle
+    meth_string=results_res{iset,ivariant}.meth_string;
+    imeth=find(contains(meth_strings,meth_string)>0);
+    if length(imeth)==1
+        opts_knit.allow_scale=if_allow_scales(imeth);
+        aux.opts_knit=opts_knit;
+        [data_consensus,aux_knit_out]=rs_knit_coordsets(data_aligned,setfields(struct(),{'opts_knit','opts_check'},{opts_knit,opts_check}));
+        disp(sprintf('knit with dim_max_in=%3.0f, pcon_init_method=%3.0f, allow_scale=%1.0f',opts_knit.dim_max_in,opts_knit.pcon_init_method,opts_knit.allow_scale));
+        %collect key rmsw variance and shuffle stats
+        results_knit{ivariant}.data_consensus=data_consensus;
+        results_knit{ivariant}.rmsavail_overall=aux_knit_out.knit_stats.rmsavail_overall;
+        results_knit{ivariant}.rmsdev_overall=aux_knit_out.knit_stats.rmsdev_overall;
+        results_knit{ivariant}.rmsdev_overall_shuff=reshape(aux_knit_out.knit_stats.rmsdev_overall_shuff(:,1,1,:,1),[dim_max_in nshuffs]); %d1: dimension, d2: which shuffle
+    else
+        wmsg=sprintf('for variant %4.0f, method %s not recognized',ivariant,meth_string);
+        warning(wmsg);
+        warnings=strvcat(warnings,wmsg);
+    end
+end
+if ~isempty(warnings)
+    disp(warnings);
 end
