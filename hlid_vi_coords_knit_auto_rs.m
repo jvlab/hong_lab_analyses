@@ -2,7 +2,7 @@
 % automated knit and compare, based on outputs of hlid_vi_pcafilt_coords_auto.
 %
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,
-%   HLID_VI_COORDS_KNIT_RS,
+%   HLID_VI_COORDS_KNIT_RS, HLID_METHS_DEFINE,
 %   ZHENG_APL_EMBED_PLOT_RS, Rs_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY.
 %
 hlid_setup;
@@ -49,6 +49,24 @@ disp(sprintf(' last coord file of  last variant: %s',results_res{end,end}.coord_
 %
 if ~exist('dim_max_in') dim_max_in=10; end
 if ~exist('nshuffs') nshuffs=100; end
+%
+%determine which methods should be knitted with normalized scales
+meths=hlid_meths_define;
+meth_strings=cell(1,length(meths));
+for imeth=1:length(meths)
+    meth_strings{imeth}=meths{imeth}.name_file;
+end
+if_allow_scales=contains(meth_strings,'euc');
+if_ok=0;
+while (if_ok==0)
+    for imeth=1:length(meths)
+        disp(sprintf(' method %s: allow_scale set to %1.0f',meth_strings{imeth},if_allow_scales(imeth)));
+    end
+    if_ok=getinp('1 if ok','d',[0 1]);
+    if ~if_ok
+        if_allow_scales=getinp('new values','d',[0 1],if_allow_scales);
+    end
+end
 %
 dim_max_in=getinp('maximum dimension to consider','d',[1 24],dim_max_in);
 nshuffs=getinp('number of shuffles','d',[0 1000],nshuffs);
