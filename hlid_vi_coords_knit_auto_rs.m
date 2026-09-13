@@ -36,7 +36,7 @@ if ~exist('results_file') results_file='hlid_vi_pcafilt_coords_auto_11Sep26.mat'
 if ~exist('coord_path') coord_path='./data/kc_vi'; end
 results_file=getinp('file with results from hlid_vi_pcafilt_coords_auto','s',[],results_file);
 coord_path=getinp('path to coordinate files created by hlid_vi_pcafilt_coords_auto','s',[],coord_path);
-cord_path=strrep(strrep(coord_path,'/',filesep),'\',filesep);
+coord_path=strrep(strrep(coord_path,'/',filesep),'\',filesep);
 %
 load(results_file,'results');
 results_dims=size(results);
@@ -74,6 +74,7 @@ end
 %
 dim_max_in=getinp('maximum dimension to consider','d',[1 24],dim_max_in);
 nshuffs=getinp('number of shuffles','d',[0 1000],nshuffs);
+if_remove_pipeline=getinp('1 to remove pipeline field from results_knit consensus data','d',[0 1],1);
 %
 opts_knit=struct();
 opts_knit.allow_reflection=1;
@@ -116,8 +117,11 @@ for ivariant=1:nvariants
         aux.opts_knit=opts_knit;
         [data_consensus,aux_knit_out]=rs_knit_coordsets(data_aligned,setfields(struct(),{'opts_knit','opts_check'},{opts_knit,opts_check}));
         disp(sprintf('knit with dim_max_in=%3.0f, pcon_init_method=%3.0f, allow_scale=%1.0f',opts_knit.dim_max_in,opts_knit.pcon_init_method,opts_knit.allow_scale));
-        %collect key rmsw variance and shuffle stats
+        if if_remove_pipeline
+            data_consensus.sets{1}=struct();
+        end
         results_knit{ivariant}.data_consensus=data_consensus;
+        %collect key variance and shuffle stats
         results_knit{ivariant}.rmsavail_overall=aux_knit_out.knit_stats.rmsavail_overall;
         results_knit{ivariant}.rmsdev_overall=aux_knit_out.knit_stats.rmsdev_overall;
         results_knit{ivariant}.rmsdev_overall_shuff=reshape(aux_knit_out.knit_stats.rmsdev_overall_shuff(:,1,1,:,1),[dim_max_in nshuffs]); %d1: dimension, d2: which shuffle
@@ -130,3 +134,47 @@ end
 if ~isempty(warnings)
     disp(warnings);
 end
+%reorganize according to options for coordinate calculation
+%d1: spatial filter, d2: df/f or z, d3: p_crit for pca filtering, d4: dim red method, d5: mean subtract or not
+results_knit=reshape(results_knit,results_dims(2:end));
+%
+%plot
+%
+resp_measures={'deltaF/F','z'};
+n_sfs=size(results_knit,1);
+n_resps=size(results_knit,2);
+n_pcrits=size(results_knit,3);
+n_meths=size(results_knit,4);
+n_sm=size(results_knit,5);
+%
+for rm_ptr=1:n_resps
+    rm_string=resp_measures{rm_ptr};
+    for submean=0:n_sm-1
+        if submean
+            sm_string='-sm';
+        else
+            sm_string='';
+        end
+        tstring=cat(2,rm_string,sm_string,sprintf(' nsets: %1.0f',nsets));
+        figure;
+        set(gcf,'Position',[50 50 1200 800]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',tstring);
+        %
+        for isf=1:n_sfs
+            for pcrit_ptr=1:n_pcrits
+                rk=squeeze(results_knit(isf,rm_ptr,pcrit_ptr,:,1+submean)); %rk has all the dimension reduction methods
+                subplot(n_pcrits,n_sfs,isf+(pcrit_ptr-1)*n_sfs);
+                title(sprintf('sf%1.0f pcritptr %1.0f',isf,pcrit_ptr));
+            end
+        end
+        axes('Position',[0.01,0.01,0.01,0.01]);
+        text(0,0,cat(2,tstring,' ',results_file),'Interpreter','none');
+        axis off
+        %
+    end %submean
+end %rm_ptr
+%need toretrieve actual sf values and pcrits
+%need to append scaleing token to dim red name for plot legends
+%need to plot frqac of variqance unexplained, on scale of [0 1],
+%withsomething to indicxate sigfnificance
