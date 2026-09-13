@@ -51,6 +51,17 @@ disp(sprintf(' last coord file of first variant: %s',results_res{end,1}.coord_fi
 disp(sprintf('first coord file of  last variant: %s',results_res{1,end}.coord_file));
 disp(sprintf(' last coord file of  last variant: %s',results_res{end,end}.coord_file));
 %
+for k=1:size(results,2)
+    sfilts(1,k)=results{1,k,1,1,1,1}.sfilt;
+end
+for k=1:size(results,4)
+    pcrits(1,k)=results{1,1,1,k,1,1}.pcrit;
+end
+disp('spatial filter values');
+disp(sfilts);
+disp('pcrit values');
+disp(pcrits);
+%
 if ~exist('dim_max_in') dim_max_in=10; end
 if ~exist('nshuffs') nshuffs=100; end
 %
@@ -165,7 +176,7 @@ for rm_ptr=1:n_resps
             for pcrit_ptr=1:n_pcrits
                 rk=squeeze(results_knit(isf,rm_ptr,pcrit_ptr,:,1+submean)); %rk has all the dimension reduction methods
                 subplot(n_pcrits,n_sfs,isf+(pcrit_ptr-1)*n_sfs);
-                title(sprintf('sf%1.0f pcritptr %1.0f',isf,pcrit_ptr));
+                title(sprintf('sf %1.0f pcrit %5.3f',sfilts(isf),pcrits(pcrit_ptr)));
             end
         end
         axes('Position',[0.01,0.01,0.01,0.01]);
@@ -174,7 +185,7 @@ for rm_ptr=1:n_resps
         %
     end %submean
 end %rm_ptr
-%need toretrieve actual sf values and pcrits
 %need to append scaleing token to dim red name for plot legends
 %need to plot frqac of variqance unexplained, on scale of [0 1],
 %withsomething to indicxate sigfnificance
+%need to remind to save main results
