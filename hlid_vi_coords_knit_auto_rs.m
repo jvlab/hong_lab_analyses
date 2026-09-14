@@ -181,6 +181,7 @@ n_pcrits=size(results_knit,3);
 n_meths=size(results_knit,4);
 n_sm=size(results_knit,5);
 %
+p_shuff=getinp('p-value for showing significance of frac var explained by shuffle test','f',[0 1],0.05);
 for rm_ptr=1:n_resps
     rm_string=resp_measures{rm_ptr};
     for submean=0:n_sm-1
@@ -206,6 +207,10 @@ for rm_ptr=1:n_resps
                     set(hp,'Color',meth_colors{k});
                     set(hp,'Marker',meth_markers{k});
                     hold on;
+                    %what fraction of shuffles do better?
+                    nshuffs_have=size(rk{k}.rmsdev_overall_shuff,2);
+                    shuff_frac=sum(repmat(rk{k}.rmsdev_overall,1,nshuffs_have)>rk{k}.rmsdev_overall_shuff,2)/nshuffs_have;
+                    %highlight the values with shuff_frac<p_shuff
                 end
                 if (isub==1)
                     legend(meth_legs,'FontSize',7,'Interpreter','none','Location','SouthWest');
