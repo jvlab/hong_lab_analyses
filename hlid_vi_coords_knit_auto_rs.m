@@ -181,7 +181,7 @@ n_pcrits=size(results_knit,3);
 n_meths=size(results_knit,4);
 n_sm=size(results_knit,5);
 %
-p_shuff=getinp('p-value for showing significance of frac var explained by shuffle test','f',[0 1],0.05);
+p_shuffle=getinp('p-value for showing significance of frac var explained by shuffle test','f',[0 1],0.05);
 for rm_ptr=1:n_resps
     rm_string=resp_measures{rm_ptr};
     for submean=0:n_sm-1
@@ -201,19 +201,32 @@ for rm_ptr=1:n_resps
                 subplot(n_pcrits,n_sfs,isub)
                 rk=squeeze(results_knit(isf,rm_ptr,pcrit_ptr,:,1+submean)); %rk has all the dimension reduction methods
                 %plot frac var explained, scale of [0 1]
+                hp_leg=[];
                 for k=1:n_meths
                     fvex=1-rk{k}.rmsdev_overall./rk{k}.rmsavail_overall;
-                    hp=plot(fvex,'k');
+                    pts_sel=[1:dim_max_in];
+                    hp=plot(pts_sel,fvex(pts_sel),'k');
+                    set(hp,'LineStyle','none'); %to add line if significant
                     set(hp,'Color',meth_colors{k});
                     set(hp,'Marker',meth_markers{k});
                     hold on;
+                    hp_leg(k)=hp;
                     %what fraction of shuffles do better?
                     nshuffs_have=size(rk{k}.rmsdev_overall_shuff,2);
                     shuff_frac=sum(repmat(rk{k}.rmsdev_overall,1,nshuffs_have)>rk{k}.rmsdev_overall_shuff,2)/nshuffs_have;
-                    %highlight the values with shuff_frac<p_shuff
+                    %highlight the values with shuff_frac<p_shuffle
+                    pts_sig=find(shuff_frac<=p_shuffle);
+                    for p=1:length(pts_sig)
+                        if pts_sig(p)>1
+                            pts_sel=[-1 0]+pts_sig(p);
+                            hs=plot(pts_sel,fvex(pts_sel),'k');
+                            set(hs,'Color',meth_colors{k});
+                            set(hs,'Marker',meth_markers{k});
+                        end
+                    end
                 end
                 if (isub==1)
-                    legend(meth_legs,'FontSize',7,'Interpreter','none','Location','SouthWest');
+                    legend(hp_leg,meth_legs,'FontSize',7,'Interpreter','none','Location','SouthWest');
                 end
                 set(gca,'XLim',[1 dim_max_in]);
                 set(gca,'XTick',[1:dim_max_in]);
@@ -226,6 +239,8 @@ for rm_ptr=1:n_resps
         end
         axes('Position',[0.01,0.01,0.01,0.01]);
         text(0,0,cat(2,tstring,' ',results_file),'Interpreter','none');
+        axes('Position',[0.01,0.05,0.01,0.01]);
+        text(0,0,sprintf('p_shuffle: %5.3f',p_shuffle),'Interpreter','none');
         axis off
         %
     end %submean
