@@ -51,6 +51,11 @@ disp(sprintf(' last coord file of first variant: %s',results_res{end,1}.coord_fi
 disp(sprintf('first coord file of  last variant: %s',results_res{1,end}.coord_file));
 disp(sprintf(' last coord file of  last variant: %s',results_res{end,end}.coord_file));
 %
+disp(' ');
+for k=1:nsets
+    disp(sprintf(' coord file %2.0f of %2.0f: %s',k,nsets,results_res{k,1}.coord_file));
+end
+%
 for k=1:size(results,2)
     sfilts(1,k)=results{1,k,1,1,1,1}.sfilt;
 end
@@ -72,10 +77,15 @@ for imeth=1:length(meths)
     meth_strings{imeth}=meths{imeth}.name_file;
 end
 if_allow_scales=contains(meth_strings,'euc');
+meth_legs=cell(1,length(meths));
 if_ok=0;
 while (if_ok==0)
     for imeth=1:length(meths)
-        disp(sprintf(' method %s: allow_scale set to %1.0f',meth_strings{imeth},if_allow_scales(imeth)));
+        meth_legs=meth_strings;
+        if if_allow_scales(imeth)
+            meth_legs{imeth}=cat(2,meth_legs{imeth},' scaling');
+        end
+        disp(sprintf(' method %2.0f is %20s knitted with allow_scale set to %1.0f;  legend is  %s',imeth,meth_strings{imeth},if_allow_scales(imeth),meth_legs{imeth}));
     end
     if_ok=getinp('1 if ok','d',[0 1]);
     if ~if_ok
@@ -176,6 +186,14 @@ for rm_ptr=1:n_resps
             for pcrit_ptr=1:n_pcrits
                 rk=squeeze(results_knit(isf,rm_ptr,pcrit_ptr,:,1+submean)); %rk has all the dimension reduction methods
                 subplot(n_pcrits,n_sfs,isf+(pcrit_ptr-1)*n_sfs);
+                set(gca,'XLim',[1 dim_max_in]);
+                set(gca,'XTick',[1:dim_max_in]);
+                set(gca,'YLim',[0 1]);
+                xlabel('dim');
+                ylabel('frac var expl');
+                %plot frac var explained, scale of [0 1]
+
+                %legends are meth_legs{:}
                 title(sprintf('sf %1.0f pcrit %5.3f',sfilts(isf),pcrits(pcrit_ptr)));
             end
         end
@@ -185,7 +203,4 @@ for rm_ptr=1:n_resps
         %
     end %submean
 end %rm_ptr
-%need to append scaleing token to dim red name for plot legends
-%need to plot frqac of variqance unexplained, on scale of [0 1],
-%withsomething to indicxate sigfnificance
-%need to remind to save main results
+disp('suggest saving ''results_knit''');
