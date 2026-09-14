@@ -76,12 +76,25 @@ meth_strings=cell(1,length(meths));
 for imeth=1:length(meths)
     meth_strings{imeth}=meths{imeth}.name_file;
 end
+%assign colors and marker styles
+meth_colors=cell(1,length(meths));
+meth_colors(contains(meth_strings,'euc_'))=repmat({'k'},1,sum(contains(meth_strings,'euc_')));
+meth_colors(contains(meth_strings,'cos_'))=repmat({'c'},1,sum(contains(meth_strings,'cos_')));
+meth_colors(contains(meth_strings,'pears_'))=repmat({'m'},1,sum(contains(meth_strings,'pears_')));
+%
+meth_markers=cell(1,length(meths));
+meth_markers(contains(meth_strings,'_svd'))=repmat({'o'},1,sum(contains(meth_strings,'_svd')));
+meth_markers(contains(meth_strings,'_mds'))=repmat({'s'},1,sum(contains(meth_strings,'_mds')));
+meth_markers(contains(meth_strings,'_sim'))=repmat({'.'},1,sum(contains(meth_strings,'_sim')));
+meth_markers(contains(meth_strings,'_chord'))=repmat({'+'},1,sum(contains(meth_strings,'_chord')));
+meth_markers(contains(meth_strings,'_ang'))=repmat({'x'},1,sum(contains(meth_strings,'_ang')));
+%
 if_allow_scales=contains(meth_strings,'euc');
 meth_legs=cell(1,length(meths));
 if_ok=0;
 while (if_ok==0)
+    meth_legs=meth_strings;
     for imeth=1:length(meths)
-        meth_legs=meth_strings;
         if if_allow_scales(imeth)
             meth_legs{imeth}=cat(2,meth_legs{imeth},' scaling');
         end
@@ -181,19 +194,28 @@ for rm_ptr=1:n_resps
         set(gcf,'Position',[50 50 1200 800]);
         set(gcf,'NumberTitle','off');
         set(gcf,'Name',tstring);
-        %
         for isf=1:n_sfs
             for pcrit_ptr=1:n_pcrits
+                isub=isf+(pcrit_ptr-1)*n_sfs;
+                subplot(n_pcrits,n_sfs,isub)
                 rk=squeeze(results_knit(isf,rm_ptr,pcrit_ptr,:,1+submean)); %rk has all the dimension reduction methods
-                subplot(n_pcrits,n_sfs,isf+(pcrit_ptr-1)*n_sfs);
+                %plot frac var explained, scale of [0 1]
+                for k=1:n_meths
+                    fvex=1-rk{k}.rmsdev_overall./rk{k}.rmsavail_overall;
+                    hp=plot(fvex,'k');
+                    set(hp,'Color',meth_colors{k});
+                    set(hp,'Marker',meth_markers{k});
+                    hold on;
+                end
+                if (isub==1)
+                    legend(meth_legs,'FontSize',7,'Interpreter','none','Location','SouthWest');
+                end
                 set(gca,'XLim',[1 dim_max_in]);
                 set(gca,'XTick',[1:dim_max_in]);
                 set(gca,'YLim',[0 1]);
                 xlabel('dim');
                 ylabel('frac var expl');
-                %plot frac var explained, scale of [0 1]
-
-                %legends are meth_legs{:}
+                  %legends are meth_legs{:}
                 title(sprintf('sf %1.0f pcrit %5.3f',sfilts(isf),pcrits(pcrit_ptr)));
             end
         end
