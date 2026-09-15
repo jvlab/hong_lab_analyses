@@ -77,11 +77,12 @@
 % hlid_vi_pcaselect: select idividual principal components based on power and f-ratio for variance between stimuli
 % hlid_vi_preproc: look at preprocessing options: svd and spatial filtering
 % hlid_vi_preproc_plot: plot outputs of hlid_vi_preproc
-% hlid_vi_read: read volumetric datasets from hdf5 files
+% hlid_vi_read: read volumetric imaging data from hdf5 files
 % hlid_vi_spatialfilter: spatial filter slices of volumetric data
 % hlid_vi_stimnames: set up stimulus names
 % hlid_vi_viewpcs: view spatiotemporal pcs of volume image
 % hlid_vi_viewpcs_util: plotting utility for hlid_vi_viewpcs
+% hlid_vi_write_consensus_auto_rs: create consensus files from hlid_vi_coord_knit_rs
 %
 %  Figures for APL manuscript (files with _rs make maximal use of rs library)
 %
