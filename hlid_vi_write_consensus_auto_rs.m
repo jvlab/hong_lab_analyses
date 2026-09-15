@@ -140,6 +140,7 @@ for ivariant=1:nvariants
             data_consensus.sets{1}=struct();
         end
         disp(sprintf('output consensus file will be %s',fullnames_out{1}));
+        rs_write_coorddata(fullnames_out{1},data_consensus);
     else
         wmsg=sprintf('for variant %4.0f, method %s not recognized',ivariant,meth_string);
         warning(wmsg);
