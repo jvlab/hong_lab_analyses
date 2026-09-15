@@ -239,10 +239,12 @@ for rm_ptr=1:n_resps
         end
         axes('Position',[0.01,0.01,0.01,0.01]);
         text(0,0,cat(2,tstring,' ',results_file),'Interpreter','none');
+        axis off;
         axes('Position',[0.01,0.05,0.01,0.01]);
         text(0,0,sprintf('p_shuffle: %5.3f',p_shuffle),'Interpreter','none');
         axis off
         %
     end %submean
 end %rm_ptr
-disp('suggest saving ''results_knit''');
+clear results results_res aux_align_out aux_knit_out data_aligfned data_read rk
+disp('suggest saving the workspace for re-use');
