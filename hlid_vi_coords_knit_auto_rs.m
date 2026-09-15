@@ -18,7 +18,6 @@ if if_havedata
         disp(sprintf(' method %2.0f is %20s knitted with allow_scale set to %1.0f;  legend is  %s',imeth,meth_strings{imeth},if_allow_scales(imeth),meth_legs{imeth}));
     end
 else
-
     if ~exist('prefix_remove') prefix_remove='hlid_vi_'; end
     %
     opts_read=struct();
