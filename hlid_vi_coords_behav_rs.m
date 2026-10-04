@@ -80,6 +80,15 @@ for iset=1:nsets
         p=1-fcdf(frat,dim,n-dim-1);
         Rsquared=corr(y,y_pred).^2;
         disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, recalc',p,frat,Rsquared));
+        %
+        y_pred_drop=zeros(n,1);
+        for k=1:n
+            i_drop=setdiff([1:n],n);
+            x_drop=x(i_drop,:);
+            y_drop=y(i_drop,:); 
+            b_drop=regress(y_drop,[ones(n-1,1),x_drop]);
+            y_pred_drop(k)=[1 x(k,:)]*b_drop;
+        end
         %to do: compare residual error with intrinsic error in behavior;
         %graphics
     end
