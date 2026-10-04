@@ -1,5 +1,8 @@
 % hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data
 %
+%to do: stats -- relate f ratio for rms dev for behavior and regression error
+%to do: graphics -- show regression direction in rep space; color points by behavior
+%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -21,6 +24,9 @@ nstims_beh=size(data_beh,1);
 npreps_beh=size(data_beh,2);
 disp(sprintf('behavioral data read for %2.0f stimuli from %2.0f preps',nstims_beh,npreps_beh));
 %
+if ~exist('tol') tol=10^-5; end %for matching stat calcs with matlab
+if ~exist('dmax') dmax=5; end
+dmax=getinp('maximum dimension to analyze','d',[2 10],dmax);
 if ~exist('opts_read') opts_read=struct(); end
 opts_read.input_type=1; %just data
 opts_read.if_warn=0; %may have differnt sets of stimuli
@@ -63,24 +69,39 @@ for iset=1:nsets
         disp(sprintf('no coords for %1.0f behaviors found in %s',sum(ptrs_beh==0),filename_short));
     end
     y=mean_beh(find(ptrs_beh>0)); %regress agains behaviors that have coordinates
-    for dim=1:5
+    pvals=zeros(dmax,1);
+    frats=zeros(dmax,1);
+    rsquareds=zeros(dmax,1);
+    rsquareds_drop=zeros(dmax,1);
+    rmse=zeros(dmax,1);
+    rmse_drop=zeros(dmax,1);
+    for dim=1:dmax
         coords=data_read.ds{iset}{dim};
         x=coords(ptrs_beh(ptrs_beh>0),:); %regress against behaviors that have coords
         n=size(x,1);
         [b,b_intvl,r,r_intvl,stats]=regress(y,[ones(n,1),x]); %add a constant term
-        disp(sprintf(' dim %1.0f: regrssors (constant and each pc), and 95% confidence limits',dim))
+        disp(sprintf(' dim %1.0f: regressors (constant and each pc), and 95% confidence limits',dim))
         disp([b,b_intvl]')
         %stats: the R-square statistic, the F statistic, p value for the full model, and an estimate of the error variance.
-        disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, from stats',stats(3),stats(2),stats(1)));
+%       disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, from stats',stats(3),stats(2),stats(1)));
         %recalculate stats, first principles
         y_pred=[ones(n,1),x]*b;
         ss_model=sum((y_pred-mean(y)).^2);
         ss_error=sum((y-y_pred).^2);
-        frat=(ss_model/dim)/(ss_error/(n-dim-1));
-        p=1-fcdf(frat,dim,n-dim-1);
-        Rsquared=corr(y,y_pred).^2;
-        disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, recalc',p,frat,Rsquared));
+        frats(dim)=(ss_model/dim)/(ss_error/(n-dim-1));
+        pvals(dim)=1-fcdf(frats(dim),dim,n-dim-1);
+        rsquareds(dim)=corr(y,y_pred).^2;
+%       disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, recalc',p,frat,Rsquared));
         %
+        if abs(pvals(dim)-stats(3))>tol
+            disp(sprintf('mismatch of p: %7.3f (matlab) vs %7.3f (recalc)',pvals(dim),stats(3)));
+        end
+        if abs(frats(dim)-stats(2))>tol
+            disp(sprintf('mismatch of F-ratio: %7.3f (matlab) vs %7.3f (recalc)',frats(dim),stats(2)));
+        end
+        if abs(rsquareds(dim)-stats(1))>tol
+            disp(sprintf('mismatch of R-squared: %7.3f (matlab) vs %7.3f (recalc)',rsquareds(dim),stats(1)));
+        end
         y_pred_drop=zeros(n,1);
         for k=1:n
             i_drop=setdiff([1:n],n);
@@ -89,7 +110,16 @@ for iset=1:nsets
             b_drop=regress(y_drop,[ones(n-1,1),x_drop]);
             y_pred_drop(k)=[1 x(k,:)]*b_drop;
         end
-        %to do: compare residual error with intrinsic error in behavior;
-        %graphics
+        ss_error_drop=sum((y-y_pred_drop).^2);
+        rmse(dim)=sqrt(ss_error/n);
+        rmse_drop(dim)=sqrt(ss_error_drop/n);
+        rsquareds_drop(dim)=corr(y,y_pred_drop).^2;
     end
+    disp('   dim     p    f-ratio      R^2    rmse     R^2_drop rmse_drop');
+    for dim=1:dmax
+        disp(sprintf('%5.0f  %7.3f %7.4f    %7.4f %7.4f    %7.4f %7.4f',dim,pvals(dim),frats(dim),rsquareds(dim),rmse(dim),rsquareds_drop(dim),rmse_drop(dim)))
+    end
+    std_beh=std(data_beh(ptrs_beh>0,:),0,2);
+    rms_beh=sqrt(mean(std_beh.^2));
+    disp(sprintf(' rms dev for behavior: %7.4f',rms_beh));
 end
