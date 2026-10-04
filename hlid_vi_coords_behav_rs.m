@@ -66,10 +66,20 @@ for iset=1:nsets
     for dim=1:5
         coords=data_read.ds{iset}{dim};
         x=coords(ptrs_beh(ptrs_beh>0),:); %regress against behaviors that have coords
-        [b,b_intvl,r,r_intvl,stats]=regress(y,[ones(size(x,1),1),x]); %add a constant term
+        n=size(x,1);
+        [b,b_intvl,r,r_intvl,stats]=regress(y,[ones(n,1),x]); %add a constant term
         %stats: the R-square statistic, the F statistic, p value for the full model, and an estimate of the error variance.
-        disp(sprintf(' for dim %2.0f, p=%6.4f, R^2=%6.4f',dim,stats(3),stats(1)));
-        disp([b,b_intvl]');
+        disp(sprintf(' for dim %2.0f, p=%6.4f, F=%8.4f, R^2=%6.4f, from stats',dim,stats(3),stats(2),stats(1)));
+        %recalculate stats, first principles
+        y_pred=[ones(n,1),x]*b;
+        ss_model=sum((y_pred-mean(y)).^2);
+        ss_error=sum((y-y_pred).^2);
+        frat=(ss_model/dim)/(ss_error/(n-dim-1));
+        p=1-fcdf(frat,dim,n-dim-1);
+        Rsquared=corr(y,y_pred).^2;
+        disp(sprintf(' for dim %2.0f, p=%6.4f, F=%8.4f, R^2=%6.4f, recalc',dim,p,frat,Rsquared));
+        disp(b')
+        %to do: compare residual error with intrinsic error in behavior;
+        %graphics
     end
 end
-%
