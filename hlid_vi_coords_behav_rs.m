@@ -26,7 +26,11 @@ disp(sprintf('behavioral data read for %2.0f stimuli from %2.0f preps',nstims_be
 %
 if ~exist('tol') tol=10^-5; end %for matching stat calcs with matlab
 if ~exist('dmax') dmax=5; end
+if ~exist('dims_plot') dims_plot=[3];end
 dmax=getinp('maximum dimension to analyze','d',[2 10],dmax);
+dims_plot=getinp('dimensions to plot (0 for none)','d',[0 7],dims_plot);
+dims_plot=setdiff(dims_plot,[0 1]);
+%
 if ~exist('opts_read') opts_read=struct(); end
 opts_read.input_type=1; %just data
 opts_read.if_warn=0; %may have differnt sets of stimuli
@@ -36,8 +40,17 @@ opts_read.type_coords_def='zeros';
 opts_read.type_class_aux=opts_read.type_class_def;
 opts_read.ui_filter='*coords*consensus*sf0*dff*pr-all*';
 opts_read.if_log=0;
+%
 if ~exist('opts_check') opts_check=struct(); end
 opts_check.if_warn=0;
+%
+if ~exist('opts_disp') opts_disp=struct(); end
+opts_disp.coord_group_method='keeplow';
+opts_disp.if_legend=0;
+opts_disp.callout_amount=0.5;
+opts_disp.set_markersizes=12;
+opts_disp.set_colors='k';
+%
 aux=struct;
 aux.nsets=0;
 aux.opts_check=opts_check;
@@ -122,4 +135,17 @@ for iset=1:nsets
     std_beh=std(data_beh(ptrs_beh>0,:),0,2);
     rms_beh=sqrt(mean(std_beh.^2));
     disp(sprintf(' rms dev for behavior: %7.4f',rms_beh));
+    %
+    %plot
+    %
+    if ~isempty(dims_plot)
+        opts_disp.set_select=iset;
+        for dim_plot=dims_plot
+            opts_disp.dim_select=dim_plot;
+            aux_plot=rs_disp_coordsets(data_read,setfield(aux,'opts_disp',opts_disp));
+        end
+        axes('Position',[0.01,0.04,0.01,0.01]); %for text
+        text(0,0,filename_short,'Interpreter','none','FontSize',8);
+        axis off;
+    end
 end
