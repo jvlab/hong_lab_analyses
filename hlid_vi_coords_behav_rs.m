@@ -80,7 +80,7 @@ for iset=1:nsets
         x=coords(ptrs_beh(ptrs_beh>0),:); %regress against behaviors that have coords
         n=size(x,1);
         [b,b_intvl,r,r_intvl,stats]=regress(y,[ones(n,1),x]); %add a constant term
-        disp(sprintf(' dim %1.0f: regressors (constant and each pc), and 95% confidence limits',dim))
+        disp(sprintf(' dim %1.0f: regressors (constant and each pc), and 0.95 confidence limits',dim))
         disp([b,b_intvl]')
         %stats: the R-square statistic, the F statistic, p value for the full model, and an estimate of the error variance.
 %       disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, from stats',stats(3),stats(2),stats(1)));
