@@ -166,6 +166,12 @@ for iset=1:nsets
             opts_disp_indiv.set_select=[1:n]; %each set is a different stimulus
             opts_disp_indiv.data_label_typenames_vary=1;
             opts_disp_indiv.callout_center=mean(data_read.ds{iset}{dim_plot},1);
+            opts_disp_indiv.callout_colors='set_colors';
+            opts_disp_indiv.set_colors=cell(1,n);
+            %change this to assign behavior value to each point based on data_indiv.sas{istim}.typenames
+            for k=1:n
+                opts_disp_indiv.set_colors{k}=rand(1,3);
+            end
             %
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
             %
