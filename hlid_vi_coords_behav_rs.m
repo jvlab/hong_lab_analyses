@@ -142,10 +142,35 @@ for iset=1:nsets
         opts_disp.set_select=iset;
         for dim_plot=dims_plot
             opts_disp.dim_select=dim_plot;
-            aux_plot=rs_disp_coordsets(data_read,setfield(aux,'opts_disp',opts_disp));
+            aux_disp=rs_disp_coordsets(data_read,setfield(aux,'opts_disp',opts_disp));
+            %
+            %make each point a different set
+            data_indiv=struct;
+            data_indiv.sets=cell(1,n);
+            data_indiv.sas=cell(1,n);
+            data_indiv.ds=cell(1,n);
+            for istim=1:n
+                data_indiv.sets{istim}=data_read.sets{iset};
+                data_indiv.sets{istim}.nstims=1;
+                data_indiv.sas{istim}=data_read.sas{iset};
+                data_indiv.sas{istim}.nstims=1;
+%                data_indiv.sas{istim}.typenames=data_read.sas{iset}.typenames(istim);
+                data_indiv.sas{istim}.typenames={'dummy'};
+                data_indiv.sas{istim}.btc_specoords=data_read.sas{iset}.btc_specoords(istim,:);
+                data_indiv.ds{istim}=data_read.ds{iset};
+                for dq=1:length(data_indiv.ds{istim})
+                    data_indiv.ds{istim}{dq}=data_indiv.ds{istim}{dq}(istim,:);
+                end
+            end
+            opts_disp_indiv=opts_disp;
+            opts_disp_indiv.set_select=[1:n]; %each set is a different stimulus
+            aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
+            %
+%            coord_groups=aux_disp.coord_groups; %will need this to show regression vectors
+            %
+            axes('Position',[0.01,0.04,0.01,0.01]); %for text
+            text(0,0,filename_short,'Interpreter','none','FontSize',8);
+            axis off;
         end
-        axes('Position',[0.01,0.04,0.01,0.01]); %for text
-        text(0,0,filename_short,'Interpreter','none','FontSize',8);
-        axis off;
     end
 end
