@@ -163,6 +163,7 @@ for iset=1:nsets
                 end
             end
             opts_disp_indiv=opts_disp;
+            opts_disp_indiv.data_label_setsel_method='all';
             opts_disp_indiv.set_select=[1:n]; %each set is a different stimulus
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
             %
