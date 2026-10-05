@@ -154,8 +154,7 @@ for iset=1:nsets
                 data_indiv.sets{istim}.nstims=1;
                 data_indiv.sas{istim}=data_read.sas{iset};
                 data_indiv.sas{istim}.nstims=1;
-%                data_indiv.sas{istim}.typenames=data_read.sas{iset}.typenames(istim);
-                data_indiv.sas{istim}.typenames={'dummy'};
+                data_indiv.sas{istim}.typenames=data_read.sas{iset}.typenames(istim);
                 data_indiv.sas{istim}.btc_specoords=data_read.sas{iset}.btc_specoords(istim,:);
                 data_indiv.ds{istim}=data_read.ds{iset};
                 for dq=1:length(data_indiv.ds{istim})
@@ -165,9 +164,12 @@ for iset=1:nsets
             opts_disp_indiv=opts_disp;
             opts_disp_indiv.data_label_setsel_method='all';
             opts_disp_indiv.set_select=[1:n]; %each set is a different stimulus
+            opts_disp_indiv.data_label_typenames_vary=1;
+            opts_disp_indiv.callout_center=mean(data_read.ds{iset}{dim_plot},1);
+            %
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
             %
-%            coord_groups=aux_disp.coord_groups; %will need this to show regression vectors
+            coord_groups=aux_disp.opts_disp.coord_groups; %will need this to show regression vectors
             %
             axes('Position',[0.01,0.04,0.01,0.01]); %for text
             text(0,0,filename_short,'Interpreter','none','FontSize',8);
