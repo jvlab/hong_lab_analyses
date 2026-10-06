@@ -140,12 +140,24 @@ for iset=1:nsets
     %plot
     %
     if ~isempty(dims_plot)
-        opts_disp.set_select=iset;
         for dim_plot=dims_plot
+            opts_disp.set_select=1;
             opts_disp.dim_select=dim_plot;
-            aux_disp=rs_disp_coordsets(data_read,setfield(aux,'opts_disp',opts_disp));
             %
-            %make each point a different set
+            %simple plot, all points black
+            data_read_oneset=struct;
+            data_read_oneset.sets=data_read.sets(iset);
+            data_read_oneset.sas=data_read.sas(iset);
+            data_read_oneset.ds=data_read.ds(iset);
+            aux_disp=rs_disp_coordsets(data_read_oneset,setfield(aux,'opts_disp',opts_disp));
+            %
+            axes('Position',[0.01,0.04,0.01,0.01]); %for text
+            text(0,0,filename_short,'Interpreter','none','FontSize',8);
+            axis off;
+            %
+            %to plot with customcolors for each point, make each point a different set
+            %callouts will have slightly different lengths, since they are normalized by rms within each set
+            %
             data_indiv=struct;
             data_indiv.sets=cell(1,n);
             data_indiv.sas=cell(1,n);
