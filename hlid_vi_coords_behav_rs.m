@@ -30,6 +30,9 @@ if ~exist('marker_size') marker_size=12; end
 dmax=getinp('maximum dimension to analyze','d',[2 10],dmax);
 dims_plot=getinp('dimensions to plot (0 for none)','d',[0 dmax],dims_plot);
 dims_plot=setdiff(dims_plot,[0 1]);
+if ~isempty(dims_plot)
+    if_plain=getinp('1 to also plot spaces without color-by-behavior','d',[0 1],0);
+end
 %
 if ~exist('opts_read') opts_read=struct(); end
 opts_read.input_type=1; %just data
@@ -93,6 +96,7 @@ for iset=1:nsets
     b=cell(dmax,1);
     b_intvl=cell(dmax,1);
     b_drop=cell(dmax,1);
+    sig_string=cell(dmax,1);
     for dim=1:dmax
         coords=data_read.ds{iset}{dim};
         x=coords(ptrs_beh(ptrs_beh>0),:); %regress against behaviors that have coords
@@ -100,6 +104,13 @@ for iset=1:nsets
         [b{dim},b_intvl{dim},r,r_intvl,stats]=regress(y,[ones(n,1),x]); %add a constant term
         disp(sprintf(' dim %1.0f: regressors (constant and each pc), and 0.95 confidence limits',dim))
         disp([b{dim},b_intvl{dim}]')
+        for k=1:dim
+            if sign(b_intvl{dim}(k+1,1))==sign(b_intvl{dim}(k+1,2))
+                sig_string{dim}=cat(2,sig_string{dim},sprintf(' dim %2.0f ',k));
+            else
+                sig_string{dim}=cat(2,sig_string{dim},'        ');
+            end
+        end
         %stats: the R-square statistic, the F statistic, p value for the full model, and an estimate of the error variance.
 %       disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, from stats',stats(3),stats(2),stats(1)));
         %recalculate stats, first principles
@@ -133,9 +144,9 @@ for iset=1:nsets
         rmse_drop(dim)=sqrt(ss_error_drop/n);
         rsquareds_drop(dim)=corr(y,y_pred_drop).^2;
     end %dim
-    disp('   dim     p    f-ratio      R^2    rmse     R^2_drop rmse_drop');
+    disp('   dim     p    f-ratio      R^2    rmse     R^2_drop rmse_drop   signif regressors');
     for dim=1:dmax
-        disp(sprintf('%5.0f  %7.3f %7.4f    %7.4f %7.4f    %7.4f %7.4f',dim,pvals(dim),frats(dim),rsquareds(dim),rmse(dim),rsquareds_drop(dim),rmse_drop(dim)))
+        disp(sprintf('%5.0f  %7.3f %7.4f    %7.4f %7.4f    %7.4f %7.4f         %s',dim,pvals(dim),frats(dim),rsquareds(dim),rmse(dim),rsquareds_drop(dim),rmse_drop(dim),sig_string{dim}))
     end
     std_beh=std(data_beh(ptrs_beh>0,:),0,2);
     rms_beh=sqrt(mean(std_beh.^2));
@@ -148,14 +159,16 @@ for iset=1:nsets
             opts_disp.set_select=1;
             opts_disp.dim_select=dim_plot;
             %
-            %simple plot, all points black
-            data_read_oneset=rs_extract_coordsets(data_read,iset);
-            aux_disp=rs_disp_coordsets(data_read_oneset,setfield(aux,'opts_disp',opts_disp));
-            set(gcf,'Name',sprintf('dim %1.0f, %s',dim_plot,filename_short));
-            %
-            axes('Position',[0.01,0.04,0.01,0.01]); %for text
-            text(0,0,filename_short,'Interpreter','none','FontSize',8);
-            axis off;
+            if if_plain
+                %simple plot, all points black
+                data_read_oneset=rs_extract_coordsets(data_read,iset);
+                aux_disp=rs_disp_coordsets(data_read_oneset,setfield(aux,'opts_disp',opts_disp));
+                set(gcf,'Name',sprintf('dim %1.0f, %s',dim_plot,filename_short));
+                %
+                axes('Position',[0.01,0.04,0.01,0.01]); %for text
+                text(0,0,filename_short,'Interpreter','none','FontSize',8);
+                axis off;
+            end
             %
             %plot with custom colors for each point: make each point a different set
             %callouts will have slightly different lengths, since they are normalized by rms within each set
