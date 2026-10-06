@@ -1,7 +1,5 @@
 % hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data
 %
-%to do: graphics -- show regression direction in rep space
-% 
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -26,8 +24,11 @@ disp(sprintf('behavioral data read for %2.0f stimuli from %2.0f preps',nstims_be
 if ~exist('tol') tol=10^-5; end %for matching stat calcs with matlab
 if ~exist('dmax') dmax=5; end
 if ~exist('dims_plot') dims_plot=[3];end
+if ~exist('line_width') line_width=2; end
+if ~exist('marker_size') marker_size=12; end
+%
 dmax=getinp('maximum dimension to analyze','d',[2 10],dmax);
-dims_plot=getinp('dimensions to plot (0 for none)','d',[0 7],dims_plot);
+dims_plot=getinp('dimensions to plot (0 for none)','d',[0 dmax],dims_plot);
 dims_plot=setdiff(dims_plot,[0 1]);
 %
 if ~exist('opts_read') opts_read=struct(); end
@@ -47,7 +48,7 @@ if ~exist('opts_disp') opts_disp=struct(); end
 opts_disp.coord_group_method='keeplow';
 opts_disp.if_legend=0;
 opts_disp.callout_amount=0.5;
-opts_disp.set_markersizes=12;
+opts_disp.set_markersizes=marker_size;
 opts_disp.set_colors='k';
 %
 aux=struct;
@@ -89,17 +90,20 @@ for iset=1:nsets
     rsquareds_drop=zeros(dmax,1);
     rmse=zeros(dmax,1);
     rmse_drop=zeros(dmax,1);
+    b=cell(dmax,1);
+    b_intvl=cell(dmax,1);
+    b_drop=cell(dmax,1);
     for dim=1:dmax
         coords=data_read.ds{iset}{dim};
         x=coords(ptrs_beh(ptrs_beh>0),:); %regress against behaviors that have coords
         n=size(x,1);
-        [b,b_intvl,r,r_intvl,stats]=regress(y,[ones(n,1),x]); %add a constant term
+        [b{dim},b_intvl{dim},r,r_intvl,stats]=regress(y,[ones(n,1),x]); %add a constant term
         disp(sprintf(' dim %1.0f: regressors (constant and each pc), and 0.95 confidence limits',dim))
-        disp([b,b_intvl]')
+        disp([b{dim},b_intvl{dim}]')
         %stats: the R-square statistic, the F statistic, p value for the full model, and an estimate of the error variance.
 %       disp(sprintf('   p=%6.4f, F=%8.4f, R^2=%6.4f, from stats',stats(3),stats(2),stats(1)));
         %recalculate stats, first principles
-        y_pred=[ones(n,1),x]*b;
+        y_pred=[ones(n,1),x]*b{dim};
         ss_model=sum((y_pred-mean(y)).^2);
         ss_error=sum((y-y_pred).^2);
         frats(dim)=(ss_model/dim)/(ss_error/(n-dim-1));
@@ -121,14 +125,14 @@ for iset=1:nsets
             i_drop=setdiff([1:n],n);
             x_drop=x(i_drop,:);
             y_drop=y(i_drop,:); 
-            b_drop=regress(y_drop,[ones(n-1,1),x_drop]);
-            y_pred_drop(k)=[1 x(k,:)]*b_drop;
+            b_drop{dim}=regress(y_drop,[ones(n-1,1),x_drop]);
+            y_pred_drop(k)=[1 x(k,:)]*b_drop{dim};
         end
         ss_error_drop=sum((y-y_pred_drop).^2);
         rmse(dim)=sqrt(ss_error/n);
         rmse_drop(dim)=sqrt(ss_error_drop/n);
         rsquareds_drop(dim)=corr(y,y_pred_drop).^2;
-    end
+    end %dim
     disp('   dim     p    f-ratio      R^2    rmse     R^2_drop rmse_drop');
     for dim=1:dmax
         disp(sprintf('%5.0f  %7.3f %7.4f    %7.4f %7.4f    %7.4f %7.4f',dim,pvals(dim),frats(dim),rsquareds(dim),rmse(dim),rsquareds_drop(dim),rmse_drop(dim)))
@@ -147,12 +151,13 @@ for iset=1:nsets
             %simple plot, all points black
             data_read_oneset=rs_extract_coordsets(data_read,iset);
             aux_disp=rs_disp_coordsets(data_read_oneset,setfield(aux,'opts_disp',opts_disp));
+            set(gcf,'Name',sprintf('dim %1.0f, %s',dim_plot,filename_short));
             %
             axes('Position',[0.01,0.04,0.01,0.01]); %for text
             text(0,0,filename_short,'Interpreter','none','FontSize',8);
             axis off;
             %
-            %to plot with customcolors for each point, make each point a different set
+            %plot with custom colors for each point: make each point a different set
             %callouts will have slightly different lengths, since they are normalized by rms within each set
             %
             data_indiv=struct;
@@ -187,12 +192,36 @@ for iset=1:nsets
             end
             %
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
+            set(gcf,'Name',sprintf('dim %1.0f, %s',dim_plot,filename_short));
             %
-            coord_groups=aux_disp.opts_disp.coord_groups; %will need this to show regression vectors
+            %plot vectors corresponding to what the regressors project on
+            %
+            coord_groups=aux_disp_indiv.opts_disp.coord_groups;
+            axis_handles=aux_disp_indiv.opts_disp.axis_handles;
+            for isub=1:length(axis_handles)
+                axes(axis_handles{isub});
+                hold on;
+                cg=coord_groups(isub,:);
+                vec=b{dim_plot}(1+cg); %first entry of b is constant term
+                coords=data_read.ds{iset}{dim_plot}(:,cg);
+                coord_mean=mean(coords,1);
+                coord_scale=sqrt(mean(coords(:).^2)); %scale of coordinates
+                vec_scale=coord_scale*vec./sqrt(sum(vec.^2)); %normalized
+                for im=1:2
+                    im_sign=-3+2*im;
+                    if dim_plot>=3
+                        hp=plot3(coord_mean(1)+[0 im_sign*vec_scale(1)],coord_mean(2)+[0 im_sign*vec_scale(2)],coord_mean(3)+[0 im_sign*vec_scale(3)],'k');
+                    else
+                        hp=plot(coord_mean(1)+[0 im_sign*vec_scale(1)],coord_mean(2)+[0 im_sign*vec_scale(2)],'k');
+                    end
+                    set(hp,'LineWidth',line_width);
+                    set(hp,'Color',colors_beh(im,:));
+                end
+            end
             %
             axes('Position',[0.01,0.04,0.01,0.01]); %for text
             text(0,0,filename_short,'Interpreter','none','FontSize',8);
             axis off;
-        end
-    end
-end
+        end %dims_plot
+    end %dims_plot empty?
+end %iset
