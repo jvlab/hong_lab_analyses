@@ -1,8 +1,7 @@
 % hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data
 %
-%to do: stats -- relate f ratio for rms dev for behavior and regression error
-%to do: graphics -- show regression direction in rep space; color points by behavior
-%
+%to do: graphics -- show regression direction in rep space
+% 
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -61,6 +60,8 @@ fullnames=[];
 nsets=length(data_read.sets);
 disp(sprintf(' %3.0f sets read.',nsets));
 mean_beh=mean(data_beh,2);
+range_beh=[min(mean_beh),max(mean_beh)];
+if ~exist('colors_beh') colors_beh=[1 0 0;0 1 1]; end
 %
 for iset=1:nsets
     typenames=data_read.sas{iset}.typenames;
@@ -168,9 +169,12 @@ for iset=1:nsets
             opts_disp_indiv.callout_center=mean(data_read.ds{iset}{dim_plot},1);
             opts_disp_indiv.callout_colors='set_colors';
             opts_disp_indiv.set_colors=cell(1,n);
-            %change this to assign behavior value to each point based on data_indiv.sas{istim}.typenames
+            %assign behavior value to each point based on data_indiv.sas{istim}.typenames          
             for k=1:n
-                opts_disp_indiv.set_colors{k}=rand(1,3);
+                index_beh=strmatch(data_indiv.sas{k}.typenames{1},typenames_beh,'exact');
+                frac_beh=y(index_beh)-range_beh(1)/diff(range_beh);
+                opts_disp_indiv.set_colors{k}=[(1-frac_beh) frac_beh]*colors_beh;
+                % [y(index_beh) opts_disp_indiv.set_colors{k}]
             end
             %
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
