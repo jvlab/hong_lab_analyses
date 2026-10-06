@@ -2,7 +2,7 @@
 %
 %to do: graphics -- show regression direction in rep space
 % 
-%   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
+%   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
 %
@@ -145,10 +145,7 @@ for iset=1:nsets
             opts_disp.dim_select=dim_plot;
             %
             %simple plot, all points black
-            data_read_oneset=struct;
-            data_read_oneset.sets=data_read.sets(iset);
-            data_read_oneset.sas=data_read.sas(iset);
-            data_read_oneset.ds=data_read.ds(iset);
+            data_read_oneset=rs_extract_coordsets(data_read,iset);
             aux_disp=rs_disp_coordsets(data_read_oneset,setfield(aux,'opts_disp',opts_disp));
             %
             axes('Position',[0.01,0.04,0.01,0.01]); %for text
