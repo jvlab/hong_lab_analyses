@@ -1,7 +1,5 @@
 % hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data
 %
-% color plot not working if not all odors have a behavior
-%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -175,21 +173,28 @@ for iset=1:nsets
             %plot with custom colors for each point: make each point a different set
             %callouts will have slightly different lengths, since they are normalized by rms within each set
             %
+            ptrs_beh_have=ptrs_beh(ptrs_beh>0);
+            %
             data_indiv=struct;
             data_indiv.sets=cell(1,n);
             data_indiv.sas=cell(1,n);
             data_indiv.ds=cell(1,n);
-            for istim=1:n
-                data_indiv.sets{istim}=data_read.sets{iset};
-                data_indiv.sets{istim}.nstims=1;
-                data_indiv.sas{istim}=data_read.sas{iset};
-                data_indiv.sas{istim}.nstims=1;
-                data_indiv.sas{istim}.typenames=data_read.sas{iset}.typenames(istim);
-                data_indiv.sas{istim}.btc_specoords=data_read.sas{iset}.btc_specoords(istim,:);
-                data_indiv.ds{istim}=data_read.ds{iset};
-                for dq=1:length(data_indiv.ds{istim})
-                    data_indiv.ds{istim}{dq}=data_indiv.ds{istim}{dq}(istim,:);
+            for istim_beh=1:n
+                istim=ptrs_beh_have(istim_beh); %which stimulus, in list of typenames
+                data_indiv.sets{istim_beh}=data_read.sets{iset};
+                data_indiv.sets{istim_beh}.nstims=1;
+                data_indiv.sas{istim_beh}=data_read.sas{iset};
+                data_indiv.sas{istim_beh}.nstims=1;
+                data_indiv.sas{istim_beh}.typenames=data_read.sas{iset}.typenames(istim);
+                data_indiv.sas{istim_beh}.btc_specoords=data_read.sas{iset}.btc_specoords(istim,:);
+                data_indiv.ds{istim_beh}=data_read.ds{iset};
+                istim=ptrs_beh_have(istim_beh);
+                for dq=1:length(data_indiv.ds{istim_beh})
+                    data_indiv.ds{istim_beh}{dq}=data_indiv.ds{istim_beh}{dq}(istim,:);
                 end
+                % istim_beh
+                % istim
+                % typenames(istim)
             end
             opts_disp_indiv=opts_disp;
             opts_disp_indiv.data_label_setsel_method='all';
@@ -200,8 +205,7 @@ for iset=1:nsets
             opts_disp_indiv.set_colors=cell(1,n);
             %assign behavior value to each point based on data_indiv.sas{istim}.typenames          
             for k=1:n
-                index_beh=strmatch(data_indiv.sas{k}.typenames{1},typenames_beh,'exact');
-                frac_beh=(y(index_beh)-range_beh(1))/diff(range_beh);
+                frac_beh=(y(k)-range_beh(1))/diff(range_beh);
                 opts_disp_indiv.set_colors{k}=[(1-frac_beh) frac_beh]*colors_beh;
                 % [y(index_beh) opts_disp_indiv.set_colors{k}]
             end
