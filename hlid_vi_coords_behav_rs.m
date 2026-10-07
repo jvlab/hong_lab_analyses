@@ -1,5 +1,7 @@
 % hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data
 %
+% color plot not working if not all odors have a behavior
+%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -199,7 +201,7 @@ for iset=1:nsets
             %assign behavior value to each point based on data_indiv.sas{istim}.typenames          
             for k=1:n
                 index_beh=strmatch(data_indiv.sas{k}.typenames{1},typenames_beh,'exact');
-                frac_beh=y(index_beh)-range_beh(1)/diff(range_beh);
+                frac_beh=(y(index_beh)-range_beh(1))/diff(range_beh);
                 opts_disp_indiv.set_colors{k}=[(1-frac_beh) frac_beh]*colors_beh;
                 % [y(index_beh) opts_disp_indiv.set_colors{k}]
             end
