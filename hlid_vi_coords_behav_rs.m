@@ -39,7 +39,7 @@ end
 %
 if ~exist('opts_read') opts_read=struct(); end
 opts_read.input_type=1; %just data
-opts_read.if_warn=0; %may have differnt sets of stimuliaux_disp
+opts_read.if_warn=0; %may have differnt sets of stimuli
 opts_read.if_auto=1; %no confirmation needed
 opts_read.type_class_def='hlid';
 opts_read.type_coords_def='zeros';
