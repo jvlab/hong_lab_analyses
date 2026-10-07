@@ -1,5 +1,8 @@
 % hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data
 %
+% behavioral data (valence) indicated by color
+% reliability of behavior across flies indicated by size (large: less variable)
+%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -36,7 +39,7 @@ end
 %
 if ~exist('opts_read') opts_read=struct(); end
 opts_read.input_type=1; %just data
-opts_read.if_warn=0; %may have differnt sets of stimuli
+opts_read.if_warn=0; %may have differnt sets of stimuliaux_disp
 opts_read.if_auto=1; %no confirmation needed
 opts_read.type_class_def='hlid';
 opts_read.type_coords_def='zeros';
@@ -64,8 +67,12 @@ fullnames=[];
 nsets=length(data_read.sets);
 disp(sprintf(' %3.0f sets read.',nsets));
 mean_beh=mean(data_beh,2);
-range_beh=[min(mean_beh),max(mean_beh)];
+range_mean_beh=[min(mean_beh),max(mean_beh)];
 if ~exist('colors_beh') colors_beh=[1 0 0;0 1 1]; end
+%
+std_beh=std(data_beh,0,2)
+range_std_beh=[min(std_beh),max(std_beh)];
+if ~exist('sizes_beh') sizes_beh=[30;15]; end %render std dev by symbol size (smaller std is bigger symbol)
 %
 for iset=1:nsets
     typenames=data_read.sas{iset}.typenames;
@@ -148,8 +155,8 @@ for iset=1:nsets
     for dim=1:dmax
         disp(sprintf('%5.0f  %7.3f %7.4f    %7.4f %7.4f    %7.4f %7.4f         %s',dim,pvals(dim),frats(dim),rsquareds(dim),rmse(dim),rsquareds_drop(dim),rmse_drop(dim),sig_string{dim}))
     end
-    std_beh=std(data_beh(ptrs_beh>0,:),0,2);
-    rms_beh=sqrt(mean(std_beh.^2));
+    std_beh_have=std(data_beh(ptrs_beh>0,:),0,2);
+    rms_beh=sqrt(mean(std_beh_have.^2));
     disp(sprintf(' rms dev for behavior: %7.4f',rms_beh));
     %
     %plot
@@ -205,9 +212,15 @@ for iset=1:nsets
             opts_disp_indiv.set_colors=cell(1,n);
             %assign behavior value to each point based on data_indiv.sas{istim}.typenames          
             for k=1:n
-                frac_beh=(y(k)-range_beh(1))/diff(range_beh);
+                frac_beh=(y(k)-range_mean_beh(1))/diff(range_mean_beh);
                 opts_disp_indiv.set_colors{k}=[(1-frac_beh) frac_beh]*colors_beh;
                 % [y(index_beh) opts_disp_indiv.set_colors{k}]
+                istim=ptrs_beh_have(k);
+                frac_std=(std_beh(istim)-range_std_beh(1))/diff(range_std_beh);
+                size_std=[(1-frac_std) frac_std]*sizes_beh;
+                opts_disp_indiv.set_markersizes(k)=round(size_std);
+                % [k std_beh(istim) frac_std size_std]
+                % typenames{k}
             end
             %
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
