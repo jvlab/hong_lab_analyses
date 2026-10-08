@@ -26,7 +26,7 @@ disp(sprintf('behavioral data read for %2.0f stimuli from %2.0f preps',nstims_be
 %
 if ~exist('tol') tol=10^-5; end %for matching stat calcs with matlab
 if ~exist('dmax') dmax=5; end
-if ~exist('dims_plot') dims_plot=[3];end
+if ~exist('dims_plot') dims_plot=[2 3];end
 if ~exist('line_width') line_width=2; end
 if ~exist('marker_size') marker_size=12; end
 %
@@ -39,7 +39,7 @@ end
 %
 if ~exist('opts_read') opts_read=struct(); end
 opts_read.input_type=1; %just data
-opts_read.if_warn=0; %may have differnt sets of stimuli
+opts_read.if_warn=0; %may have different sets of stimuli or stimuli in different orders
 opts_read.if_auto=1; %no confirmation needed
 opts_read.type_class_def='hlid';
 opts_read.type_coords_def='zeros';
@@ -70,7 +70,7 @@ mean_beh=mean(data_beh,2);
 range_mean_beh=[min(mean_beh),max(mean_beh)];
 if ~exist('colors_beh') colors_beh=[1 0 0;0 1 1]; end
 %
-std_beh=std(data_beh,0,2)
+std_beh=std(data_beh,0,2);
 range_std_beh=[min(std_beh),max(std_beh)];
 if ~exist('sizes_beh') sizes_beh=[30;15]; end %render std dev by symbol size (smaller std is bigger symbol)
 %
