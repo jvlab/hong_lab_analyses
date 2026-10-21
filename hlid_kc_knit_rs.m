@@ -64,8 +64,11 @@ end
 if ~exist('opts_align') opts_align=struct(); end
 if ~exist('opts_disp') opts_disp=struct(); end
 if ~exist('opts_knit') opts_knit=struct(); end
+if ~exist('dim_max_in') dim_max_in=5; end
+%
 d_align=cell(1,n_sources)
 nstims_aligned=zeros(1,n_sources);
+rms_dev_total=zeros(n_sources,dim_max_in);
 for min_keep=1:n_sources
     min_string=sprintf('min=%1.0f',min_keep);
     %
@@ -82,11 +85,15 @@ for min_keep=1:n_sources
         opts_knit=filldefault(opts_knit,'allow_scale',1);
         opts_knit=filldefault(opts_knit,'allow_offset',1);
         opts_knit.if_pca=1;
-        opts_knit.dim_max_in=5;
+        opts_knit.dim_max_in=dim_max_in;
         opts_knit.if_dim_heuristics=1;
         opts_knit=filldefault(opts_knit,'nshuffs',50);
         opts_knit.if_stats=1;
+        opts_knit.keep_details=1;
         [d_knit,aux_knit_out]=rs_knit_coordsets(d_align{min_keep},setfield(aux_knit,'opts_knit',opts_knit));
+        for idim=1:dim_max_in
+            rms_dev_total(min_keep,idim)=sqrt(sum(aux_knit_out.details{idim}.rms_dev(:,end).^2));
+        end
         if opts_knit.if_stats==1
             axes('Position',[0.25,0.04,0.01,0.01]); %for text
             text(0,0,min_string,'Interpreter','none','FontSize',8);
@@ -118,3 +125,5 @@ for min_keep=1:n_sources
         end
     end %nstims_aligned
 end
+disp('rms_dev_total: rows are min number of overlaps, cols are dimensions');
+disp(rms_dev_total);
