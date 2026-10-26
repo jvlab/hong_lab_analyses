@@ -65,6 +65,7 @@ if ~exist('opts_align') opts_align=struct(); end
 if ~exist('opts_disp') opts_disp=struct(); end
 if ~exist('opts_knit') opts_knit=struct(); end
 if ~exist('dim_max_in') dim_max_in=5; end
+if ~exist('if_swarm') if_swarm=0; end
 %
 d_align=cell(1,n_sources)
 nstims_aligned=zeros(1,n_sources);
@@ -90,6 +91,7 @@ for min_keep=1:n_sources
         opts_knit=filldefault(opts_knit,'nshuffs',50);
         opts_knit.if_stats=1;
         opts_knit.keep_details=1;
+        opts_knit.if_swarm=if_swarm;
         [d_knit,aux_knit_out]=rs_knit_coordsets(d_align{min_keep},setfield(aux_knit,'opts_knit',opts_knit));
         for idim=1:dim_max_in
             rms_dev_total(min_keep,idim)=sqrt(sum(aux_knit_out.details{idim}.rms_dev(:,end).^2));
@@ -99,7 +101,6 @@ for min_keep=1:n_sources
             text(0,0,min_string,'Interpreter','none','FontSize',8);
             axis off;
             set(gcf,'Name',cat(2,get(gcf,'Name'),' ',min_string));
-
         end
         %plot dims 2,3,4
         for dim_select=[2:4]
