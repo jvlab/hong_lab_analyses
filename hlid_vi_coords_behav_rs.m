@@ -3,6 +3,8 @@
 % behavioral data (valence) indicated by color
 % reliability of behavior across flies indicated by size (large: less variable)
 %
+% 28Oct26: allow for some stimuli to not have behavior
+%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
 hlid_setup;
@@ -13,6 +15,7 @@ if ~exist('filename_beh') filename_beh='attractiveness_per_fly_overview.xlsx'; e
 warning('off', 'MATLAB:table:ModifiedAndSavedVarnames');
 table_beh=readtable(cat(2,path_beh,filesep,filename_beh));
 warning('on', 'MATLAB:table:ModifiedAndSavedVarnames');
+disp(sprintf('behavioral data read from %s',filename_beh));
 %
 typenames_beh=table_beh.Properties.VariableDescriptions(2:end)'; %skip the index column
 nstims_beh=length(typenames_beh);
@@ -29,6 +32,7 @@ if ~exist('dmax') dmax=5; end
 if ~exist('dims_plot') dims_plot=[2 3];end
 if ~exist('line_width') line_width=2; end
 if ~exist('marker_size') marker_size=12; end
+if ~exist('marker_size_nobeh') marker_size_nobeh=8; end
 %
 dmax=getinp('maximum dimension to analyze','d',[2 10],dmax);
 dims_plot=getinp('dimensions to plot (0 for none)','d',[0 dmax],dims_plot);
@@ -80,7 +84,7 @@ if ~exist('sizes_beh') sizes_beh=[30;15]; end %render std dev by symbol size (sm
 for iset=1:nsets
     typenames=data_read.sas{iset}.typenames;
     nstims=length(typenames);
-    ptrs_beh=zeros(1,nstims);
+    ptrs_beh=zeros(1,nstims_beh);
     for k=1:nstims_beh
         ptr_beh=strmatch(typenames_beh{k},typenames,'exact');
         if length(ptr_beh)~=1
@@ -186,44 +190,46 @@ for iset=1:nsets
             ptrs_beh_have=ptrs_beh(ptrs_beh>0);
             %
             data_indiv=struct;
-            data_indiv.sets=cell(1,n);
-            data_indiv.sas=cell(1,n);
-            data_indiv.ds=cell(1,n);
-            for istim_beh=1:n
-                istim=ptrs_beh_have(istim_beh); %which stimulus, in list of typenames
-                data_indiv.sets{istim_beh}=data_read.sets{iset};
-                data_indiv.sets{istim_beh}.nstims=1;
-                data_indiv.sas{istim_beh}=data_read.sas{iset};
-                data_indiv.sas{istim_beh}.nstims=1;
-                data_indiv.sas{istim_beh}.typenames=data_read.sas{iset}.typenames(istim);
-                data_indiv.sas{istim_beh}.btc_specoords=data_read.sas{iset}.btc_specoords(istim,:);
-                data_indiv.ds{istim_beh}=data_read.ds{iset};
-                istim=ptrs_beh_have(istim_beh);
-                for dq=1:length(data_indiv.ds{istim_beh})
-                    data_indiv.ds{istim_beh}{dq}=data_indiv.ds{istim_beh}{dq}(istim,:);
+            data_indiv.sets=cell(1,nstims);
+            data_indiv.sas=cell(1,nstims);
+            data_indiv.ds=cell(1,nstims);
+            for istim=1:nstims
+                data_indiv.sets{istim}=data_read.sets{iset};
+                data_indiv.sets{istim}.nstims=1;
+                data_indiv.sas{istim}=data_read.sas{iset};
+                data_indiv.sas{istim}.nstims=1;
+                data_indiv.sas{istim}.typenames=data_read.sas{iset}.typenames(istim);
+                data_indiv.sas{istim}.btc_specoords=data_read.sas{iset}.btc_specoords(istim,:);
+                data_indiv.ds{istim}=data_read.ds{iset};
+                for dq=1:length(data_indiv.ds{istim})
+                    data_indiv.ds{istim}{dq}=data_indiv.ds{istim}{dq}(istim,:);
                 end
-                % istim_beh
-                % istim
-                % typenames(istim)
             end
             opts_disp_indiv=opts_disp;
             opts_disp_indiv.data_label_setsel_method='all';
-            opts_disp_indiv.set_select=[1:n]; %each set is a different stimulus
+            opts_disp_indiv.set_select=[1:nstims]; %each set is a different stimulus
             opts_disp_indiv.data_label_typenames_vary=1;
             opts_disp_indiv.callout_center=mean(data_read.ds{iset}{dim_plot},1);
             opts_disp_indiv.callout_colors='set_colors';
             opts_disp_indiv.set_colors=cell(1,n);
             %assign behavior value to each point based on data_indiv.sas{istim}.typenames          
-            for k=1:n
-                frac_beh=(y(k)-range_mean_beh(1))/diff(range_mean_beh);
-                opts_disp_indiv.set_colors{k}=[(1-frac_beh) frac_beh]*colors_beh;
-                % [y(index_beh) opts_disp_indiv.set_colors{k}]
-                istim=ptrs_beh_have(k);
-                frac_std=(std_beh(istim)-range_std_beh(1))/diff(range_std_beh);
-                size_std=[(1-frac_std) frac_std]*sizes_beh;
-                opts_disp_indiv.set_markersizes(k)=round(size_std);
-                % [k std_beh(istim) frac_std size_std]
-                % typenames{k}
+            for istim=1:nstims
+                if ismember(istim,ptrs_beh)
+                    k=find(ptrs_beh==istim);
+                    frac_beh=(y(k)-range_mean_beh(1))/diff(range_mean_beh);
+                    opts_disp_indiv.set_colors{istim}=[(1-frac_beh) frac_beh]*colors_beh;
+                    % [y(index_beh) opts_disp_indiv.set_colors{k}]
+                    frac_std=(std_beh(k)-range_std_beh(1))/diff(range_std_beh);
+                    size_std=[(1-frac_std) frac_std]*sizes_beh;
+                    opts_disp_indiv.set_markersizes(istim)=round(size_std);
+                    % [k std_beh(istim) frac_std size_std]
+                    % typenames{k}
+                    opts_disp_indiv.set_markers{istim}='.';
+                else
+                    opts_disp_indiv.set_colors{istim}='k';
+                    opts_disp_indiv.set_markersizes(istim)=marker_size_nobeh;
+                    opts_disp_indiv.set_markers{istim}='o';
+                end
             end
             %
             aux_disp_indiv=rs_disp_coordsets(data_indiv,setfield(aux,'opts_disp',opts_disp_indiv));
@@ -264,6 +270,11 @@ for iset=1:nsets
             axes('Position',[0.01,0.04,0.01,0.01]); %for text
             text(0,0,filename_short,'Interpreter','none','FontSize',8);
             axis off;
+            axes('Position',[0.5,0.04,0.01,0.01]); %for text
+            text(0,0,cat(2,'behavioral data: ',filename_beh),'Interpreter','none','FontSize',8);
+            axis off;
+
+
         end %dims_plot
     end %dims_plot empty?
 end %iset
