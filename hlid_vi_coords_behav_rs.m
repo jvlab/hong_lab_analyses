@@ -3,7 +3,7 @@
 % behavioral data (valence) indicated by color
 % reliability of behavior across flies indicated by size (large: less variable)
 %
-% 28Oct26: allow for some stimuli to not have behavior
+% 28Oct26: allow for stimuli without behavioral data
 %
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, RS_EXTRACT_COORDSETS, HLID_VI_COORDS_KNIT_RS, HLID_VI_COORDS_KNIT_RS_AUTO, REGRESS.
 %
@@ -273,8 +273,6 @@ for iset=1:nsets
             axes('Position',[0.5,0.04,0.01,0.01]); %for text
             text(0,0,cat(2,'behavioral data: ',filename_beh),'Interpreter','none','FontSize',8);
             axis off;
-
-
         end %dims_plot
     end %dims_plot empty?
 end %iset
