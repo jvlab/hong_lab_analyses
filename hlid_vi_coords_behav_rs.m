@@ -70,6 +70,9 @@ mean_beh=mean(data_beh,2);
 range_mean_beh=[min(mean_beh),max(mean_beh)];
 if ~exist('colors_beh') colors_beh=[1 0 0;0 1 1]; end
 %
+if ~exist('disk_segs') disk_segs=64; end %set to0 to suppress the disk in dim 3 plot
+if ~exist('disk_color') disk_color=mean(colors_beh,1); end
+%
 std_beh=std(data_beh,0,2);
 range_std_beh=[min(std_beh),max(std_beh)];
 if ~exist('sizes_beh') sizes_beh=[30;15]; end %render std dev by symbol size (smaller std is bigger symbol)
@@ -239,6 +242,7 @@ for iset=1:nsets
                 coord_mean=mean(coords,1);
                 coord_scale=sqrt(mean(coords(:).^2)); %scale of coordinates
                 vec_scale=coord_scale*vec./sqrt(sum(vec.^2)); %normalized
+                %show a needle
                 for im=1:2
                     im_sign=-3+2*im;
                     if dim_plot>=3
@@ -248,6 +252,12 @@ for iset=1:nsets
                     end
                     set(hp,'LineWidth',line_width);
                     set(hp,'Color',colors_beh(im,:));
+                end
+                %show an orthogonal disk if >=3 dims
+                if dim_plot>=3 & disk_segs>0
+                    [basis,onb]=extorthb(vec_scale);
+                    disk_vecs=onb(:,[2 3])*coord_scale*[cos([0:disk_segs]*2*pi/disk_segs);sin([0:disk_segs]*2*pi/disk_segs)];
+                    hdisk=plot3(coord_mean(1)+disk_vecs(1,:),coord_mean(2)+disk_vecs(2,:),coord_mean(3)+disk_vecs(3,:),'k');
                 end
             end
             %
