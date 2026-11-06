@@ -2,12 +2,14 @@
 %
 % See also: HLID_VI_COORDS_BEHAV_AUTO_RS, HLI_VI_COORDS_BEHAV_RS, RS_DISP_COORDSETS.
 %
+mean_beh=mean(data_beh,2);
 range_mean_beh=[min(mean_beh),max(mean_beh)];
+std_beh=std(data_beh,0,2);
+range_std_beh=[min(std_beh),max(std_beh)];
+%
 if ~exist('colors_beh') colors_beh=[1 0 0;0 1 1]; end
 if ~exist('disk_segs') disk_segs=64; end %set to0 to suppress the disk in dim 3 plot
 if ~exist('disk_color') disk_color=mean(colors_beh,1); end
-std_beh=std(data_beh,0,2);
-range_std_beh=[min(std_beh),max(std_beh)];
 if ~exist('sizes_beh') sizes_beh=[30;15]; end %render std dev by symbol size (smaller std is bigger symbol)
 %
 for iset=1:nsets
@@ -92,8 +94,8 @@ for iset=1:nsets
         disp(sprintf('%5.0f  %7.3f %7.4f    %7.4f %7.4f    %7.4f %7.4f         %s',dim,pvals(dim),frats(dim),rsquareds(dim),rmse(dim),rsquareds_drop(dim),rmse_drop(dim),sig_string{dim}))
     end
     std_beh_have=std(data_beh(ptrs_beh>0,:),0,2);
-    rms_beh=sqrt(mean(std_beh_have.^2));
-    disp(sprintf(' rms dev for behavior: %7.4f',rms_beh));
+    rmse_beh=sqrt(mean(std_beh_have.^2));
+    disp(sprintf(' rms dev for behavior: %7.4f',rmse_beh));
     %
     %plot
     %
@@ -196,10 +198,17 @@ for iset=1:nsets
                 end
             end
             %
-            axes('Position',[0.01,0.04,0.01,0.01]); %for text
+            axes('Position',[0.01,0.02,0.01,0.01]); %for text
             text(0,0,filename_short,'Interpreter','none','FontSize',8);
             axis off;
-            axes('Position',[0.5,0.04,0.01,0.01]); %for text
+            axes('Position',[0.01,0.05,0.01,0.01]); %for text
+            text(0,0,sprintf('regression p-value: %7.5f, R^2: %7.5f, drop-one R^2: %7.5f',pvals(dim_plot),rsquareds(dim_plot),rsquareds_drop(dim_plot)),'FontSize',8);
+            axis off;
+            axes('Position',[0.01,0.07,0.01,0.01]); %for text
+            text(0,0,sprintf('rmse for behavior: %8.5f, for regression: %8.5f, for drop-one regression: %8.5f',...
+                rmse_beh,rmse(dim_plot),rmse_drop(dim_plot)),'FontSize',8);
+            axis off;
+            axes('Position',[0.5,0.02,0.01,0.01]); %for text
             text(0,0,cat(2,'behavioral data: ',beh_string),'Interpreter','none','FontSize',8);
             axis off;
         end %dims_plot

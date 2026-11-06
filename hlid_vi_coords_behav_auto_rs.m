@@ -1,6 +1,6 @@
 % hlid_vi_coords_behav_auto_rs: read volumetric imaging coordinates set files, compare with behavioral data from George Barnum
 %
-% to do: add r2 and stats to figure; automatic figure saving with dimension, coord and beh data sources
+% to do: automatic figure saving with dimension, coord and beh data sources
 %
 % based on hlid_vi_coords_behav_rs, but
 %  * automates reading of multiple dimensionally-reduced behavioral indices from George Barnum
@@ -89,6 +89,7 @@ end
 nstims_beh=size(data_behs,1);
 npreps_beh=size(data_behs,2);
 disp(sprintf('behavioral data read for %2.0f stimuli from %2.0f preps',nstims_beh,npreps_beh));
+beh_list=getinp('parameters to analyze','d',[1 nbehfiles],[1:nbehfiles]);
 %
 if ~exist('tol') tol=10^-5; end %for matching stat calcs with matlab
 if ~exist('dmax') dmax=5; end
@@ -133,13 +134,13 @@ fullnames=[];
 [data_read,aux_read_out]=rs_get_coordsets(fullnames,aux);
 nsets=length(data_read.sets);
 disp(sprintf(' %3.0f coordinate sets read.',nsets));
-for ibeh=1:nbehfiles
+for ibeh_ptr=1:length(beh_list)
+    ibeh=beh_list(ibeh_ptr);
     disp('*******');
     disp(sprintf(' analyzing index %3.0f -> %s',ibeh,behfiles_short{ibeh}));
     disp(' ');
     data_beh=data_behs(:,:,ibeh);
     beh_string=behfiles_short{ibeh};
-    mean_beh=mean(data_beh,2);
     %
     %calculate and plot
     hlid_vi_coords_behav_do;

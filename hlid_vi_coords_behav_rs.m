@@ -71,16 +71,6 @@ fullnames=[];
 [data_read,aux_read_out]=rs_get_coordsets(fullnames,aux);
 nsets=length(data_read.sets);
 disp(sprintf(' %3.0f sets read.',nsets));
-mean_beh=mean(data_beh,2);
-range_mean_beh=[min(mean_beh),max(mean_beh)];
-if ~exist('colors_beh') colors_beh=[1 0 0;0 1 1]; end
-%
-if ~exist('disk_segs') disk_segs=64; end %set to0 to suppress the disk in dim 3 plot
-if ~exist('disk_color') disk_color=mean(colors_beh,1); end
-%
-std_beh=std(data_beh,0,2);
-range_std_beh=[min(std_beh),max(std_beh)];
-if ~exist('sizes_beh') sizes_beh=[30;15]; end %render std dev by symbol size (smaller std is bigger symbol)
 %
 beh_string=filename_beh;
 %
