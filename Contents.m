@@ -65,10 +65,11 @@
 % hlid_rastim_trial_vis_plot: plotting utility plotting for hlid_rastim_trial_vis
 % hlid_tnt_label_model_3c_compare: compare control kc dataset with tnt and tnt transformed by models
 %
-%   Volumetric data
+%   Volumetric data and behavior
 %
 % hlid_varrats: compute within vs across repeat variances
 % hlid_vi_coords_behav_auto_rs: automated version of hlid_vi_coords_behav_rs, for additional behavioral indices
+% hlid_vi_coords_behav_do: script for hlid_vi_coords_behav_*_rs
 % hlid_vi_coords_behav_rs: compare coordinates of representational space with behavioral data
 % hlid_vi_coords_knit_auto_rs: auotmated version of hlid_vi_coords_knit_rs
 % hlid_vi_coords_knit_rs: read and knit coordinate files from hlid_vi_pcafilt_coords_auto
