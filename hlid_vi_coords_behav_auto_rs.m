@@ -136,7 +136,9 @@ disp(sprintf(' %3.0f coordinate sets read.',nsets));
 %
 if_savefig=getinp('1 to save figures','d',[0 1],1);
 if_closefig=getinp('1 to close figures','d',[0 1],if_savefig);
-fig_prefix=getinp('figure file prefix, e.g., ''./plots/coords_beh''','s',[]);
+if if_savefig
+    fig_prefix=getinp('figure file prefix, e.g., ''./plots/coords_beh''','s',[]);
+end
 %
 for ibeh_ptr=1:length(beh_list)
     ibeh=beh_list(ibeh_ptr);
