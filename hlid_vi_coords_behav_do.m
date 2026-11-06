@@ -2,6 +2,10 @@
 %
 % See also: HLID_VI_COORDS_BEHAV_AUTO_RS, HLI_VI_COORDS_BEHAV_RS, RS_DISP_COORDSETS.
 %
+if ~exist('if_savefig') if_savefig=0; end
+if ~exist('if_closefig') if_closefig=0; end
+if ~exist('fig_prefix') fig_file_prefix=[]; end
+%
 mean_beh=mean(data_beh,2);
 range_mean_beh=[min(mean_beh),max(mean_beh)];
 std_beh=std(data_beh,0,2);
@@ -211,6 +215,14 @@ for iset=1:nsets
             axes('Position',[0.5,0.02,0.01,0.01]); %for text
             text(0,0,cat(2,'behavioral data: ',beh_string),'Interpreter','none','FontSize',8);
             axis off;
+            if if_savefig
+                fig_file=cat(2,fig_prefix,'_',beh_string,'_d',sprintf('%1.0f',dim_plot),'_',filename_short);
+                savefig(fig_file);
+                disp(sprintf('figure saved as %s',fig_file));
+            end
+            if if_closefig
+                close(gcf);
+            end
         end %dims_plot
     end %dims_plot empty?
 end %iset

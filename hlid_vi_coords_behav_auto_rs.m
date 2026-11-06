@@ -1,10 +1,9 @@
 % hlid_vi_coords_behav_auto_rs: read volumetric imaging coordinates set files, compare with behavioral data from George Barnum
 %
-% to do: automatic figure saving with dimension, coord and beh data sources
-%
 % based on hlid_vi_coords_behav_rs, but
 %  * automates reading of multiple dimensionally-reduced behavioral indices from George Barnum
 %  * directly reads csv files
+%  * automates saving files
 %
 % behavioral data (valence) indicated by color
 % reliability of behavior across flies indicated by size (large: less variable)
@@ -134,6 +133,11 @@ fullnames=[];
 [data_read,aux_read_out]=rs_get_coordsets(fullnames,aux);
 nsets=length(data_read.sets);
 disp(sprintf(' %3.0f coordinate sets read.',nsets));
+%
+if_savefig=getinp('1 to save figures','d',[0 1],1);
+if_closefig=getinp('1 to close figures','d',[0 1],if_savefig);
+fig_prefix=getinp('figure file prefix, e.g., ''./plots/coords_beh''','s',[]);
+%
 for ibeh_ptr=1:length(beh_list)
     ibeh=beh_list(ibeh_ptr);
     disp('*******');
