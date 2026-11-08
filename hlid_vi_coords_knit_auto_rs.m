@@ -1,14 +1,15 @@
 % hlid_vi_coords_knit_auto_rs: read volumetric imaging coordinates set files,
 % automated knit and compare, based on outputs of hlid_vi_pcafilt_coords_auto.
 %
-% Uses results from hlid_vi_pcafilt_coords_auto to determine names of coordinate files and the options usef for conversion to coordinates
+% Uses results from hlid_vi_pcafilt_coords_auto to determine names of coordinate files and the options used for conversion to coordinates
 % Reads these coordinate files
 % Consensus information kept in results_knit
-% Savoing the workspace allows for replotting (e.g., otherp values for shuffle significance) pwithout recalculating 
+% Saving the workspace allows for replotting (e.g., other values for shuffle significance) without recalculating 
 %
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,
 %   HLID_VI_COORDS_KNIT_RS, HLID_METHS_DEFINE,
-%   ZHENG_APL_EMBED_PLOT_RS, RS_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY.
+%   ZHENG_APL_EMBED_PLOT_RS, RS_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY
+%   HLID_VI_COORDS_KNIT_HEATMAPS_RS.
 %
 hlid_setup;
 %

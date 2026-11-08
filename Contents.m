@@ -72,6 +72,7 @@
 % hlid_vi_coords_behav_do: script for hlid_vi_coords_behav_*_rs
 % hlid_vi_coords_behav_rs: compare coordinates of representational space with behavioral data
 % hlid_vi_coords_knit_auto_rs: auotmated version of hlid_vi_coords_knit_rs
+% hlid_vi_coords_knit_heatmaps_rs: read and knit coordinate files from hlid_vi_pcafilt_coords_auto, make heatmaps
 % hlid_vi_coords_knit_rs: read and knit coordinate files from hlid_vi_pcafilt_coords_auto
 % hlid_vi_explore: prelim view of volumetric data
 % hlid_vi_pcafilt: spatial filtering and filter by individual principal components
