@@ -173,6 +173,9 @@ nstims=length(raw_stim_labels);
 consensus_ticks=[1:nstims];
 indiv_ticks=(1+nsets)/2+[0:nsets:(nstims-1)*nsets];
 %
+nplots=4;
+[nr_plot,nc_plot]=nicesubp(nplots,0.7);
+%
 for sfilt_ptr=1:length(sfilt_list)
     sfilt=sfilt_list(sfilt_ptr);
     for resp_measure_ptr=1:length(resp_measure_list)
@@ -228,10 +231,9 @@ for sfilt_ptr=1:length(sfilt_list)
                     for idim=dim_list
                         tstring=cat(2,sprintf('dim %1.0f: ',idim),var_string);
                         figure;
-                        set(gcf,'Position',[50 50 1400 800]);
+                        set(gcf,'Position',[50 50 1200 800]);
                         set(gcf,'NumberTitle','off');
                         set(gcf,'Name',tstring);
-                        nplots=3;
                         for plot_type=1:nplots
                             switch plot_type
                                 case 1 %distances in the consensus
@@ -254,13 +256,22 @@ for sfilt_ptr=1:length(sfilt_list)
                                     dist_title='indiv vs indiv';
                                     xticks=indiv_ticks;
                                     yticks=indiv_ticks;
-                                case 3 % indiv vs consensus
+                                case 3 % indiv vs indiv avg
+                                    dists_ivsi_avg=zeros(nstims,nstims,nsets);
+                                    for iset=1:nsets
+                                        dists_ivsi_avg(:,:,iset)=reshape(dists_ivsi(iset,:,iset,:),[nstims,nstims]);                                      
+                                    end
+                                    dists_plot=mean(dists_ivsi_avg(dptrs,dptrs,:),3);
+                                    dist_title='avg(indiv vs indiv)';
+                                    xticks=consensus_ticks;
+                                    yticks=consensus_ticks;
+                                case 4 % indiv vs consensus
                                     dists_plot=rand(nstims,nstims*nsets);
                                     dist_title='indiv vs consensus';
                                     xticks=indiv_ticks;
                                     yticks=consensus_ticks;
                             end
-                            subplot(1,nplots,plot_type);
+                            subplot(nr_plot,nc_plot,plot_type);
                             imagesc(dists_plot);
                             title(dist_title);
                             set(gca,'XTick',xticks);
@@ -269,12 +280,13 @@ for sfilt_ptr=1:length(sfilt_list)
                             set(gca,'YTickLabel',get(gca,'XTickLabel'));
                             axis square;
                             axis tight;
+                            colorbar;
                         end %plot_type
                         %
                         axes('Position',[0.01,0.01,0.01,0.01]);
                         text(0,0,tstring,'Interpreter','none');
                         axis off
-                        axes('Position',[0.01,0.05,0.01,0.01]);
+                        axes('Position',[0.01,0.03,0.01,0.01]);
                         text(0,0,sprintf('label order: %s', label_order_list{label_order_choice}),'Interpreter','none');
                         axis off
                         disp(sprintf('plotted %s',tstring));
