@@ -33,7 +33,7 @@ opts_check.if_warn=0;
 if ~exist('results_file') results_file='hlid_vi_pcafilt_coords_auto_11Sep26.mat'; end
 if ~exist('coord_path') coord_path='./data/kc_vi'; end
 results_file=getinp('file with results from hlid_vi_pcafilt_coords_auto','s',[],results_file);
-coord_path=getinp('path to coordinate files created by hlid_vi_pcafilt_coords_auto','s',[],coord_path);
+coord_path=getinp('path to coordinate files created by hlid_vi_pcafilt_coords_auto','s',[],strrep(coord_path,'\','/'));
 coord_path=strrep(strrep(coord_path,'/',filesep),'\',filesep);
 %
 load(results_file,'results');
@@ -169,6 +169,10 @@ end
 label_order_choice=getinp('choice','d',[1 length(label_order_list)],1);
 label_order=label_orders.(label_order_list{label_order_choice});
 %
+nstims=length(raw_stim_labels);
+consensus_ticks=[1:nstims];
+indiv_ticks=(1+nsets)/2+[0:nsets:(nstims-1)*nsets];
+%
 for sfilt_ptr=1:length(sfilt_list)
     sfilt=sfilt_list(sfilt_ptr);
     for resp_measure_ptr=1:length(resp_measure_list)
@@ -194,7 +198,6 @@ for sfilt_ptr=1:length(sfilt_list)
                     disp(sprintf(' last file %s',fullnames{nsets}));
                     %align and knit
                     [data_aligned,aux_align_out]=rs_align_coordsets(data_read,setfields(struct(),{'opts_align','opts_check'},{opts_align,opts_check}));
-                    nstims_all=data_aligned.sets{1}.nstims;
                     disp('aligned');
                     %
                     meth_string=r.meth_string;
@@ -212,9 +215,9 @@ for sfilt_ptr=1:length(sfilt_list)
                         warning(wmsg);
                         warnings=strvcat(warnings,wmsg);
                     end
-                    dptrs=zeros(1,nstims_all);
+                    dptrs=zeros(1,nstims);
                     %determine display order (should not depend on data, but needs to be done after alignment and knitting)
-                    for istim=1:nstims_all
+                    for istim=1:nstims
                         stim_match=strmatch(label_order{istim},data_consensus.sas{1}.typenames,'exact');
                         if length(stim_match)==1
                             dptrs(istim)=stim_match;
@@ -225,19 +228,48 @@ for sfilt_ptr=1:length(sfilt_list)
                     for idim=dim_list
                         tstring=cat(2,sprintf('dim %1.0f: ',idim),var_string);
                         figure;
-                        set(gcf,'Position',[50 50 1200 800]);
+                        set(gcf,'Position',[50 50 1400 800]);
                         set(gcf,'NumberTitle','off');
                         set(gcf,'Name',tstring);
-                        dists=sqrt(cootodsq(data_consensus.ds{1}{idim}));
-                        subplot(1,2,1);
-                        imagesc(dists(dptrs,dptrs));
-                        title('consensus');
-                        set(gca,'XTick',[1:nstims_all]);
-                        set(gca,'XTickLabel',label_order); %properly ordered
-                        set(gca,'YTick',get(gca,'XTick'));
-                        set(gca,'YTickLabel',get(gca,'XTickLabel'));
-                        axis equal;
-                        axis tight;
+                        nplots=3;
+                        for plot_type=1:nplots
+                            switch plot_type
+                                case 1 %distances in the consensus
+                                    dists=sqrt(cootodsq(data_consensus.ds{1}{idim}));
+                                    dists_plot=dists(dptrs,dptrs);
+                                    dist_title='consensus vs consensus';
+                                    xticks=consensus_ticks;
+                                    yticks=consensus_ticks;
+                                case 2 %individual vs individual
+                                    dists_ivsi=zeros(nsets,nstims,nsets,nstims);
+                                    for k1=1:nsets
+                                        for k2=1:k1
+                                            dists_ivsi(k1,:,k2,:)=reshape(sqrt(cootodsq(aux_knit_out.components.ds{k1}{idim},aux_knit_out.components.ds{k2}{idim})),[1 nstims 1 nstims]);
+                                            if k2~=k1
+                                                dists_ivsi(k2,:,k1,:)=dists_ivsi(k1,:,k2,:);
+                                            end
+                                        end
+                                    end
+                                    dists_plot=reshape(dists_ivsi(:,dptrs,:,dptrs),nstims*nsets,nstims*nsets);
+                                    dist_title='indiv vs indiv';
+                                    xticks=indiv_ticks;
+                                    yticks=indiv_ticks;
+                                case 3 % indiv vs consensus
+                                    dists_plot=rand(nstims,nstims*nsets);
+                                    dist_title='indiv vs consensus';
+                                    xticks=indiv_ticks;
+                                    yticks=consensus_ticks;
+                            end
+                            subplot(1,nplots,plot_type);
+                            imagesc(dists_plot);
+                            title(dist_title);
+                            set(gca,'XTick',xticks);
+                            set(gca,'XTickLabel',label_order); %properly ordered
+                            set(gca,'YTick',yticks);
+                            set(gca,'YTickLabel',get(gca,'XTickLabel'));
+                            axis square;
+                            axis tight;
+                        end %plot_type
                         %
                         axes('Position',[0.01,0.01,0.01,0.01]);
                         text(0,0,tstring,'Interpreter','none');
