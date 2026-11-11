@@ -244,11 +244,11 @@ for sfilt_ptr=1:length(sfilt_list)
                                     yticks=consensus_ticks;
                                 case 2 %individual vs individual
                                     dists_ivsi=zeros(nsets,nstims,nsets,nstims);
-                                    for k1=1:nsets
-                                        for k2=1:k1
-                                            dists_ivsi(k1,:,k2,:)=reshape(sqrt(cootodsq(aux_knit_out.components.ds{k1}{idim},aux_knit_out.components.ds{k2}{idim})),[1 nstims 1 nstims]);
-                                            if k2~=k1
-                                                dists_ivsi(k2,:,k1,:)=dists_ivsi(k1,:,k2,:);
+                                    for iset1=1:nsets
+                                        for iset2=1:iset1
+                                            dists_ivsi(iset1,:,iset2,:)=reshape(sqrt(cootodsq(aux_knit_out.components.ds{iset1}{idim},aux_knit_out.components.ds{iset2}{idim})),[1 nstims 1 nstims]);
+                                            if iset2~=iset1
+                                                dists_ivsi(iset2,:,iset1,:)=dists_ivsi(iset1,:,iset2,:);
                                             end
                                         end
                                     end
@@ -266,13 +266,17 @@ for sfilt_ptr=1:length(sfilt_list)
                                     xticks=consensus_ticks;
                                     yticks=consensus_ticks;
                                 case 4 % indiv vs consensus
-                                    dists_plot=rand(nstims,nstims*nsets);
+                                    dists_ivsc=zeros(nsets,nstims,nstims);
+                                    for iset=1:nsets
+                                        dists_ivsc(iset,:,:)=reshape(sqrt(cootodsq(data_consensus.ds{1}{idim},aux_knit_out.components.ds{iset}{idim})),[1 nstims nstims]);
+                                    end
+                                    dists_plot=reshape(dists_ivsc(:,dptrs,dptrs),nstims*nsets,nstims);
                                     dist_title='indiv vs consensus';
                                     xticks=indiv_ticks;
                                     yticks=consensus_ticks;
                             end
                             subplot(nr_plot,nc_plot,plot_type);
-                            imagesc(dists_plot);
+                            imagesc(dists_plot');
                             title(dist_title);
                             set(gca,'XTick',xticks);
                             set(gca,'XTickLabel',label_order); %properly ordered
