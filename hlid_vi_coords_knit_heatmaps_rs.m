@@ -8,6 +8,14 @@
 % Recreates the consensus calculation, because hlid_vi_write_consensus_auto_rs does not save components into coords_knit_auto_rs_avg.mat
 %   but does not do knitting statistics
 %
+% Plots heatmaps for:
+%   distances in consensus alignment
+%   distances between different individual preps, after aligning to consensus (not after aligning to each other)
+%   distances between within individual preps, then averaged
+%   distances between individual preps and consensus
+%
+%  Several choices for ordering of stimuli (see label_orders)
+%
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,
 %   HLID_VI_COORDS_KNIT_RS, HLID_METHS_DEFINE,
 %   ZHENG_APL_EMBED_PLOT_RS, RS_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY
@@ -291,7 +299,10 @@ for sfilt_ptr=1:length(sfilt_list)
                         text(0,0,tstring,'Interpreter','none');
                         axis off
                         axes('Position',[0.01,0.03,0.01,0.01]);
-                        text(0,0,sprintf('label order: %s', label_order_list{label_order_choice}),'Interpreter','none');
+                        text(0,0,sprintf('label order: %s',label_order_list{label_order_choice}),'Interpreter','none');
+                        axis off
+                        axes('Position',[0.01,0.05,0.01,0.01]);
+                        text(0,0,sprintf('results file: %s',results_file),'Interpreter','none');
                         axis off
                         disp(sprintf('plotted %s',tstring));
                     end %dimension
