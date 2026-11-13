@@ -76,7 +76,7 @@ for iset=1:nsets
             if length(stim_match)==1
                 dptrs(istim)=stim_match;
             else
-                disp(sprintf('no stimulus with label %s is found',labels_order{istim}));
+                disp(sprintf('no stimulus with label %s is found',label_order{istim}));
             end
         end %istim
     end
