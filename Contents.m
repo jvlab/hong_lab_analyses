@@ -28,6 +28,7 @@
 % hlid_geom_transform_stats: analysis of transformations between datasets, with shuffle statistics
 % hlid_geom_transform_stats_3dplot: plot of representational spaces for hlid_geom_transform_stats
 % hlid_geom_transform_stats_summ: summary plot for hlid_geom_transform_stats
+% hlid_heatmap_rs: simple heatmap from coordinates
 % hlid_kc_knit_rs: knit together KC datasets from megamat, tnt, vi
 % hlid_kc_mdlcomp: compare kc space constructed via nested or non-nested pipeline
 % hlid_majaxes: examine axes identified in a transformation

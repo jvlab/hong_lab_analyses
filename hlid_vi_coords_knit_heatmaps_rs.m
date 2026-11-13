@@ -1,12 +1,11 @@
-% hlid_vi_coords_knit_heatmaps_rs: read volumetric imaging coordinates set files,
-% automated knit and compare, based on outputs of hlid_vi_pcafilt_coords_auto.
+% hlid_vi_coords_knit_heatmaps_rs: create heatmaps from volumetric imaging data and consensus across preps
 %
 % Based on hlid_vi_coords_knit_auto_rs, but, rather than knitting and saving the consensus files, this creates heatmaps
 % of the distances, for the consensus and comparing the individual flies with each other and the consensus
 % 
 % Retrieves coordinates for individual preps from results_file, created by hlid_vi_pcafilt_coords_auto
-% Recreates the consensus calculation, because hlid_vi_write_consensus_auto_rs does not save components into coords_knit_auto_rs_avg.mat
-%   but does not do knitting statistics
+% Recreates the consensus calculation, because hlid_vi_write_consensus_auto_rs, which created the consensus from these files, 
+% does not save components into coords_knit_auto_rs_avg.mat
 %
 % Plots heatmaps for:
 %   distances in consensus alignment
@@ -14,12 +13,14 @@
 %   distances between within individual preps, then averaged
 %   distances between individual preps and consensus
 %
+% See hlid_heatmaps_rs for simple heatmap creation
+%
 %  Several choices for ordering of stimuli (see label_orders)
 %
 %   See also:  HLID_SETUP, RS_GET_COORDSETS, HLID_VI_PCAFILT_COORDS_AUTO,
 %   HLID_VI_COORDS_KNIT_RS, HLID_METHS_DEFINE,
 %   ZHENG_APL_EMBED_PLOT_RS, RS_GET_COORDSETS, RS_KNIT_COORDSETS, RS_DISP_COORDSETS, RS_CONCAT_COORDSETS, RS_XFORM_SPECIFY, RS_XFORM_APPLY
-%   HLID_VI_COORDS_KNIT_AUTO_RS.
+%   HLID_VI_COORDS_KNIT_AUTO_RS, HLID_HEATMAPS_RS.
 %
 hlid_setup;
 %
@@ -233,7 +234,7 @@ for sfilt_ptr=1:length(sfilt_list)
                         if length(stim_match)==1
                             dptrs(istim)=stim_match;
                         else
-                            error(sprintf('stimulus %s not found',labels_ordered{istim}));
+                            error(sprintf('stimulus %s not found',label_order{istim}));
                         end
                     end
                     for idim=dim_list
