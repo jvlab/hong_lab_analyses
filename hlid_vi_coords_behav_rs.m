@@ -1,4 +1,4 @@
- h% hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data from George Barnum
+% hlid_vi_coords_behav_rs: read volumetric imaging coordinates set files, compare with behavioral data from George Barnum
 %
 % behavioral data (valence) indicated by color
 % reliability of behavior across flies indicated by size (large: less variable)
