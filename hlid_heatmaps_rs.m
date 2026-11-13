@@ -53,9 +53,12 @@ end
 label_order_list=fieldnames(label_orders);
 for k=1:length(label_order_list)
     labels=label_orders.(label_order_list{k});
-    disp(sprintf('%2.0f->%20s: %6s %6s %6s %6s ... %6s %6s %6s %6s',k,label_order_list{k},labels{[1 2 3 4 end-3 end-2 end-1 end]}));
+    disp(sprintf('%2.0f->%20s (%4.0f labels) : %6s %6s %6s %6s ... %6s %6s %6s %6s',k,label_order_list{k},length(labels),labels{[1 2 3 4 end-3 end-2 end-1 end]}));
 end
 label_order_choice=getinp('choice (0: native order in file','d',[0 length(label_order_list)],1);
+%
+dim_list=getinp('dimension(s) to plot in heatmap','d',[1 length(data_read.ds{1})],[2 3]);
+%
 for iset=1:nsets
     disp(sprintf('processing %s',filenames{iset}));
     typenames=data_read.sas{iset}.typenames;
@@ -67,9 +70,9 @@ for iset=1:nsets
         label_order=label_orders.(label_order_list{label_order_choice});
         nstims=length(label_order);
         dptrs=zeros(1,nstims);
-        %determine display order (should not depend on data, but needs to be done after alignment and knitting)
+        %determine display order
         for istim=1:nstims
-            stim_match=strmatch(label_order{istim},data_consensus.sas{1}.typenames,'exact');
+            stim_match=strmatch(label_order{istim},data_read.sas{1}.typenames,'exact');
             if length(stim_match)==1
                 dptrs(istim)=stim_match;
             else
@@ -77,27 +80,30 @@ for iset=1:nsets
             end
         end %istim
     end
-    idim=2;
-    dists=sqrt(cootodsq(data_read.ds{iset}{idim}));
-    dists_plot=zeros(nstims,nstims);
-    dptrs_found=dptrs(dptrs>0);
-    dists_plot(dptrs>0,dptrs>0)=dists(dptrs(dptrs>0),dptrs(dptrs>0));
-    %
-    tstring=cat(2,sprintf('dim %1.0f: ',idim),filenames{iset});
-    figure;
-    set(gcf,'Position',[50 50 1200 800]);
-    set(gcf,'NumberTitle','off');
-    set(gcf,'Name',tstring);
-    imagesc(dists_plot);
-    set(gca,'XTick',[1:nstims]);
-    set(gca,'XTickLabel',label_order); %properly ordered
-    set(gca,'YTick',[1:nstims]);
-    set(gca,'YTickLabel',get(gca,'XTickLabel'));
-    axis square;
-    axis tight;
-    colorbar;
-    %
-    axes('Position',[0.01,0.01,0.01,0.01]);
-    text(0,0,tstring,'Interpreter','none');
-    axis off
+    disp(sprintf(' stimuli in file: %3.0f, to be plotted: %3.0f, in label list but not in file: %3.0f, in file but not in label list: %3.0f',...
+        length(typenames),sum(dptrs>0),sum(dptrs==0),length(setdiff([1:length(typenames)],dptrs))));
+    for idim=dim_list
+        dists=sqrt(cootodsq(data_read.ds{iset}{idim}));
+        dists_plot=zeros(nstims,nstims);
+        dptrs_found=dptrs(dptrs>0);
+        dists_plot(dptrs>0,dptrs>0)=dists(dptrs(dptrs>0),dptrs(dptrs>0));
+        %
+        tstring=cat(2,sprintf('dim %1.0f: ',idim),filenames{iset});
+        figure;
+        set(gcf,'Position',[50 50 1200 800]);
+        set(gcf,'NumberTitle','off');
+        set(gcf,'Name',tstring);
+        imagesc(dists_plot);
+        set(gca,'XTick',[1:nstims]);
+        set(gca,'XTickLabel',label_order); %properly ordered
+        set(gca,'YTick',[1:nstims]);
+        set(gca,'YTickLabel',get(gca,'XTickLabel'));
+        axis square;
+        axis tight;
+        colorbar;
+        %
+        axes('Position',[0.01,0.01,0.01,0.01]);
+        text(0,0,tstring,'Interpreter','none');
+        axis off
+    end %idim
 end
